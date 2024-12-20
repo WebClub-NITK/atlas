@@ -1,0 +1,17 @@
+/* Add any custom styles here */
+.challenge-card {
+  transition: transform 0.2s ease-in-out;
+}
+
+.challenge-card:hover {
+  transform: translateY(-5px);
+}
+
+.team-card {
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.team-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
