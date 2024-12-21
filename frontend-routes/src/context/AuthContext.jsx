@@ -7,13 +7,11 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        setUser({ token });
-      } catch (err) {
-        localStorage.removeItem('token');
-        setUser(null);
-      }
+    if (token && isTokenValid(token)) {
+      setUser({ token });
+    } else {
+      localStorage.removeItem('token');
+      setUser(null);
     }
   }, []);
 

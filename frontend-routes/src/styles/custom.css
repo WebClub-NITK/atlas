@@ -1,17 +1,26 @@
 /* Add any custom styles here */
 .challenge-card {
-  transition: transform 0.2s ease-in-out;
+  @apply transition-all duration-300 ease-in-out;
 }
 
 .challenge-card:hover {
-  transform: translateY(-5px);
+  @apply transform -translate-y-2 shadow-lg;
 }
 
 .team-card {
-  transition: box-shadow 0.2s ease-in-out;
+  @apply transition-all duration-300 ease-in-out;
 }
 
 .team-card:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  @apply transform -translate-y-1 shadow-lg;
 }
 
+/* Add responsive padding utility classes */
+.responsive-padding {
+  @apply p-4 sm:p-6 md:p-8;
+}
+
+/* Add responsive grid utility classes */
+.responsive-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
+}

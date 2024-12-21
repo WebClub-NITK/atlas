@@ -13,15 +13,17 @@ body {
 }
 
 .btn {
-  @apply px-4 py-2 rounded-md text-white font-semibold transition-colors duration-200;
+  @apply px-4 py-2 rounded-md text-white font-semibold 
+  transition-all duration-200 transform hover:scale-105 
+  focus:outline-none focus:ring-2 focus:ring-offset-2;
 }
 
 .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700;
+  @apply bg-blue-600 hover:bg-blue-700 focus:ring-blue-500;
 }
 
 .btn-secondary {
-  @apply bg-gray-600 hover:bg-gray-700;
+  @apply bg-gray-600 hover:bg-gray-700 focus:ring-gray-500;
 }
 
 .input {
