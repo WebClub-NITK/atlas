@@ -7,8 +7,8 @@ A modern Capture The Flag (CTF) platform built with React, Vite, and Tailwind CS
 1. **Clone and Install**
 
 ```bash
-git clone <repository-url>
-cd atlas-ctf-frontend
+git clone atlas
+cd frontend-routes
 pnpm install
 ```
 
