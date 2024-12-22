@@ -6,6 +6,7 @@ import ChallengeCard from '../components/ChallengeCard';
 function Challenges() {
   const [challenges, setChallenges] = useState([]);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -14,12 +15,17 @@ function Challenges() {
 
   const fetchChallenges = async () => {
     try {
+      setLoading(true);
       const fetchedChallenges = await getChallenges(user.token);
       setChallenges(fetchedChallenges);
     } catch (err) {
       setError('Failed to fetch challenges');
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="responsive-padding">

@@ -9,7 +9,7 @@ test('renders home page with welcome message', () => {
       <Home />
     </BrowserRouter>
   )
-  const welcomeElement = screen.getByText(/Welcome to CTF Platform/i)
+  const welcomeElement = screen.getByText(/Welcome to Atlas/i)
   expect(welcomeElement).toBeInTheDocument()
 })
 

@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.npm/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+.vercel
+
+# IDE and editor files
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.sublime-*
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Debug and logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.log
+logs/
+
+# Testing and coverage
+coverage/
+.nyc_output/
+.jest/
+junit.xml
+test-report.xml
+
+# Cache and temp files
+.cache/
+.temp/
+.tmp/
+*.tmp
+*~
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+
+# Misc
+.DS_Store
+*.bak
+.history/

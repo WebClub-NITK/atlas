@@ -52,7 +52,7 @@ function App() {
         </main>
       </ErrorBoundary>
       <footer className="bg-gray-800 text-white text-center py-4">
-        © 2023 CTF Platform. All rights reserved.
+        © 2024 Atlas. All rights reserved.
       </footer>
     </div>
   );

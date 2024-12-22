@@ -1,6 +1,6 @@
 # Atlas CTF Platform Frontend
 
-A modern Capture The Flag (CTF) platform built with React, Vite, and Tailwind CSS. This project is currently under active development.
+Atlas is a modern Capture The Flag (CTF) platform built with React, Vite, and Tailwind CSS. This project is currently under active development.
 
 ## 🚦 Getting Started
 

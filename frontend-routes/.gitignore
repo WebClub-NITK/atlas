@@ -7,16 +7,28 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Build and dependencies
 node_modules
 dist
 dist-ssr
 *.local
+.cache/
+.tmp/
+.temp/
+out/
+.vercel
+.next
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
+.history/
+*.swp
+*.swo
+.settings/
+.project
+.classpath
 *.suo
 *.ntvs*
 *.njsproj
@@ -24,14 +36,40 @@ dist-ssr
 *.sw?
 
 # Environment files
-# .env
-# .env.local
-# .env.development.local
-# .env.test.local
-# .env.production.local
+.env
+.env.*
+!.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing and coverage
+coverage
+.nyc_output/
+.jest/
+junit.xml
+test-report.xml
 
 # ESLint
 .eslintcache
 
-# Coverage directory used by testing tools
-coverage
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+*.rdb
+*.pdb
+*.mdb
+*.accdb
+*.sql
+*.bak
+*.dump
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*~
