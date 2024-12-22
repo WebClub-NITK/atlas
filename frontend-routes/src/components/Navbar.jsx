@@ -17,7 +17,7 @@ function Navbar() {
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="font-mario text-xl">
             {' '}
-            Platform
+            Atlas
           </Link>
           <div className="flex space-x-4">
             <Link to="/" className="hover:text-gray-300">
