@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
@@ -11,6 +11,12 @@ import Challenges from './pages/Challenges';
 import NotFound from './pages/NotFound';
 import ForgotPassword from './pages/ForgotPassword';
 import ErrorBoundary from './components/ErrorBoundary';
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminUsers from './pages/admin/Users';
+import AdminUserDetail from './pages/admin/UserDetail';
+import AdminTeamDetail from './pages/admin/TeamDetail';
+import AdminTeams from './pages/admin/Teams';
+import AdminDashboard from './pages/admin/Dashboard';
 
 function App() {
   return (
@@ -47,6 +53,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Navigate to="/admin/dashboard" />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="users/:id" element={<AdminUserDetail />} />
+              <Route path="teams" element={<AdminTeams />} />
+              <Route path="teams/:id" element={<AdminTeamDetail />} />
+            </Route> 
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

@@ -48,6 +48,7 @@ function Navbar() {
                 </Link>
               </>
             )}
+            <Link to="/admin" className="hover:text-gray-300">Admin</Link>
           </div>
         </div>
       </div>
