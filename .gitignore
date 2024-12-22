@@ -5,16 +5,22 @@ node_modules/
 
 # Build outputs
 dist/
+dist-ssr/
 build/
 out/
 .next/
 .nuxt/
 .output/
+*.local
 
 # Environment and secrets
 .env
 .env.*
 !.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 *.pem
 .vercel
 
@@ -26,8 +32,14 @@ out/
 *.sublime-*
 *.swp
 *.swo
-.DS_Store
-Thumbs.db
+.settings/
+.project
+.classpath
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Debug and logs
 npm-debug.log*
@@ -35,6 +47,7 @@ yarn-debug.log*
 pnpm-debug.log*
 *.log
 logs/
+lerna-debug.log*
 
 # Testing and coverage
 coverage/
@@ -55,8 +68,16 @@ test-report.xml
 *.sqlite3
 *.db
 *.db3
-
-# Misc
-.DS_Store
+*.rdb
+*.pdb
+*.mdb
+*.accdb
+*.sql
 *.bak
-.history/
+*.dump
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
