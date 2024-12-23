@@ -17,6 +17,9 @@ import AdminUserDetail from './pages/admin/UserDetail';
 import AdminTeamDetail from './pages/admin/TeamDetail';
 import AdminTeams from './pages/admin/Teams';
 import AdminDashboard from './pages/admin/Dashboard';
+import AdminChallenges from './pages/admin/Challenges';
+import AdminChallengeDetail from './pages/admin/ChallengeDetail';
+import CreateChallenge from './pages/admin/CreateChallenge';
 
 function App() {
   return (
@@ -60,6 +63,9 @@ function App() {
               <Route path="users/:id" element={<AdminUserDetail />} />
               <Route path="teams" element={<AdminTeams />} />
               <Route path="teams/:id" element={<AdminTeamDetail />} />
+              <Route path="challenges" element={<AdminChallenges />} />
+              <Route path="challenges/:id" element={<AdminChallengeDetail />} />
+              <Route path="challenges/create" element={<CreateChallenge />} />
             </Route> 
             <Route path="*" element={<NotFound />} />
           </Routes>
