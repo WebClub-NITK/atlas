@@ -8,7 +8,7 @@ Atlas is a modern Capture The Flag (CTF) platform built with React, Vite, and Ta
 
 ```bash
 git clone atlas
-cd frontend-routes
+cd frontend
 pnpm install
 ```
 

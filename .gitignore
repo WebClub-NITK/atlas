@@ -23,6 +23,7 @@ out/
 .env.production.local
 *.pem
 .vercel
+venv
 
 # IDE and editor files
 .idea/
