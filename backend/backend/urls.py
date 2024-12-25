@@ -19,5 +19,5 @@ from django.urls import path,include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('welcome/',include('welcome.urls'),name='welcome')
+    path('',include('atlas_backend.urls')),
 ]

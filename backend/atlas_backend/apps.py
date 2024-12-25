@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class WelcomeConfig(AppConfig):
+class AtlasBackendConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'welcome'
+    name = 'atlas_backend'
