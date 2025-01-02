@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   db:
-    image: postgres:15
+    image: postgres:16.4-bullseye
     container_name: atlas_db
     environment:
       POSTGRES_USER: ${DB_USER}
@@ -14,6 +12,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 3s
+      timeout: 60s
+      retries: 5
+    restart : always
 
   pgadmin:
     image: dpage/pgadmin4
@@ -27,6 +31,7 @@ services:
       - pgadmin_data:/var/lib/pgadmin
     networks:
       - app-network
+    restart: always
     depends_on:
       - db
 
@@ -37,13 +42,14 @@ services:
     container_name: atlas_frontend
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    # volumes:
+    #   - ./frontend:/app
+    #   - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:8000
     networks:
       - app-network
+    restart: always
     depends_on:
       - backend
 
@@ -54,8 +60,6 @@ services:
     container_name: atlas_backend
     ports:
       - "8000:8000"
-    volumes:
-      - ./backend:/app
     environment:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
@@ -65,6 +69,7 @@ services:
       - DEBUG=1
     networks:
       - app-network
+    restart: always
     depends_on:
       - db
 
@@ -75,3 +80,4 @@ volumes:
 networks:
   app-network:
     driver: bridge
+

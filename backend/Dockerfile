@@ -15,9 +15,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip install --upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy entrypoint
+COPY entrypoint.sh /app/code/entrypoint.sh
+RUN sed -i 's/\r$//g' /app/code/entrypoint.sh
+RUN chmod +x /app/code/entrypoint.sh
 
 # Copy project
 COPY . .
@@ -26,4 +31,5 @@ COPY . .
 EXPOSE 8000
 
 # Run the backend server
+ENTRYPOINT [ "/app/code/entrypoint.sh" ]
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

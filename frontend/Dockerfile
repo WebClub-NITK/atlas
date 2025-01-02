@@ -1,5 +1,5 @@
 # Use node.js as base image
-FROM node:20-slim
+FROM node:23.1-alpine3.19
 
 # Install pnpm 
 RUN npm install -g pnpm
