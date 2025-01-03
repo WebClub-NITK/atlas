@@ -9,57 +9,27 @@ Atlas is an open-source platform for hosting CTF competitions, utilizing dynamic
 
 ## Setup
 
-### Frontend
+1. Clone the repository
 
-1. Clone the repository:
    ```bash
    git clone https://github.com/WebClub-NITK/atlas.git
    ```
-2. Navigate to the frontend directory:
+
+3. Environment Variables
+- Copy the example `.env.example` to a new `.env` file in the root directory
+- Fill in the required environment variables.
+
+- Example `.env` file:
    ```bash
-   cd frontend
-   ```
-3. Install the dependencies:
-   ```bash
-   pnpm install
-   ```
-4. Run the development server:
-   ```bash
-   pnpm run dev
+   DB_USER=postgres
+   DB_PASSWORD=postgres
+   DB_NAME=postgres_db
    ```
 
-### Backend
-
-1. Navigate to the backend directory:
+3. Build and run the docker containers
+   
    ```bash
-    cd backend
-   ```
-
-#### Environment Variables
-1. Copy the example `.env.example` to a new `.env` file.
-2. Fill in the required environment variables.
-
-Example `.env` file:
-```bash
-DB_NAME=your_database_name
-DB_USER=your_database_user
-DB_PASSWORD=your_database_password
-DB_HOST=your_database_host
-DB_PORT=your_database_port
-```
-
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   ```
-3. Install the dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Run the server:
-   ```bash
-   python manage.py runserver
+   docker-compose up --build
    ```
 
 ## Coding Guidelines
