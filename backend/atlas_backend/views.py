@@ -21,10 +21,10 @@ from .serializers import UserSerializer, SignupSerializer
 def signup(request):
     serializer = SignupSerializer(data=request.data)
     if serializer.is_valid():
-        # Access validated data
+        
         validated_data = serializer.validated_data
 
-        # Create the user
+        
         user = User(
             username=validated_data['username'],
             email=validated_data['email']
@@ -32,12 +32,12 @@ def signup(request):
         user.set_password(validated_data['password'])  # Hash the password
         user.save()
 
-        # Assign default role
+        
         default_role, _ = Role.objects.get_or_create(name='user')
         user.role = default_role
         user.save()
 
-        # Generate JWT tokens
+       
         refresh = RefreshToken.for_user(user)
         return Response({
             'refresh': str(refresh),
@@ -53,13 +53,13 @@ def signin(request):
     username = request.data.get('username')
     password = request.data.get('password')
 
-    # Check if both username and password are provided
+    
     if not username or not password:
         return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = authenticate(username=username, password=password)
     if user:
-        # Generate JWT tokens
+        
         refresh = RefreshToken.for_user(user)
         return Response({
             'refresh': str(refresh),
@@ -122,10 +122,10 @@ def get_challenges(request):
 def submit_flag(request, challenge_id):
     flag = request.data.get('flag')
     challenge = get_object_or_404(Challenge, id=challenge_id)
-    team = request.user.team  # Assuming users are assigned to a team
+    team = request.user.team  
 
     if challenge.flag == flag:
-        # Award points if flag is correct
+        
         Submission.objects.create(
             team=team,
             challenge=challenge,
@@ -138,29 +138,27 @@ def submit_flag(request, challenge_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_challenge(request):
-    # Get the data from the request body
+    
     data = request.data
     
-    # Validate and process the incoming data
+    
     try:
-        # Ensure that necessary fields are provided
+        
         title = data.get("title")
         description = data.get("description")
         category = data.get("category")
         docker_image = data.get("docker_image")
         flag = data.get("flag")
         max_points = data.get("max_points")
-        max_team_size = data.get("max_team_size", 4)  # Default to 4 if not provided
+        max_team_size = data.get("max_team_size", 4)  
 
         if not title or not description or not category or not docker_image or not flag or max_points is None:
             raise ValidationError("All fields are required")
 
-        # Check if the category is valid
         valid_categories = dict(Challenge.CATEGORY_CHOICES)
         if category not in valid_categories:
             raise ValidationError(f"Invalid category. Valid categories are: {', '.join(valid_categories.values())}")
 
-        # Create the challenge
         challenge = Challenge.objects.create(
             title=title,
             description=description,
@@ -171,7 +169,6 @@ def create_challenge(request):
             max_team_size=max_team_size
         )
 
-        # Return a success response
         return Response({
             "message": "Challenge created successfully!",
             "challenge_id": challenge.id
