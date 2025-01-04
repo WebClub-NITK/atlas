@@ -9,6 +9,6 @@ urlpatterns = [
     path('auth/reset-password', views.reset_password, name='reset_password'),
     path('challenges', views.get_challenges, name='get_challenges'),
     path('challenges/<int:challenge_id>/submit', views.submit_flag, name='submit_flag'),
-    path('create_challenge', views.create_challenge, name='create_challenge'),
+    path('challenges/create', views.create_challenge, name='create_challenge'),
 
 ]

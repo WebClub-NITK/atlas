@@ -104,6 +104,8 @@ class Submission(models.Model):
     points_awarded = models.IntegerField(validators=[MinValueValidator(0)])
     timestamp = models.DateTimeField(auto_now_add=True)
     flag_submitted = models.CharField(max_length=200,default='')
+    is_correct = models.BooleanField(default=False)
+    attempt_number = models.IntegerField(default=1)
 
     def __str__(self):
         return f"{self.team.name} - {self.challenge.title}"

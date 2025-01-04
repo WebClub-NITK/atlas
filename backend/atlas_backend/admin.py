@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import User, Role, Team, Challenge, Container, Submission
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'role', 'team', 'is_staff')
+    list_display = ('username', 'email', 'role', 'team', 'is_staff', 'created_at', 'updated_at')
     list_filter = ('is_staff', 'is_superuser', 'role', 'team')
     fieldsets = UserAdmin.fieldsets + (
         ('Custom Fields', {'fields': ('role', 'team', 'created_at', 'updated_at')}),
