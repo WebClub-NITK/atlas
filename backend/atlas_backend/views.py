@@ -1,19 +1,20 @@
-from django.shortcuts import render
-from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from rest_framework_simplejwt.tokens import RefreshToken
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
-
 from django.conf import settings
-import jwt
-from rest_framework.permissions import IsAuthenticated
+
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from datetime import datetime, timedelta
-from .models import User, Role,Challenge
-from .serializers import UserSerializer, SignupSerializer
+import jwt
+
+from .models import User, Role, Challenge
+from .serializers import UserSerializer, SignupSerializer, ChallengeSerializer
 
 
 @api_view(['POST'])
@@ -79,17 +80,18 @@ def request_password_reset(request):
             'exp': datetime.utcnow() + timedelta(hours=24)
         }, settings.SECRET_KEY, algorithm='HS256')
         
-        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+        reset_url = f"{settings.FRONTEND_URL}/auth/reset-password?token={token}"
         
-        send_mail(
-            'Password Reset Request',
-            f'Click the following link to reset your password: {reset_url}',
-            settings.DEFAULT_FROM_EMAIL,
-            [email],
-            fail_silently=False,
-        )
+        # to uncomment after smtp configuration
+        # send_mail(
+        #     'Password Reset Request',
+        #     f'Click the following link to reset your password: {reset_url}',
+        #     settings.DEFAULT_FROM_EMAIL,
+        #     [email],
+        #     fail_silently=False,
+        # )
         
-        return Response({'message': 'Password reset email sent'})
+        return Response({'message': 'Password reset token generated', 'reset_url': reset_url})
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -97,8 +99,33 @@ def request_password_reset(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def reset_password(request):
-    token = request.data.get('token')
+    token = request.query_params.get('token')  # Get token from URL query parameter
     new_password = request.data.get('new_password')
+    confirm_password = request.data.get('confirm_password')
+    
+    if not token:
+        return Response(
+            {'error': 'Reset token is required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if not new_password or not confirm_password:
+        return Response(
+            {'error': 'New password and password confirmation are required'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if new_password != confirm_password:
+        return Response(
+            {'error': 'Passwords do not match'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if len(new_password) < 8:
+        return Response(
+            {'error': 'Password must be at least 8 characters long'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
     
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
@@ -106,8 +133,14 @@ def reset_password(request):
         user.set_password(new_password)
         user.save()
         return Response({'message': 'Password reset successful'})
-    except (jwt.ExpiredSignatureError, jwt.DecodeError, User.DoesNotExist):
-        return Response({'error': 'Invalid or expired token'}, status=status.HTTP_400_BAD_REQUEST)
+    except jwt.ExpiredSignatureError:
+        return Response({'error': 'Reset token has expired'}, status=status.HTTP_400_BAD_REQUEST)
+    except jwt.DecodeError:
+        return Response({'error': 'Invalid reset token'}, status=status.HTTP_400_BAD_REQUEST)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception:
+        return Response({'error': 'Password reset failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
