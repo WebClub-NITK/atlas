@@ -80,18 +80,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "backend.wsgi.application"
 
-# Database configuration using PostgreSQL
-tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
-
 DATABASES = {
+    # "default": {
+    #     "ENGINE": "django.db.backends.sqlite3",
+    #     "NAME": BASE_DIR / "db.sqlite3",
+    # }
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': tmpPostgres.path.replace('/', ''),
-        'USER': tmpPostgres.username,
-        'PASSWORD': tmpPostgres.password,
-        'HOST': tmpPostgres.hostname,
-        'PORT': 5432,
-
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
 
