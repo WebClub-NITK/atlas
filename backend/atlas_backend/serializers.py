@@ -22,11 +22,11 @@ class SignupSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             email=validated_data['email']
         )
-        user.set_password(validated_data['password'])  # Hash the password
+        user.set_password(validated_data['password'])  
         user.save()
         return user
 
 class ChallengeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Challenge
-        fields = ['id', 'title', 'description', 'category', 'max_points', 'max_team_size']
+        fields = ['id', 'title', 'description', 'category', 'max_points', 'max_team_size', 'created_at', 'updated_at']
