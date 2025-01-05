@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Role, Team, Challenge, Container, Submission
+from .models import User, Team, Challenge, Container, Submission
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'role', 'team', 'is_staff', 'created_at', 'updated_at')
@@ -11,7 +11,6 @@ class CustomUserAdmin(UserAdmin):
     readonly_fields = ('created_at', 'updated_at')
 
 admin.site.register(User, CustomUserAdmin)
-admin.site.register(Role)
 admin.site.register(Team)
 admin.site.register(Challenge)
 admin.site.register(Container)

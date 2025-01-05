@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from .models import User
-from .models import Challenge
+from django.contrib.auth.models import Group
+from .models import User, Challenge
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -22,8 +22,14 @@ class SignupSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             email=validated_data['email']
         )
-        user.set_password(validated_data['password'])  
+        user.set_password(validated_data['password'])
         user.save()
+
+       
+        default_group, _ = Group.objects.get_or_create(name='user')
+        user.role = default_group  
+        user.save()
+
         return user
 
 class ChallengeSerializer(serializers.ModelSerializer):

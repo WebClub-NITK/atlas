@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import Group  # Add this import
 from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
 from django.conf import settings
@@ -13,7 +14,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from datetime import datetime, timedelta
 import jwt
 
-from .models import User, Role, Challenge
+from .models import User, Challenge
 from .serializers import UserSerializer, SignupSerializer, ChallengeSerializer
 
 
@@ -22,23 +23,7 @@ from .serializers import UserSerializer, SignupSerializer, ChallengeSerializer
 def signup(request):
     serializer = SignupSerializer(data=request.data)
     if serializer.is_valid():
-        
-        validated_data = serializer.validated_data
-
-        
-        user = User(
-            username=validated_data['username'],
-            email=validated_data['email']
-        )
-        user.set_password(validated_data['password'])  # Hash the password
-        user.save()
-
-        
-        default_role, _ = Role.objects.get_or_create(name='user')
-        user.role = default_role
-        user.save()
-
-       
+        user = serializer.save()  
         refresh = RefreshToken.for_user(user)
         return Response({
             'refresh': str(refresh),
@@ -51,18 +36,18 @@ def signup(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signin(request):
-    username = request.data.get('username')
+    email = request.data.get('email')  # Changed from username
     password = request.data.get('password')
 
-    
-    if not username or not password:
-        return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+    if not email or not password:  # Updated error message
+        return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    user = authenticate(username=username, password=password)
+    user = authenticate(email=email, password=password)  # Changed to use email
     if user:
-        
         refresh = RefreshToken.for_user(user)
         return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         })
