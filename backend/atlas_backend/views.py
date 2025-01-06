@@ -1,6 +1,5 @@
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import Group  # Add this import
 from django.core.exceptions import ValidationError
 from django.conf import settings
 
@@ -14,7 +13,7 @@ from datetime import datetime, timedelta
 import jwt
 
 from .models import User, Challenge,Submission
-from .serializers import UserSerializer, SignupSerializer, ChallengeSerializer
+from .serializers import SignupSerializer, ChallengeSerializer
 
 
 @api_view(['POST'])
@@ -190,7 +189,7 @@ def create_challenge(request):
         }, status=status.HTTP_201_CREATED)
 
     except ValidationError:
-        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Validation error"}, status=status.HTTP_400_BAD_REQUEST)
 
     except Exception:
         return Response({"error": "Something went wrong. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
