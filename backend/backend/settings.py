@@ -156,6 +156,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+#to uncomment and add var if we were to actually send mail for email verification or forget password
 # Email settings (use your actual email provider settings for production)
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 # EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
