@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from datetime import datetime, timedelta
 import jwt
 
-from .models import User, Challenge
+from .models import User, Challenge,Submission
 from .serializers import UserSerializer, SignupSerializer, ChallengeSerializer
 
 
@@ -45,8 +45,6 @@ def signin(request):
     if user:
         refresh = RefreshToken.for_user(user)
         return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         })
@@ -191,8 +189,8 @@ def create_challenge(request):
             "challenge_id": challenge.id
         }, status=status.HTTP_201_CREATED)
 
-    except ValidationError as e:
+    except ValidationError:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    except Exception as e:
+    except Exception:
         return Response({"error": "Something went wrong. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
