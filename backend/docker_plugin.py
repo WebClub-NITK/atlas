@@ -55,3 +55,12 @@ class DockerPlugin:
         except APIError as error:
             print(error)
         return None
+    
+    def get_container_logs(self, container_id: str, stream: bool = True):
+        try:
+            container = self.client.containers.get(container_id)
+            return container.logs(stream=stream)
+        except APIError as error:
+            print(error)
+        
+        return None
