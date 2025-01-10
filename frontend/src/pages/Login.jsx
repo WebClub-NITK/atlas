@@ -14,7 +14,7 @@ function Login() {
     e.preventDefault()
     try {
       const data = await apiLogin(email, password)
-      login(data.token)
+      login(data)
       navigate('/')
     } catch (err) {
       setError('Login failed. Please check your credentials.')
