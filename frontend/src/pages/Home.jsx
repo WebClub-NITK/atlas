@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 function Home() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   return (
     <div className="text-center">
@@ -12,9 +12,15 @@ function Home() {
         Test your hacking skills and compete with others!
       </p>
       {isAuthenticated ? (
-        <Link to="/challenges" className="btn btn-primary">
-          Start Hacking
-        </Link>
+        !user?.isAdmin ? (
+          <Link to="/challenges" className="btn btn-primary">
+            Start Hacking
+          </Link>
+        ) : (
+          <Link to="/admin/dashboard" className="btn btn-primary">
+            Admin Dashboard
+          </Link>
+        )
       ) : (
         <div className="space-x-4">
           <Link to="/login" className="btn btn-primary">
