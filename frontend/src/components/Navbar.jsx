@@ -8,7 +8,6 @@ function Navbar() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
   };
 
   return (
@@ -45,7 +44,7 @@ function Navbar() {
                     Admin
                   </Link>
                 )}
-                <button onClick={handleLogout} className="hover:text-gray-300">
+                <button onClick={logout} className="hover:text-gray-300">
                   Logout
                 </button>
               </>

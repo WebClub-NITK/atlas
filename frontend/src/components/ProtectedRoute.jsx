@@ -1,20 +1,20 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 function ProtectedRoute({ children, requireAdmin }) {
   const { isAuthenticated, user } = useAuth();
-  const isAdmin = user?.isAdmin;
+  const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to={requireAdmin ? "/admin/login" : "/login"} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requireAdmin && !isAdmin) {
+  if (requireAdmin && !user?.isAdmin) {
     return <Navigate to="/challenges" replace />;
   }
 
-  if (!requireAdmin && isAdmin) {
+  if (!requireAdmin && user?.isAdmin) {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
