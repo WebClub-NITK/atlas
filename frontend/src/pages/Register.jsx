@@ -34,7 +34,7 @@ function Register() {
 
     try {
       const data = await register(username, email, password);
-      login(data.token);
+      login(data);
       navigate('/');
     } catch (err) {
       setError('Registration failed. Please try again.');
