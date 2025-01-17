@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { dummyChallenges, getChallengeCategories, getChallengeTypes } from '../../data/dummyChallenges';
+import { getChallenges, deleteChallenge } from '../../api/challenges';
 
 function ChallengeFormModal({ challenges, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -79,14 +79,31 @@ function ChallengeFormModal({ challenges, onClose, onSave }) {
 
 function Challenges() {
   const navigate = useNavigate();
-  const [challenges, setChallenges] = useState(dummyChallenges);
+  const [challenges, setChallenges] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedChallenges, setSelectedChallenges] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
 
-  const filteredChallenges = challenges.filter(challenge =>
-    challenge.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        const data = await getChallenges();
+        console.log('The data is', data)
+        setChallenges(data);
+      } catch (err) {
+        setError('Failed to fetch challenges');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchChallenges();
+  }, []);
+
+
 
   const handleSelectChallenge = (id) => {
     setSelectedChallenges(prev =>
@@ -127,6 +144,18 @@ function Challenges() {
     }));
     setShowModal(false);
     setSelectedChallenges([]);
+  };
+
+  const handleDeleteChallenge = async (id) => {
+    if (window.confirm('Are you sure you want to delete this challenge?')) {
+      try {
+        await deleteChallenge(id);
+        setChallenges(challenges.filter(challenge => challenge.id !== id));
+      } catch (error) {
+        console.error('Error deleting challenge:', error);
+        alert('Failed to delete challenge');
+      }
+    }
   };
 
   return (
@@ -204,12 +233,12 @@ function Challenges() {
                   type="checkbox"
                   onChange={(e) => {
                     if (e.target.checked) {
-                      setSelectedChallenges(filteredChallenges.map(challenge => challenge.id));
+                      setSelectedChallenges(challenges.map(challenge => challenge.id));
                     } else {
                       setSelectedChallenges([]);
                     }
                   }}
-                  checked={selectedChallenges.length === filteredChallenges.length}
+                  checked={selectedChallenges.length === challenges.length}
                 />
               </th>
               <th className="px-4 py-2 text-left">ID</th>
@@ -218,10 +247,11 @@ function Challenges() {
               <th className="px-4 py-2 text-left">Type</th>
               <th className="px-4 py-2 text-center">Value</th>
               <th className="w-24 px-4 py-2 text-center">Hidden</th>
+              <th className="px-4 py-2 text-center">Delete</th>
             </tr>
           </thead>
           <tbody>
-            {filteredChallenges.map(challenge => (
+            {challenges.map(challenge => (
               <tr key={challenge.id} className="border-t">
                 <td className="px-4 py-2 text-center">
                   <input
@@ -236,18 +266,26 @@ function Challenges() {
                     to={`/admin/challenges/${challenge.id}`}
                     className="text-blue-500 hover:underline"
                   >
-                    {challenge.name}
+                    {challenge.title}
                   </Link>
                 </td>
                 <td className="px-4 py-2">{challenge.category}</td>
-                <td className="px-4 py-2">{challenge.type}</td>
-                <td className="px-4 py-2 text-center">{challenge.value}</td>
+                <td className="px-4 py-2">{challenge.docker_image}</td>
+                <td className="px-4 py-2 text-center">{challenge.max_points}</td>
                 <td className="px-4 py-2 text-center">
                   {challenge.isHidden && (
                     <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                       Hidden
                     </span>
                   )}
+                </td>
+                <td className="px-4 py-2">
+                  <button
+                    onClick={() => handleDeleteChallenge(challenge.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}

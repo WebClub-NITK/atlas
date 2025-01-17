@@ -11,20 +11,21 @@ function AdminLogin() {
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
     try {
-      const data = await apiLogin(email, password);
-      if (!data.user?.isAdmin) {
+      const data = await apiLogin(email, password)
+      const tokenData = JSON.parse(atob(data.access.split('.')[1]))
+
+      if (!tokenData.user?.isAdmin) {
         setError('Unauthorized access');
         return;
       }
-      login(data.token);
-      navigate('/admin/dashboard');
+      login(data)
+      navigate('/admin/dashboard')
     } catch (err) {
-      setError('Login failed. Please check your credentials.');
+      setError('Login failed. Please check your credentials.')
     }
-  };
-
+  }
   return (
     <div className="max-w-md mx-auto mt-8">
       <h2 className="text-2xl font-semibold mb-4">Admin Login</h2>

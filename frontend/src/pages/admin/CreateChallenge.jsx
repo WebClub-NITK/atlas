@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getChallengeTypes } from '../../data/dummyChallenges';
+import { createChallenge } from '../../api/challenges';
+import { jwtDecode } from 'jwt-decode';
 
 function CreateChallenge() {
   const navigate = useNavigate();
@@ -25,6 +27,7 @@ function CreateChallenge() {
   const [hints, setHints] = useState([
     { id: Date.now(), content: '', cost: 0 }
   ]);
+  const [user, setUser] = useState(null);
 
   const programmingLanguages = [
     { name: 'Python', versions: ['3.8', '3.9', '3.10', '3.11'] },
@@ -33,11 +36,78 @@ function CreateChallenge() {
     { name: 'C++', versions: ['C++17', 'C++20'] }
   ];
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    const tokenData = JSON.parse(localStorage.getItem('token'));
+    console.log('The token is', tokenData);
+    if (!tokenData) {
+      console.error('No token found - redirecting to login');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const decoded = jwtDecode(tokenData.access);
+      setUser(decoded.user);
+      console.log('The user is', decoded.user);
+      
+      // Strict admin check
+      if (!decoded.user.isAdmin) {
+        console.error('Non-admin user attempted to access admin page');
+        alert('Access denied: Administrator privileges required');
+        navigate('/challenges');
+        return;
+      }
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // In a real app, this would be an API call
-    const newId = Math.floor(Math.random() * 10000) + 1;
-    navigate(`/admin/challenges/${newId}`);
+    console.log('sending the requst and isnide create challenge.jsx')
+    // Double-check admin status before submission
+    if (!user?.isAdmin) {
+      console.error('Non-admin user attempted to create challenge');
+      alert('Access denied: Administrator privileges required');
+      navigate('/challenges');
+      return;
+    }
+    else{
+      console.log('The user is and verified ', user);
+    }
+
+    try {
+      const challengeData = {
+        user: user,
+        title: formData.name,
+        description: formData.message,
+        category: formData.category,
+        docker_image: formData.language ? `${formData.language}:${formData.version}` : 'random',
+        flag: formData.flag,
+        max_points: parseInt(formData.value),
+        max_team_size: 4,
+        hints: hints.map(hint => ({
+          content: hint.content,
+          cost: (hint.cost)
+        })),
+        file_links: formData.file_links || []
+      };
+      console.log('The challenge data is', challengeData);
+      console.log('Submitting challenge as admin:', user.email);
+      const response = await createChallenge(challengeData);
+      console.log('Challenge created:', response);
+      alert('Challenge created successfully!');
+      navigate(`/admin/challenges/${response.challenge_id}`);
+    } catch (error) {
+      console.error('Error creating challenge:', error);
+      if (error.response?.status === 403) {
+        alert('Access denied: Administrator privileges required');
+        navigate('/challenges');
+      } else {
+        alert('Failed to create challenge: ' + (error.response?.data?.error || error.message));
+      }
+    }
   };
 
   const addHint = () => {
@@ -184,13 +254,44 @@ function CreateChallenge() {
           </div>
         </div>
         <div>
-          <label className="block mb-2 font-medium">Files</label>
-          <input
-            type="file"
-            multiple
-            className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onChange={(e) => setFormData({...formData, files: Array.from(e.target.files)})}
-          />
+          <label className="block mb-2 font-medium">File Links</label>
+          <div className="space-y-2">
+            {formData.file_links?.map((link, index) => (
+              <div key={index} className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-grow border rounded-lg px-4 py-2"
+                  value={link}
+                  onChange={(e) => {
+                    const newLinks = [...(formData.file_links || [])];
+                    newLinks[index] = e.target.value;
+                    setFormData({...formData, file_links: newLinks});
+                  }}
+                  placeholder="Enter file link URL"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newLinks = formData.file_links.filter((_, i) => i !== index);
+                    setFormData({...formData, file_links: newLinks});
+                  }}
+                  className="px-3 py-2 bg-red-500 text-white rounded-lg"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setFormData({
+                ...formData,
+                file_links: [...(formData.file_links || []), '']
+              })}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg"
+            >
+              Add File Link
+            </button>
+          </div>
         </div>
         <div>
           <label className="inline-flex items-center">

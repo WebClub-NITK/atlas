@@ -6,8 +6,10 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
+import logging
+logger = logging.getLogger(__name__)
 
 from datetime import datetime, timedelta
 import jwt
@@ -278,23 +280,126 @@ def join_team(request):
 def get_scoreboard(request):
     return Response(dummy_scoreboard, status=status.HTTP_200_OK)
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_challenges(request):
-    return Response(dummy_challenges, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def submit_flag(request, challenge_id):
     return Response({"message": "Flag submitted successfully"}, status=status.HTTP_200_OK)
 
-@api_view(['POST'])
+
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def get_challenges(request):
+    """
+    Get all the challenges
+    """
+    challenges = Challenge.objects.all()
+    serializer = ChallengeSerializer(challenges, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_challenge_by_id(request, challenge_id):
+    """
+    Get a challenge by id
+    """
+    try:
+        challenge = Challenge.objects.get(id=challenge_id)
+        serializer = ChallengeSerializer(challenge)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Challenge.DoesNotExist:
+        return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
 def create_challenge(request):
-    return Response({
-        "message": "Challenge created successfully!",
-        "challenge_id": 1
-    }, status=status.HTTP_201_CREATED)
+    # Check if user is admin
+    # logger.info(f"Request data: {request.data}")
+    # print("The between of the flush and the logger", flush=True)
+    # print(request.data, flush=True)
+    if not request.user.is_staff:
+        return Response(
+            {"error": "Only administrators can create challenges"}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        data = request.data
+        
+        # Validate required fields
+        required_fields = ['title', 'description', 'category', 'docker_image', 'flag', 'max_points']
+        for field in required_fields:
+            if not data.get(field):
+                return Response(
+                    {"error": f"{field} is required"}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # Create the challenge
+        challenge = Challenge.objects.create(
+            title=data['title'],
+            description=data['description'],
+            category=data['category'],
+            docker_image=data['docker_image'],
+            flag=data['flag'],
+            max_points=int(data['max_points']),
+            max_team_size=data.get('max_team_size', 4),
+            hints=data.get('hints', []),
+            file_links=data.get('file_links', [])
+        )
+
+        return Response({
+            "message": "Challenge created successfully!",
+            "challenge_id": challenge.id
+        }, status=status.HTTP_201_CREATED)
+
+    except ValidationError as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response(
+            {"error": "An error occurred while creating the challenge"}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def update_challenge(request, challenge_id):
+    try:
+        challenge = Challenge.objects.get(id=challenge_id)
+
+        if 'title' in request.data:
+            challenge.title = request.data['title']
+        if 'description' in request.data:
+            challenge.description = request.data['description']
+        if 'max_points' in request.data:
+            challenge.max_points = request.data['max_points']
+        if 'flag' in request.data:
+            challenge.flag = request.data['flag']
+        if 'file_links' in request.data:
+            challenge.file_links = request.data['file_links']
+        if 'hints' in request.data:
+            challenge.hints = request.data['hints']
+
+        challenge.save()
+
+        return Response({"message": "Challenge updated successfully"}, status=status.HTTP_200_OK)
+    except Challenge.DoesNotExist:
+        return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": "An error occurred while updating the challenge"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)  
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_challenge(request, challenge_id):
+    try:
+        challenge = Challenge.objects.get(id=challenge_id)
+        challenge.delete()
+        return Response({"message": "Challenge deleted successfully"}, status=status.HTTP_200_OK)
+    except Challenge.DoesNotExist:
+        return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": "An error occurred while deleting the challenge"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

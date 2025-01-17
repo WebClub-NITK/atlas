@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getChallengeById } from '../../data/dummyChallenges';
+import { getChallengeById, updateChallenge, deleteChallenge } from '../../api/challenges';
 import { getUserById } from '../../data/dummyUsers';
 import { dummyUsers } from '../../data/dummyUsers';
 import { dummyTeams } from '../../data/dummyTeams';
 
 function EditChallengeModal({ challenge, onClose, onSave }) {
   const [formData, setFormData] = useState({
-    ...challenge,
+    title: challenge.title,
+    description: challenge.description,
+    max_points: challenge.max_points,
+    flag: challenge.flag,
+    file_links: challenge.file_links || [],
+    hints: challenge.hints || [],
     newHint: { content: '', cost: 0 }
   });
 
@@ -15,32 +20,51 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
     if (formData.newHint.content) {
       setFormData({
         ...formData,
-        hints: [...formData.hints, { ...formData.newHint, id: Date.now() }],
+        hints: [...formData.hints, { ...formData.newHint }],
         newHint: { content: '', cost: 0 }
       });
     }
   };
 
-  const removeHint = (hintId) => {
+  const removeHint = (index) => {
     setFormData({
       ...formData,
-      hints: formData.hints.filter(hint => hint.id !== hintId)
+      hints: formData.hints.filter((_, i) => i !== index)
     });
   };
 
-  const handleSubmit = (e) => {
+  const addFileLink = () => {
+    setFormData({
+      ...formData,
+      file_links: [...formData.file_links, '']
+    });
+  };
+
+  const removeFileLink = (index) => {
+    setFormData({
+      ...formData,
+      file_links: formData.file_links.filter((_, i) => i !== index)
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Remove the newHint field before saving
-    const { newHint, ...challengeData } = formData;
-    
-    // TODO: Validate the data before saving
-    // - Check if name is not empty
-    // - Check if value is a positive number
-    // - Check if flag is not empty
-    // - Validate hints have content and valid costs
-    
-    onSave(challengeData);
+    try {
+  
+      
+      await onSave({
+        title: formData.title,
+        description: formData.description,
+        max_points: (formData.max_points),
+        flag: formData.flag,
+        file_links: formData.file_links,
+        hints: formData.hints
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error updating challenge:', error);
+      alert('Failed to update challenge');
+    }
   };
 
   return (
@@ -49,12 +73,12 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
         <h2 className="text-2xl font-bold mb-4">Edit Challenge</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block mb-2 font-medium">Name</label>
+            <label className="block mb-2 font-medium">Title</label>
             <input
               type="text"
               className="w-full border rounded-lg px-4 py-2"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
             />
           </div>
 
@@ -69,12 +93,12 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block mb-2 font-medium">Value</label>
+            <label className="block mb-2 font-medium">Points</label>
             <input
               type="number"
               className="w-full border rounded-lg px-4 py-2"
-              value={formData.value}
-              onChange={(e) => setFormData({...formData, value: parseInt(e.target.value)})}
+              value={formData.max_points}
+              onChange={(e) => setFormData({...formData, max_points: e.target.value})}
             />
           </div>
 
@@ -89,122 +113,121 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
           </div>
 
           <div>
+            <label className="block mb-2 font-medium">File Links</label>
+            <div className="space-y-2">
+              {formData.file_links.map((link, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="text"
+                    className="flex-grow border rounded-lg px-4 py-2"
+                    value={link}
+                    onChange={(e) => {
+                      const newLinks = [...formData.file_links];
+                      newLinks[index] = e.target.value;
+                      setFormData({...formData, file_links: newLinks});
+                    }}
+                    placeholder="Enter file link URL"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFileLink(index)}
+                    className="px-3 py-2 bg-red-500 text-white rounded-lg"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addFileLink}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg"
+              >
+                Add File Link
+              </button>
+            </div>
+          </div>
+
+          <div>
             <label className="block mb-2 font-medium">Hints</label>
             <div className="space-y-4">
-              {formData.hints.map(hint => (
-                <div key={hint.id} className="flex gap-4 items-center bg-gray-50 p-4 rounded-lg">
+              {formData.hints.map((hint, index) => (
+                <div key={index} className="flex gap-4 items-center bg-gray-50 p-4 rounded-lg">
                   <div className="flex-grow">
                     <input
                       type="text"
                       className="w-full border rounded-lg px-4 py-2 mb-2"
                       value={hint.content}
                       onChange={(e) => {
-                        const updatedHints = formData.hints.map(h =>
-                          h.id === hint.id ? {...h, content: e.target.value} : h
-                        );
-                        setFormData({...formData, hints: updatedHints});
+                        const newHints = [...formData.hints];
+                        newHints[index] = { ...hint, content: e.target.value };
+                        setFormData({...formData, hints: newHints});
                       }}
+                      placeholder="Hint content"
                     />
                     <input
                       type="number"
                       className="w-full border rounded-lg px-4 py-2"
                       value={hint.cost}
                       onChange={(e) => {
-                        const updatedHints = formData.hints.map(h =>
-                          h.id === hint.id ? {...h, cost: parseInt(e.target.value)} : h
-                        );
-                        setFormData({...formData, hints: updatedHints});
+                        const newHints = [...formData.hints];
+                        newHints[index] = { ...hint, cost: parseInt(e.target.value) };
+                        setFormData({...formData, hints: newHints});
                       }}
+                      placeholder="Hint cost"
                     />
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeHint(hint.id)}
-                    className="text-red-500 hover:text-red-700"
+                    onClick={() => removeHint(index)}
+                    className="px-3 py-2 bg-red-500 text-white rounded-lg"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    Remove
                   </button>
                 </div>
               ))}
-              <div className="flex gap-4">
+              <div className="flex gap-2">
                 <input
                   type="text"
                   className="flex-grow border rounded-lg px-4 py-2"
-                  placeholder="New hint content"
                   value={formData.newHint.content}
                   onChange={(e) => setFormData({
                     ...formData,
-                    newHint: {...formData.newHint, content: e.target.value}
+                    newHint: { ...formData.newHint, content: e.target.value }
                   })}
+                  placeholder="New hint content"
                 />
                 <input
                   type="number"
                   className="w-32 border rounded-lg px-4 py-2"
-                  placeholder="Cost"
                   value={formData.newHint.cost}
                   onChange={(e) => setFormData({
                     ...formData,
-                    newHint: {...formData.newHint, cost: parseInt(e.target.value)}
+                    newHint: { ...formData.newHint, cost: parseInt(e.target.value) }
                   })}
+                  placeholder="Cost"
                 />
                 <button
                   type="button"
                   onClick={addHint}
                   className="px-4 py-2 bg-green-500 text-white rounded-lg"
                 >
-                  Add
+                  Add Hint
                 </button>
               </div>
             </div>
           </div>
 
-          <div>
-            <label className="block mb-2 font-medium">Files</label>
-            <input
-              type="file"
-              multiple
-              className="w-full border rounded-lg px-4 py-2"
-              onChange={(e) => {
-                const files = Array.from(e.target.files).map(file => ({
-                  id: Date.now(),
-                  name: file.name,
-                  path: URL.createObjectURL(file)
-                }));
-                setFormData({...formData, files: [...formData.files, ...files]});
-              }}
-            />
-            <div className="mt-2 space-y-2">
-              {formData.files.map(file => (
-                <div key={file.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                  <span>{file.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({
-                      ...formData,
-                      files: formData.files.filter(f => f.id !== file.id)
-                    })}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded-lg"
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
             >
               Save Changes
             </button>
@@ -218,38 +241,70 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
 function ChallengeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [challenge, setChallenge] = useState(getChallengeById(id));
+  const [challenge, setChallenge] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const handleSaveChallenge = (updatedChallenge) => {
-    // TODO: Implement PUT request to /api/challenges/:id
-    // Example API call:
-    // await axios.put(`/api/challenges/${id}`, updatedChallenge);
-    
-    // For now, update the frontend state
-    setChallenge(updatedChallenge);
-    setShowEditModal(false);
+  useEffect(() => {
+    const fetchChallenge = async () => {
+      try {
+        const data = await getChallengeById(id);
+        console.log('The challenge recevied is ', data)
+        setChallenge(data);
+      } catch (err) {
+        setError('Failed to fetch challenge details');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChallenge();
+  }, [id]);
+
+  const handleSaveChallenge = async (updatedData) => {
+    try {
+      console.log('Updating challenge with data:', updatedData);
+      console.log('The challenge id is', challenge.id)
+      const response = await updateChallenge(updatedData, challenge.id);
+      console.log('Update response:', response);
+      
+      // Update the local state with the new data
+      setChallenge({
+        ...challenge,
+        ...updatedData
+      });
+      
+      setShowEditModal(false);
+      alert('Challenge updated successfully!');
+    } catch (error) {
+      console.error('Error updating challenge:', error);
+      alert('Failed to update challenge: ' + (error.response?.data?.error || error.message));
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this challenge?')) {
-      // TODO: Implement DELETE request to /api/challenges/:id
-      // Example API call:
-      // await axios.delete(`/api/challenges/${id}`);
-      
-      navigate('/admin/challenges');
+      try {
+        await deleteChallenge(id);
+        navigate('/admin/challenges');
+      } catch (error) {
+        console.error('Error deleting challenge:', error);
+        alert('Failed to delete challenge');
+      }
     }
   };
 
   const getUserById = (userId) => dummyUsers.find(user => user.id === userId);
   const getTeamById = (teamId) => dummyTeams.find(team => team.id === teamId);
 
-  if (!challenge) {
-    return <div>Challenge not found</div>;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!challenge) return <div>Challenge not found</div>;
 
-  const correctSubmissions = challenge.submissions.filter(sub => sub.isCorrect);
-  const incorrectSubmissions = challenge.submissions.filter(sub => !sub.isCorrect);
+  // const correctSubmissions = challenge.submissions.filter(sub => sub.isCorrect);
+  // const incorrectSubmissions = challenge.submissions.filter(sub => !sub.isCorrect);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -257,7 +312,7 @@ function ChallengeDetail() {
         {/* Header Section */}
         <div className="bg-white rounded-xl shadow-sm p-8 mb-6">
           <div className="flex justify-between items-start mb-6">
-            <h1 className="text-4xl font-bold text-gray-900">{challenge.name}</h1>
+            <h1 className="text-4xl font-bold text-gray-900">{challenge.title}</h1>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowEditModal(true)}
@@ -268,7 +323,7 @@ function ChallengeDetail() {
               <button
                 onClick={() => {
                   if (window.confirm('Are you sure you want to delete this challenge?')) {
-                    navigate('/admin/challenges');
+                    handleDelete(challenge.id)
                   }
                 }}
                 className="px-5 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
@@ -283,14 +338,14 @@ function ChallengeDetail() {
               {challenge.category}
             </span>
             <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-lg font-medium">
-              {challenge.type}
+              Standard
             </span>
             <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium">
-              {challenge.value} points
+              {challenge.max_points} points
             </span>
-            <span className="px-4 py-2 bg-orange-100 text-orange-800 rounded-lg font-medium">
+            {/* <span className="px-4 py-2 bg-orange-100 text-orange-800 rounded-lg font-medium">
               {correctSubmissions.length} solves
-            </span>
+            </span> */}
             {challenge.isHidden && (
               <span className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium">
                 Hidden
@@ -335,20 +390,21 @@ function ChallengeDetail() {
             </div>
           )}
 
-          {/* Files Section */}
-          {challenge.files && challenge.files.length > 0 && (
+          {/* File links Section */}
+          {challenge.file_links && challenge.file_links.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Files</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">File Links</h2>
               <div className="grid gap-4">
-                {challenge.files.map(file => (
+                {challenge.file_links.map(file => (
                   <div key={file.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                    <span className="font-medium text-gray-700">{file.name}</span>
+                    <span className="font-medium text-gray-700">{file}</span>
                     <a
-                      href={file.path}
+                      href={file}
                       download
+                      target="_blank"
                       className="text-blue-500 hover:text-blue-600 font-medium"
                     >
-                      Download
+                      Open
                     </a>
                   </div>
                 ))}
@@ -360,10 +416,13 @@ function ChallengeDetail() {
           <div className="bg-white rounded-xl shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Submissions</h2>
             
+            {/* TODO: Implement real submission logic once the submission system is in place */}
+            {/* Placeholder data for demonstration purposes only */}
+            
             {/* Correct Submissions */}
             <div className="mb-8">
               <h3 className="text-xl font-semibold text-green-600 mb-4">
-                Correct Submissions ({correctSubmissions.length})
+                Correct Submissions (Placeholder)
               </h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full">
@@ -375,33 +434,16 @@ function ChallengeDetail() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {correctSubmissions.map((sub, index) => {
-                      const user = dummyUsers.find(u => u.id === sub.userId);
-                      const team = dummyTeams.find(t => t.id === sub.teamId);
-                      return (
-                        <tr key={index}>
-                          <td className="px-6 py-4">
-                            <Link 
-                              to={`/admin/users/${user.id}`}
-                              className="text-blue-500 hover:text-blue-600 font-medium"
-                            >
-                              {user.username}
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4">
-                            <Link 
-                              to={`/admin/teams/${team.id}`}
-                              className="text-blue-500 hover:text-blue-600 font-medium"
-                            >
-                              {team.name}
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4 text-gray-600">
-                            {new Date(sub.submittedAt).toLocaleString()}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    <tr>
+                      <td className="px-6 py-4">User123</td>
+                      <td className="px-6 py-4">TeamAlpha</td>
+                      <td className="px-6 py-4 text-gray-600">2024-01-01 12:00:00</td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4">User456</td>
+                      <td className="px-6 py-4">TeamBeta</td>
+                      <td className="px-6 py-4 text-gray-600">2024-01-01 13:00:00</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -410,7 +452,7 @@ function ChallengeDetail() {
             {/* Incorrect Submissions */}
             <div>
               <h3 className="text-xl font-semibold text-red-600 mb-4">
-                Incorrect Submissions ({incorrectSubmissions.length})
+                Incorrect Submissions (Placeholder)
               </h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full">
@@ -423,38 +465,18 @@ function ChallengeDetail() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {incorrectSubmissions.map((sub, index) => {
-                      const user = dummyUsers.find(u => u.id === sub.userId);
-                      const team = dummyTeams.find(t => t.id === sub.teamId);
-                      return (
-                        <tr key={index}>
-                          <td className="px-6 py-4">
-                            <Link 
-                              to={`/admin/users/${user.id}`}
-                              className="text-blue-500 hover:text-blue-600 font-medium"
-                            >
-                              {user.username}
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4">
-                            <Link 
-                              to={`/admin/teams/${team.id}`}
-                              className="text-blue-500 hover:text-blue-600 font-medium"
-                            >
-                              {team.name}
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4 text-gray-600">
-                            {new Date(sub.submittedAt).toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4">
-                            <code className="font-mono bg-gray-100 px-2 py-1 rounded">
-                              {sub.submission}
-                            </code>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    <tr>
+                      <td className="px-6 py-4">User789</td>
+                      <td className="px-6 py-4">TeamGamma</td>
+                      <td className="px-6 py-4 text-gray-600">2024-01-01 14:00:00</td>
+                      <td className="px-6 py-4">incorrect_flag_123</td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4">User101</td>
+                      <td className="px-6 py-4">TeamDelta</td>
+                      <td className="px-6 py-4 text-gray-600">2024-01-01 15:00:00</td>
+                      <td className="px-6 py-4">wrong_attempt_456</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>

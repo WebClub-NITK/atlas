@@ -35,4 +35,4 @@ class SignupSerializer(serializers.ModelSerializer):
 class ChallengeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Challenge
-        fields = ['id', 'title', 'description', 'category', 'max_points', 'max_team_size', 'created_at', 'updated_at']
+        fields = ['id', 'title', 'description', 'category', 'docker_image', 'flag', 'max_points', 'max_team_size', 'created_at', 'updated_at', 'file_links', 'hints']

@@ -86,7 +86,8 @@ class Challenge(models.Model):
     max_team_size = models.IntegerField(default=4)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    hints = models.JSONField(default=list, blank=True)
+    file_links = models.JSONField(default=list, blank=True)
     def __str__(self):
         return self.title
 
