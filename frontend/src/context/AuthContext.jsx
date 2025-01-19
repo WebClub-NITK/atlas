@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { register, login } from '../api/auth'; // Ensure these imports are correct
+import { register, login as apiLogin } from '../api/auth'; // Ensure these imports are correct
 
 export const AuthContext = createContext();
 
@@ -10,16 +10,34 @@ export const AuthProvider = ({ children }) => {
     access: null,
     refresh: null,
   });
+  const [loading, setLoading] = useState(true); // Add loading state
 
   useEffect(() => {
-    const storedToken = JSON.parse(localStorage.getItem('token'));
-    if (storedToken && isTokenValid(storedToken.access)) {
-      setToken(storedToken);
-      setUser(parseToken(storedToken.access));
-    } else {
-      localStorage.removeItem('token');
-      setUser(null);
-    }
+    // Check for token in localStorage on initial load
+    const initializeAuth = () => {
+      try {
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+          const parsedToken = JSON.parse(storedToken);
+          if (parsedToken && isTokenValid(parsedToken.access)) {
+            const userData = parseToken(parsedToken.access);
+            setUser(userData);
+          } else {
+            // Token is invalid or expired
+            localStorage.removeItem('token');
+            setUser(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        localStorage.removeItem('token');
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
   }, []);
 
   const parseToken = (token) => {
@@ -100,9 +118,10 @@ export const AuthProvider = ({ children }) => {
         logout,
         signup,
         isAuthenticated,
+        loading, // Expose loading state
       }}
     >
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

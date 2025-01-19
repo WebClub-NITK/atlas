@@ -28,27 +28,29 @@ function Scoreboard() {
   }
 
   return (
-    <div>
+    <div className="dark-content">
       <h2 className="text-2xl font-semibold mb-4">Scoreboard</h2>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      <table className="w-full">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="p-2 text-left">Rank</th>
-            <th className="p-2 text-left">Team</th>
-            <th className="p-2 text-left">Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          {scores.map((score, index) => (
-            <tr key={score.teamId} className={index % 2 === 0 ? 'bg-gray-100' : ''}>
-              <td className="p-2">{index + 1}</td>
-              <td className="p-2">{score.teamName}</td>
-              <td className="p-2">{score.score}</td>
+      {error && <p className="text-red-400 mb-4">{error}</p>}
+      <div className="overflow-x-auto">
+        <table className="w-full dark-table rounded-lg overflow-hidden">
+          <thead>
+            <tr>
+              <th className="p-2 text-left">Rank</th>
+              <th className="p-2 text-left">Team</th>
+              <th className="p-2 text-left">Score</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {scores.map((score, index) => (
+              <tr key={score.teamId}>
+                <td className="p-2">{index + 1}</td>
+                <td className="p-2">{score.teamName}</td>
+                <td className="p-2">{score.score}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

@@ -7,10 +7,10 @@ function AdminDashboard() {
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link to="/admin/users" className="block">
-          <div className="bg-white p-6 rounded-lg shadow-md transition-transform hover:scale-105">
-            <h2 className="text-xl font-semibold mb-2">Users</h2>
-            <p className="text-4xl font-bold text-blue-600">150</p>
-            <p className="text-gray-500 mt-2">Manage users →</p>
+          <div className="bg-neutral-800 p-6 rounded-lg shadow-md transition-transform hover:scale-105">
+            <h2 className="text-xl font-semibold mb-2 text-gray-100">Users</h2>
+            <p className="text-4xl font-bold text-gray-300">150</p>
+            <p className="text-gray-400 mt-2">Manage users →</p>
           </div>
         </Link>
         
@@ -34,4 +34,4 @@ function AdminDashboard() {
   );
 }
 
-export default AdminDashboard; 
+export default AdminDashboard;

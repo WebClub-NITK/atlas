@@ -43,12 +43,50 @@ dummy_challenges = [
         "name": "Challenge 1",
         "description": "Solve this challenge",
         "points": 100,
+        "category": "web",
+        "docker": True,
+        "no_of_tries": 3
+
     },
     {
         "id": 2,
         "name": "Challenge 2",
         "description": "Solve this challenge too",
         "points": 200,
+        "category": "crypto",
+        "docker": True,
+        "no_of_tries": 3,
+        "link": "www.google.com"
+    },
+    {
+        "id": 3,
+        "name": "Challenge 3",
+        "description": "Solve this challenge too",
+        "points": 200,
+        "category": "crypto",
+        "docker": False,
+        "no_of_tries": 3,
+        "link": "www.google.com"
+    },
+    {
+        "id": 3,
+        "name": "Challenge 3",
+        "description": "Solve this challenge too",
+        "points": 200,
+        "category": "crypto",
+        "docker": False,
+        "no_of_tries": 3,
+        "link": "www.google.com"
+    },
+    {
+        "id": 3,
+        "name": "Challenge 3",
+        "description": "Solve this challenge too",
+        "points": 200,
+        "category": "crypto",
+        "docker": False,
+        "no_of_tries": 3,
+        "link": "www.google.com"
     },
 ]
 
