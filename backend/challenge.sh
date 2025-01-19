@@ -1,6 +1,5 @@
-#!/bin/bash
+#!/bin/sh
 
 echo "Starting the application"
-echo "atlas:$SSH_PASS" | chpasswd
-service ssh start
-bash
+echo "atlas:$PASS" | chpasswd
+/usr/sbin/sshd -D

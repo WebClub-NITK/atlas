@@ -1,11 +1,15 @@
 import docker
-import random
-
+import secrets
+import logging
 import docker.errors
 
-# TODO: Add better error reporting than print statements
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(message)s", level=logging.ERROR
+)
 
-ALLOWED_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+ALLOWED_CHARACTERS = (
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+)
 
 
 class DockerPlugin:
@@ -17,21 +21,40 @@ class DockerPlugin:
             images = self.client.images.load(data)
             return images[0].id
         except docker.errors.APIError as error:
-            print(error)
+            logging.error(error)
         return None
 
     def run_container(self, image: str, port: int, container_name: str = None):
         try:
-            # TODO: Play around with the resources parameter to limit the amount of resources the container can use
-            password = "".join(random.choices(ALLOWED_CHARACTERS, k=16))
+            password = "".join(
+                secrets.choice(ALLOWED_CHARACTERS) for _ in range(16)
+            )
+
+            resources = {
+                "cpu_quota": 50000,  # 50% of a single core
+                "cpu_period": 100000,  # 100% of a single core
+                "memory": "512m",
+            }
+
+            if container_name and not container_name.isalnum():
+                logging.error("Invalid container name.")
+                return None
 
             container = self.client.containers.run(
-                image, detach=True, auto_remove=True, tty=True, name=container_name,
-                environment={"PASS": password}, ports={f"{port}/tcp": None}
+                image,
+                detach=True,
+                auto_remove=True,
+                tty=True,
+                name=container_name,
+                environment={"PASS": password},
+                ports={f"{port}/tcp": None},
+                cpu_quota=resources["cpu_quota"],
+                cpu_period=resources["cpu_period"],
+                mem_limit=resources["memory"],
             )
             return container.id, password
         except docker.errors.APIError as error:
-            print(error)
+            logging.error(error)
         return None
 
     def stop_container(self, container_id: str):
@@ -40,7 +63,7 @@ class DockerPlugin:
             container.stop()
             return True
         except docker.errors.APIError as error:
-            print(error)
+            logging.error(error)
         return False
 
     def restart_container(self, container_id: str):
@@ -49,7 +72,7 @@ class DockerPlugin:
             container.restart()
             return True
         except docker.errors.APIError as error:
-            print(error)
+            logging.error(error)
         return False
 
     def get_images(self):
@@ -63,7 +86,7 @@ class DockerPlugin:
             else:
                 return container.ports
         except docker.errors.APIError as error:
-            print(error)
+            logging.error(error)
         return None
 
     def get_container_logs(self, container_id: str, stream: bool = True):
@@ -71,6 +94,5 @@ class DockerPlugin:
             container = self.client.containers.get(container_id)
             return container.logs(stream=stream)
         except docker.errors.APIError as error:
-            print(error)
-
+            logging.error(error)
         return None

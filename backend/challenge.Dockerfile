@@ -1,13 +1,18 @@
-# This bloats up the image size, need an alternative
-FROM ubuntu:latest
+FROM alpine:latest
 
-RUN apt-get update && apt-get install -y openssh-server
+RUN apk add --no-cache openssh-server
 
-RUN useradd -m atlas
+RUN adduser -D atlas
+
+RUN ssh-keygen -A
 
 WORKDIR /home/atlas/
 
-COPY ./challenge.sh ./start.sh
-RUN chmod +x ./challenge.sh
+COPY challenge.sh /home/atlas/challenge.sh
+RUN chmod +x /home/atlas/challenge.sh
 
-ENTRYPOINT [ "./challenge.sh" ]
+# ENV PASS=atlas
+
+CMD [ "/bin/sh", "-c", "/home/atlas/challenge.sh" ]
+
+# EXPOSE 22
