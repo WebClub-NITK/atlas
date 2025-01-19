@@ -1,30 +1,33 @@
 # backend/atlas_backend/urls.py
 from django.urls import path
 from . import views
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     # Auth routes
     path('auth/register', views.signup, name='signup'),
     path('auth/login', views.signin, name='signin'),
-    path('auth/forgot-password', views.request_password_reset, name='request_password_reset'),
-    path('auth/reset-password', views.reset_password, name='reset_password'),
+    path('auth/refresh', views.token_refresh, name='token_refresh'),
     
     # Challenge routes
     path('challenges', views.get_challenges, name='get_challenges'),
     path('challenges/<int:challenge_id>/submit', views.submit_flag, name='submit_flag'),
-    path('challenges/<int:challenge_id>/start', views.start_challenge, name='start_challenge'),
     
     # Team routes
     path('teams', views.get_teams, name='get_teams'),
-    path('teams/create', views.create_team, name='create_team'),
-    path('teams/join', views.join_team, name='join_team'),
-    path('teams/leave', views.leave_team, name='leave_team'),
+    path('teams/profile', views.team_profile, name='team_profile'),
     
     # Scoreboard route
     path('scoreboard', views.get_scoreboard, name='get_scoreboard'),
-    
-    # User routes
-    path('user/update-info', views.update_user_info, name='update_user_info'),
-    path('user/profile', views.get_user_profile, name='get_user_profile'),
-    path('user/team/history', views.get_team_history, name='get_team_history'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # Admin routes
+    path('auth/admin/login', views.admin_login, name='admin_login'),
+    path('challenges/admin', views.admin_get_challenges, name='admin_get_challenges'),
+    path('challenges/create', views.create_challenge, name='create_challenge'),
+    path('challenges/<int:challenge_id>/update', views.update_challenge, name='update_challenge'),
+    path('challenges/<int:challenge_id>/delete', views.delete_challenge, name='delete_challenge'),
+    path('challenges/<int:challenge_id>', views.get_challenge_detail, name='get_challenge_by_id'),
+
+
 ]

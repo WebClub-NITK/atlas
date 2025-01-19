@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 function Navbar() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
+    navigate('/');
   };
 
   return (
@@ -22,32 +23,36 @@ function Navbar() {
               Home
             </Link>
             {isAuthenticated ? (
-              <>
-                {!user?.isAdmin && (
-                  <>
-                    <Link to="/teams" className="hover:text-gray-300">
-                      Join Team
-                    </Link>
-                    <Link to="/challenges" className="hover:text-gray-300">
-                      Challenges
-                    </Link>
-                    <Link to="/scoreboard" className="hover:text-gray-300">
-                      Scoreboard
-                    </Link>
-                    <Link to="/user/profile" className="hover:text-gray-300">
-                      User
-                    </Link>
-                  </>
-                )}
-                {user?.isAdmin && (
+              isAdmin ? (
+                // Admin Navigation
+                <>
                   <Link to="/admin/dashboard" className="hover:text-gray-300">
-                    Admin
+                    Dashboard
                   </Link>
-                )}
-                <button onClick={logout} className="hover:text-gray-300">
-                  Logout
-                </button>
-              </>
+                  <button onClick={handleLogout} className="hover:text-gray-300">
+                    Admin Logout
+                  </button>
+                </>
+              ) : (
+                // Team Navigation
+                <>
+                  <Link to="/teams" className="hover:text-gray-300">
+                    Join Team
+                  </Link>
+                  <Link to="/challenges" className="hover:text-gray-300">
+                    Challenges
+                  </Link>
+                  <Link to="/scoreboard" className="hover:text-gray-300">
+                    Scoreboard
+                  </Link>
+                  <Link to="/team/profile" className="hover:text-gray-300">
+                    Team Profile
+                  </Link>
+                  <button onClick={handleLogout} className="hover:text-gray-300">
+                    Logout
+                  </button>
+                </>
+              )
             ) : (
               <>
                 <Link to="/login" className="hover:text-gray-300">

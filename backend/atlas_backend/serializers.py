@@ -17,34 +17,21 @@ class SignupSerializer(serializers.ModelSerializer):
 
 class ChallengeSerializer(serializers.ModelSerializer):
     is_solved = serializers.SerializerMethodField()
-    attempts = serializers.SerializerMethodField()
 
     class Meta:
         model = Challenge
-        fields = [
-            'id', 
-            'title', 
-            'description', 
-            'category', 
-            'max_points',
-            'max_team_size', 
-            'docker_image', 
-            'is_solved', 
-            'attempts',
-            'created_at',
-            'updated_at'
-        ]
-        extra_kwargs = {
-            'flag': {'write_only': True}  # Never expose flag in API responses
-        }
+        fields = ['id', 'name', 'description', 'points', 'category', 
+                 'difficulty', 'is_solved']
 
     def get_is_solved(self, obj):
-        team = self.context.get('user_team')
-        return team and obj.submissions.filter(team=team, is_correct=True).exists()
-
-    def get_attempts(self, obj):
-        team = self.context.get('user_team')
-        return team and obj.submissions.filter(team=team).count() or 0
+        user_team = self.context.get('user_team')
+        if not user_team:
+            return False
+        return Submission.objects.filter(
+            team=user_team,
+            challenge=obj,
+            is_correct=True
+        ).exists()
 
 class TeamSerializer(serializers.ModelSerializer):
     members = UserSerializer(many=True, read_only=True)

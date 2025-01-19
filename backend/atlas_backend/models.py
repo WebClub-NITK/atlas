@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, Group
 from django.core.validators import MinValueValidator
+from django.contrib.auth.hashers import make_password, check_password
+from django.db.models import CharField, TextField, IntegerField, BooleanField, DateTimeField
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -36,9 +38,17 @@ class Team(models.Model):
     challenges = models.ManyToManyField("Challenge", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    password = models.CharField(max_length=128, default=make_password('default_password'))
+    team_email = models.EmailField(unique=True, default='team@example.com')
 
     def __str__(self):
         return self.name
+
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        return check_password(raw_password, self.password)
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -58,12 +68,12 @@ class User(AbstractUser):
 
 class Challenge(models.Model):
     CATEGORY_CHOICES = [
-        ("web", "Web"),
-        ("crypto", "Cryptography"), 
-        ("pwn", "Binary Exploitation"),
-        ("reverse", "Reverse Engineering"),
-        ("forensics", "Forensics"),
-        ("misc", "Miscellaneous"),
+        ('web', 'Web'),
+        ('crypto', 'Cryptography'),
+        ('pwn', 'Binary Exploitation'),
+        ('reverse', 'Reverse Engineering'),
+        ('forensics', 'Forensics'),
+        ('misc', 'Miscellaneous'),
     ]
 
     title = models.CharField(max_length=200, unique=True)
@@ -75,6 +85,9 @@ class Challenge(models.Model):
     max_team_size = models.IntegerField(default=4)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_hidden = models.BooleanField(default=False)
+    hints = models.JSONField(default=list, blank=True)
+    file_links = models.JSONField(default=list, blank=True)
 
     def __str__(self):
         return self.title
@@ -103,7 +116,7 @@ class Container(models.Model):
 class Submission(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="submissions")
     challenge = models.ForeignKey(Challenge, on_delete=models.CASCADE, related_name="submissions")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions', default=1)
     flag_submitted = models.CharField(max_length=200, default="")
     is_correct = models.BooleanField(default=False)
     points_awarded = models.IntegerField(validators=[MinValueValidator(0)])

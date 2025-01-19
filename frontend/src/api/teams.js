@@ -45,3 +45,13 @@ export const leaveTeam = async () => {
     throw error;
   }
 };
+
+export const getTeamProfile = async () => {
+  try {
+    const response = await apiClient.get('/teams/profile');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching team profile:', error);
+    throw error;
+  }
+};

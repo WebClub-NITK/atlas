@@ -12,20 +12,25 @@ export const getUserProfile = async () => {
 };
 
 // Update user information
-export const updateUserInfo = async (userData) => {
+export const updateUserInfo = async (data) => {
   try {
-    const response = await apiClient.post('/user/update-info', userData);
+    const response = await apiClient.put('/user/profile', data);
     return response.data;
   } catch (error) {
-    console.error('Error updating user info:', error);
+    console.error('Error in updateUserInfo:', error);
     throw error;
   }
 };
 
 // Get team history for the user
 export const getTeamHistory = async () => {
-  const response = await apiClient.get('/user/team/history');
-  return response.data;
+  try {
+    const response = await apiClient.get('/user/team/history');
+    return response.data;
+  } catch (error) {
+    console.error('Error in getTeamHistory:', error);
+    throw error;
+  }
 };
 
 export const leaveTeam = async () => {
