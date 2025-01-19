@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
         token,
         id: decoded.user.id,
         email: decoded.user.email,
-        username: decoded.user.username,
+        teamName: decoded.user.teamName, // Changed from username
         isAdmin: decoded.user.isAdmin,
         isVerified: decoded.user.isVerified,
         teamId: decoded.user.teamId || null,
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
       token: access,
       id: decodedAccess.user.id,
       email: decodedAccess.user.email,
-      username: decodedAccess.user.username,
+      teamName: decodedAccess.user.teamName, // Changed from username
       isAdmin: decodedAccess.user.isAdmin,
       isVerified: decodedAccess.user.isVerified,
       teamId: decodedAccess.user.teamId || null,

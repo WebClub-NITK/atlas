@@ -49,13 +49,13 @@ importers:
         specifier: ^2.1.0
         version: 2.2.0(vite@3.2.11)
       autoprefixer:
-        specifier: ^10.4.12
+        specifier: ^10.4.20
         version: 10.4.20(postcss@8.4.49)
       postcss:
-        specifier: ^8.4.18
+        specifier: ^8.4.49
         version: 8.4.49
       tailwindcss:
-        specifier: ^3.2.1
+        specifier: ^3.4.17
         version: 3.4.17
       vite:
         specifier: ^3.1.0

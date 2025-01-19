@@ -32,7 +32,7 @@ export const startChallenge = async (challengeId, token) => {
   return response.data;
 }
 
-export const fetchChallenge = async (challengeId, token) => {
+export const getChallengeById = async (challengeId, token) => {
   // try {
   //   const response = await fetch(`${API_URL}/api/challenges/${challengeId}/`, {
   //     method: 'GET',
@@ -56,7 +56,7 @@ export const fetchChallenge = async (challengeId, token) => {
     description: 'Description of Challenge 1',
     category: 'Web',
     points: 100,
-    docker: false,
+    docker: true,
     no_of_tries: 5,
     link: 'www.google.com',
   }

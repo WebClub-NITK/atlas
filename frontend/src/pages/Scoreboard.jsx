@@ -1,59 +1,54 @@
-import React, { useState, useEffect } from 'react'
-import { getScoreboard } from '../api/scoreboard'
-import { useAuth } from '../hooks/useAuth'
+import React, { useState, useEffect } from 'react';
+import { getScoreboard } from '../api/scoreboard';
+import { useAuth } from '../hooks/useAuth';
 
 function Scoreboard() {
-  const [scores, setScores] = useState([])
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(true)
-  const { user } = useAuth()
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchScoreboard()
-  }, [])
+    const fetchScoreboard = async () => {
+      try {
+        const data = await getScoreboard(user.token);
+        setTeams(data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch scoreboard:', error);
+        setLoading(false);
+      }
+    };
 
-  const fetchScoreboard = async () => {
-    try {
-      const scoreboard = await getScoreboard(user.token)
-      setScores(scoreboard)
-      setLoading(false)
-    } catch (err) {
-      setError('Failed to fetch scoreboard')
-      setLoading(false)
-    }
-  }
+    fetchScoreboard();
+  }, [user.token]);
 
-  if (loading) {
-    return <div>Loading...</div>
-  }
+  if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="dark-content">
-      <h2 className="text-2xl font-semibold mb-4">Scoreboard</h2>
-      {error && <p className="text-red-400 mb-4">{error}</p>}
-      <div className="overflow-x-auto">
-        <table className="w-full dark-table rounded-lg overflow-hidden">
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold text-red-500 mb-8">Scoreboard</h1>
+      <div className="bg-[#FFF7ED] rounded-lg shadow-sm">
+        <table className="w-full">
           <thead>
-            <tr>
-              <th className="p-2 text-left">Rank</th>
-              <th className="p-2 text-left">Team</th>
-              <th className="p-2 text-left">Score</th>
+            <tr className="border-b border-neutral-200">
+              <th className="px-6 py-3 text-left">Rank</th>
+              <th className="px-6 py-3 text-left">Team</th>
+              <th className="px-6 py-3 text-right">Score</th>
             </tr>
           </thead>
           <tbody>
-            {scores.map((score, index) => (
-              <tr key={score.teamId}>
-                <td className="p-2">{index + 1}</td>
-                <td className="p-2">{score.teamName}</td>
-                <td className="p-2">{score.score}</td>
+            {teams.map((team, index) => (
+              <tr key={team.id} className="border-b border-neutral-200">
+                <td className="px-6 py-4">{index + 1}</td>
+                <td className="px-6 py-4">{team.name}</td>
+                <td className="px-6 py-4 text-right">{team.score}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
     </div>
-  )
+  );
 }
 
-export default Scoreboard
-
+export default Scoreboard;
