@@ -124,7 +124,7 @@ class Submission(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("team", "challenge")
+        unique_together = ("team", "challenge", "attempt_number")
         ordering = ["-timestamp"]
 
     def __str__(self):
