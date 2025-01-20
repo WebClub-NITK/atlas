@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 
 function Home() {
   const { isAuthenticated, user } = useAuth();
+  console.log(user);
 
   return (
     <div className="text-center">

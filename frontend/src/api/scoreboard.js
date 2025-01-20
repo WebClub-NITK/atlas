@@ -1,18 +1,18 @@
-import { API_URL } from './config';
-import axios from 'axios';
+import apiClient from './config';
 
-export const getScoreboard = async (token) => {
-  const response = await axios.get(`${API_URL}/scoreboard`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
+export const getScoreboard = async () => {
+  try {
+    const response = await apiClient.get('/scoreboard');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching scoreboard:', error);
+    throw error;
+  }
 };
 
-export const getTeams = async (token) => {
+export const getTeams = async () => {
   try {
-    const response = await axios.get(`${API_URL}/teams`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await apiClient.get('/teams');
     return response.data;
   } catch (error) {
     console.error('Error fetching teams:', error);

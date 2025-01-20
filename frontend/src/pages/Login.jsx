@@ -1,60 +1,69 @@
-import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { login as apiLogin } from '../api/auth'
 import { useAuth } from '../hooks/useAuth'
 
 function Login() {
-  const [email, setEmail] = useState('')
+  const [teamName, setTeamName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const location = useLocation()
+  const { login, isAuthenticated } = useAuth()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/challenges'
+      navigate(from, { replace: true })
+    }
+  }, [isAuthenticated, navigate, location])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
+    
     try {
-      const data = await apiLogin(email, password)
-      login(data)
-      navigate('/')
+      const response = await apiLogin(teamName, password)
+      login(response)
     } catch (err) {
-      setError('Login failed. Please check your credentials.')
+      console.error('Login error:', err)
+      setError('Invalid team credentials')
     }
   }
 
   return (
-    <div className="max-w-md mx-auto">
-      <h2 className="text-2xl font-semibold mb-4">Login</h2>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+    <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-6">Team Login</h2>
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label htmlFor="email" className="block mb-2">Email</label>
+          <label className="block mb-2">Team Name</label>
           <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="input"
+            type="text"
+            value={teamName}
+            onChange={(e) => setTeamName(e.target.value)}
+            className="w-full p-2 border rounded"
             required
           />
         </div>
-        <div className="mb-4">
-          <label htmlFor="password" className="block mb-2">Password</label>
+        <div className="mb-6">
+          <label className="block mb-2">Password</label>
           <input
             type="password"
-            id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="input"
+            className="w-full p-2 border rounded"
             required
           />
         </div>
-        <button type="submit" className="btn btn-primary">Login</button>
+        <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+          Login
+        </button>
       </form>
-      <div className="mt-4 text-center">
-        <Link to="/forgot-password" className="text-blue-600 hover:text-blue-800">
-          Forgot Password?
-        </Link>
-      </div>
     </div>
   )
 }

@@ -1,86 +1,37 @@
-import React, { useState } from 'react';
-import PropTypes from 'prop-types';
-import { useAuth } from '../hooks/useAuth';
-import { startChallenge, submitFlag } from '../api/challenges';
+import React from 'react';
 
 function ChallengeCard({ challenge }) {
-  const { user } = useAuth();
-  const [sshDetails, setSshDetails] = useState(null);
-  const [flag, setFlag] = useState('');
-  const [challengeStarted, setChallengeStarted] = useState(false);
-
-  const handleStartChallenge = async () => {
-    try {
-      const details = await startChallenge(challenge.id, user.token);
-      setSshDetails(details);
-      setChallengeStarted(true);
-      alert('Challenge started! Check SSH details below.');
-    } catch (error) {
-      console.error('Failed to start challenge:', error);
-      alert('Failed to start the challenge. Please try again.');
-    }
-  };
-
-  const handleSubmitFlag = async () => {
-    try {
-      const response = await submitFlag(challenge.id, flag, user.token);
-      alert(response.message);
-    } catch (error) {
-      console.error('Failed to submit flag:', error);
-      alert('Failed to submit the flag. Please try again.');
-    }
+  const categoryColors = {
+    web: 'bg-blue-100 text-blue-800',
+    crypto: 'bg-green-100 text-green-800',
+    pwn: 'bg-red-100 text-red-800',
+    reverse: 'bg-purple-100 text-purple-800',
+    forensics: 'bg-yellow-100 text-yellow-800',
+    misc: 'bg-gray-100 text-gray-800'
   };
 
   return (
-    <div className="challenge-card bg-white shadow-md rounded-lg p-4 sm:p-6">
-      <h3 className="text-xl font-semibold mb-2">{challenge.name}</h3>
-      <p className="text-gray-600 mb-4">{challenge.description}</p>
-      <p className="text-blue-600 font-bold flex items-center justify-between">
-        <span>Points:</span>
-        <span className="text-2xl">{challenge.points}</span>
-      </p>
-      {!challengeStarted ? (
-        <button
-          onClick={handleStartChallenge}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Start Challenge
-        </button>
-      ) : (
-        <div className="mt-4">
-          <h4 className="text-lg font-semibold">SSH Details:</h4>
-          <p>Host: {sshDetails.host}</p>
-          <p>Port: {sshDetails.port}</p>
-          <p>Username: {sshDetails.username}</p>
-          <p>Password: {sshDetails.password}</p>
-          <div className="mt-4">
-            <input
-              type="text"
-              value={flag}
-              onChange={(e) => setFlag(e.target.value)}
-              placeholder="Enter flag"
-              className="input"
-            />
-            <button
-              onClick={handleSubmitFlag}
-              className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              Submit Flag
-            </button>
-          </div>
-        </div>
+    <div className="bg-white p-4 rounded-lg shadow-md">
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="text-lg font-semibold">{challenge.title}</h3>
+        <span className="text-lg font-bold text-blue-600">{challenge.max_points}pts</span>
+      </div>
+      <p className="text-gray-600 mb-3">{challenge.description}</p>
+      <div className="flex justify-between items-center">
+        <span className={`px-2 py-1 rounded text-sm ${categoryColors[challenge.category]}`}>
+          {challenge.category}
+        </span>
+        {challenge.hints?.length > 0 && (
+          <span className="text-sm text-gray-500">
+            {challenge.hints.length} hint{challenge.hints.length !== 1 ? 's' : ''} available
+          </span>
+        )}
+      </div>
+      {challenge.is_solved && (
+        <div className="mt-2 text-green-600 text-sm">✓ Solved</div>
       )}
     </div>
   );
 }
-
-ChallengeCard.propTypes = {
-  challenge: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    name: PropTypes.string.isRequired,
-    description: PropTypes.string.isRequired,
-    points: PropTypes.number.isRequired,
-  }).isRequired,
-};
 
 export default ChallengeCard;

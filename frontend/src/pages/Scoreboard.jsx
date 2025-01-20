@@ -6,7 +6,6 @@ function Scoreboard() {
   const [scores, setScores] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-  const { user } = useAuth()
 
   useEffect(() => {
     fetchScoreboard()
@@ -14,11 +13,12 @@ function Scoreboard() {
 
   const fetchScoreboard = async () => {
     try {
-      const scoreboard = await getScoreboard(user.token)
+      const scoreboard = await getScoreboard()
       setScores(scoreboard)
-      setLoading(false)
     } catch (err) {
+      console.error('Error fetching scoreboard:', err)
       setError('Failed to fetch scoreboard')
+    } finally {
       setLoading(false)
     }
   }

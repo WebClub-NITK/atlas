@@ -22,6 +22,8 @@ import AdminChallengeDetail from './pages/admin/ChallengeDetail';
 import CreateChallenge from './pages/admin/CreateChallenge';
 import AdminLogin from './pages/admin/AdminLogin';
 import UserProfile from './pages/user/UserProfile';
+import TeamProfile from './pages/TeamProfile';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   return (
@@ -30,68 +32,74 @@ function App() {
       <ErrorBoundary>
         <main className="flex-grow container mx-auto px-4 py-8">
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<Home />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
 
-            {/* Redirect /user/dashboard to /challenges */}
+            {/* Protected routes */}
             <Route
-              path="/user/dashboard"
-              element={<Navigate to="/challenges" replace />}
-            />
-            <Route
-              path="/user/profile"
-              element={<ProtectedRoute requireAdmin={false}><UserProfile /></ProtectedRoute>}
-            />
-
-            {/* Regular user routes */}
-            <Route
-              path="/teams"
+              path="/challenges"
               element={
-                <ProtectedRoute requireAdmin={false}>
-                  <Teams />
+                <ProtectedRoute>
+                  <Challenges />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/scoreboard"
               element={
-                <ProtectedRoute requireAdmin={false}>
+                <ProtectedRoute>
                   <Scoreboard />
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/challenges"
+              path="/team/profile"
               element={
-                <ProtectedRoute requireAdmin={false}>
-                  <Challenges />
+                <ProtectedRoute>
+                  <TeamProfile />
                 </ProtectedRoute>
               }
             />
 
+            {/* Protected admin routes */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+
             {/* Admin routes */}
-            <Route path="/admin">
-              <Route path="login" element={<AdminLogin />} />
-              <Route
-                element={
-                  <ProtectedRoute requireAdmin={true}>
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Navigate to="/admin/dashboard" />} />
-                <Route path="dashboard" element={<AdminDashboard />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="users/:id" element={<AdminUserDetail />} />
-                <Route path="teams" element={<AdminTeams />} />
-                <Route path="teams/:id" element={<AdminTeamDetail />} />
-                <Route path="challenges" element={<AdminChallenges />} />
-                <Route path="challenges/:id" element={<AdminChallengeDetail />} />
-                <Route path="challenges/create" element={<CreateChallenge />} />
-              </Route>
-            </Route>
+            <Route
+              path="/admin/challenges"
+              element={
+                <AdminRoute>
+                  <AdminChallenges />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/challenges/create"
+              element={
+                <AdminRoute>
+                  <CreateChallenge />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/challenges/:id"
+              element={
+                <AdminRoute>
+                  <AdminChallengeDetail />
+                </AdminRoute>
+              }
+            />
 
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
