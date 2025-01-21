@@ -1,8 +1,8 @@
 import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { IconSpider, IconLogin2, IconUserPlus } from '@tabler/icons-react';
-import { motion } from "framer-motion"; // Add this import
+import { IconLogin2, IconUserPlus } from '@tabler/icons-react';
+import { motion } from "framer-motion";
 
 function NavLink({ to, children }) {
   const location = useLocation();
@@ -21,13 +21,8 @@ function NavLink({ to, children }) {
           layoutId="navbar-active"
           className="absolute inset-0 border border-white/50 rounded-full -z-10"
           initial={{ opacity: 0 }}
-          animate={{ 
-            opacity: 1,
-            transition: {
-              duration: 0.3
-            }
-          }}
-          exit={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
         />
       )}
     </Link>
@@ -38,18 +33,14 @@ function Navbar() {
   const [openNav, setOpenNav] = React.useState(false);
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate(isAdminRoute ? '/admin/login' : '/');
   };
-
-  React.useEffect(() => {
-    window.addEventListener(
-      "resize",
-      () => window.innerWidth >= 960 && setOpenNav(false),
-    );
-  }, []);
 
   const navList = (
     <ul className="mb-4 mt-2 flex flex-col gap-2 lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
@@ -84,14 +75,22 @@ function Navbar() {
         <div className="hidden lg:flex gap-2">
           {!isAuthenticated ? (
             <>
-              <Link to="/login" className="btn btn-primary flex items-center gap-2">
+              <Link 
+                to={isAdminRoute ? "/admin/login" : "/login"} 
+                className="btn btn-primary flex items-center gap-2"
+              >
                 <IconLogin2 size={20} />
                 Login
               </Link>
-              <Link to="/register" className="btn btn-secondary flex items-center gap-2">
-                <IconUserPlus size={20} />
-                Register
-              </Link>
+              {!isAdminRoute && (
+                <Link 
+                  to="/register" 
+                  className="btn btn-secondary flex items-center gap-2"
+                >
+                  <IconUserPlus size={20} />
+                  Register
+                </Link>
+              )}
             </>
           ) : (
             <button onClick={handleLogout} className="btn btn-primary">
@@ -99,14 +98,7 @@ function Navbar() {
             </button>
           )}
         </div>
-        <button
-          className="lg:hidden text-white"
-          onClick={() => setOpenNav(!openNav)}
-        >
-          {/* ... existing mobile menu button code ... */}
-        </button>
       </div>
-      {/* ... existing mobile menu code ... */}
     </nav>
   );
 }

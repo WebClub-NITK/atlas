@@ -133,7 +133,7 @@ function Challenges() {
     <div className="p-6">
       <div className="mb-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Challenges</h1>
+          <h1 className="text-2xl font-bold text-red-500">Challenges</h1>
           <div className="flex space-x-3">
             <Link
               to="/admin/challenges/create"
