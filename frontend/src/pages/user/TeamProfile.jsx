@@ -1,104 +1,155 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { updateTeamInfo, getTeamHistory } from '../../api/team';
+import { getTeamProfile, addTeamMember } from '../../api/teams';
 
 function TeamProfile() {
-  const { user, setUser } = useAuth();
-  const [teamName, setTeamName] = useState(user.teamName);
-  const [email, setEmail] = useState(user.email);
-  const [teamHistory, setTeamHistory] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const { user } = useAuth();
+  const [teamProfile, setTeamProfile] = useState(null);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
 
   useEffect(() => {
-    const fetchTeamHistory = async () => {
+    const fetchTeamProfile = async () => {
       try {
-        const history = await getTeamHistory(user.token);
-        setTeamHistory(history);
+        const profile = await getTeamProfile();
+        setTeamProfile(profile);
       } catch (error) {
-        console.error('Failed to fetch team history:', error);
+        setError('Failed to fetch team profile');
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchTeamHistory();
-  }, [user.token]);
+    fetchTeamProfile();
+  }, []);
 
-  const handleUpdateInfo = async () => {
+  const handleAddMember = async () => {
     try {
-      const updatedUser = await updateTeamInfo({ teamName, email }, user.token);
-      setUser(updatedUser);
-      setIsEditing(false);
-      alert('Profile updated successfully!');
+      const updatedProfile = await addTeamMember(newMemberName, newMemberEmail);
+      setTeamProfile(updatedProfile);
+      setNewMemberName('');
+      setNewMemberEmail('');
+      setShowAddMemberModal(false);
     } catch (error) {
-      console.error('Failed to update profile:', error);
-      alert('Failed to update profile. Please try again.');
+      setError('Failed to add team member');
     }
   };
 
-  return (
-    <div className="min-h-screen bg-white p-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-red-500 ">Team Profile</h1>
-        <div className="space-y-8">
-          {/* Profile Card */}
-          <div className="bg-[#FFF7ED] rounded-lg p-6 shadow-sm border border-neutral-200">
-            <div className="mb-6">
-              <label className="block mb-2 font-semibold text-neutral-800">Team Name</label>
-              <input
-                type="text"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-[#F1EFEF] text-neutral-800"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="mb-6">
-              <label className="block mb-2 font-semibold text-neutral-800">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-[#F1EFEF] text-neutral-800"
-                disabled={!isEditing}
-              />
-            </div>
-            {isEditing ? (
-              <button
-                onClick={handleUpdateInfo}
-                className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Save Changes
-              </button>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-6 py-2 rounded-lg bg-[#F1EFEF] text-neutral-800 hover:bg-neutral-200"
-              >
-                Edit Profile
-              </button>
-            )}
-          </div>
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
 
-          {/* Team History */}
-          {teamHistory && (
-            <div className="bg-[#FFF7ED] rounded-lg p-6 shadow-sm border border-neutral-200">
-              <h2 className="text-2xl font-bold mb-4 text-neutral-900">Team Information</h2>
-              <div className="bg-[#F1EFEF] p-3 rounded-lg mb-6">
-                <p className="text-lg text-neutral-800">
-                  <span className="font-semibold">Score:</span> {teamHistory.teamScore}
-                </p>
-              </div>
-              <h3 className="text-xl font-semibold mb-4 text-neutral-800">Submissions:</h3>
-              <ul className="space-y-2">
-                {teamHistory.submissions.map((submission) => (
-                  <li key={submission.id} className="bg-[#F1EFEF] p-3 rounded-lg text-neutral-700">
-                    {submission.title}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+  if (error)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-red-500 text-xl font-semibold">{error}</div>
+      </div>
+    );
+
+  return (
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+      <h1 className="text-4xl font-bold mb-8 text-red-500">Team Profile</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Team Information</h2>
+          <p className="text-lg mb-2">
+            <strong>Team Name:</strong> {teamProfile.name} <strong>Points:</strong> {teamProfile.totalPoints}
+          </p>
+          <p className="text-lg mb-2">
+            <strong>Team Email:</strong> {teamProfile.email}
+          </p>
+          <p className="text-lg mb-4">
+            <strong>Members:</strong>
+          </p>
+          <table className="w-full bg-white">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="px-4 py-2 text-left">Name</th>
+                <th className="px-4 py-2 text-left">Email</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teamProfile.members.map((member, index) => (
+                <tr key={index} className="border-t">
+                  <td className="px-4 py-2">{member.name}</td>
+                  <td className="px-4 py-2">{member.email}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <button
+            onClick={() => setShowAddMemberModal(true)}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          >
+            Add Member
+          </button>
+        </div>
+
+        <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Team History of Submissions</h2>
+          <table className="w-full bg-white">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="px-4 py-2 text-left">Challenge</th>
+                <th className="px-4 py-2 text-left">Points</th>
+                <th className="px-4 py-2 text-left">Solved At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teamProfile.submissions.map((submission, index) => (
+                <tr key={index} className="border-t">
+                  <td className="px-4 py-2">{submission.challengeName}</td>
+                  <td className="px-4 py-2">{submission.points}</td>
+                  <td className="px-4 py-2">{submission.solvedAt}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
+
+      {showAddMemberModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h2 className="text-xl font-bold mb-4 text-neutral-900">Add Team Member</h2>
+            <input
+              type="text"
+              value={newMemberName}
+              onChange={(e) => setNewMemberName(e.target.value)}
+              placeholder="Enter member name"
+              className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="email"
+              value={newMemberEmail}
+              onChange={(e) => setNewMemberEmail(e.target.value)}
+              placeholder="Enter member email"
+              className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowAddMemberModal(false)}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddMember}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+              >
+                Add Member
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

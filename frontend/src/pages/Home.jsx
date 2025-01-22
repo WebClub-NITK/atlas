@@ -34,26 +34,34 @@ function Home() {
         </>
       ) : (
         <>
-          <h1 className="text-6xl  mb-8">Welcome to <ColourfulText text="Atlas"/></h1>
-          <p className="text-4xl mb-12">
-            Test your <ColourfulText text="skills" /> and <ColourfulText text="compete" /> with others!
-          </p>
-          {!user?.isAdmin ? (
-            <Link to="/challenges">
-              <AnimatedButton
-                icon={IconSpider}
-                text="Start Hacking"
-                className="btn btn-primary"
-              />
-            </Link>
+          {user?.isAdmin ? (
+            <>
+              <h1 className="text-6xl mb-8">Welcome to <ColourfulText text="Atlas Admin"/></h1>
+              <p className="text-4xl mb-12">
+                Manage and monitor your <ColourfulText text="CTF" /> platform
+              </p>
+              <Link to="/admin/dashboard">
+                <AnimatedButton
+                  icon={IconSpider}
+                  text="Go to Dashboard"
+                  className="btn btn-primary"
+                />
+              </Link>
+            </>
           ) : (
-            <Link to="/admin/dashboard">
-              <AnimatedButton
-                icon={IconSpider}
-                text="Admin Dashboard"
-                className="btn btn-primary"
-              />
-            </Link>
+            <>
+              <h1 className="text-6xl mb-8">Welcome to <ColourfulText text="Atlas"/></h1>
+              <p className="text-4xl mb-12">
+                Test your <ColourfulText text="skills" /> and <ColourfulText text="compete" /> with others!
+              </p>
+              <Link to="/challenges">
+                <AnimatedButton
+                  icon={IconSpider}
+                  text="Start Hacking"
+                  className="btn btn-primary"
+                />
+              </Link>
+            </>
           )}
         </>
       )}

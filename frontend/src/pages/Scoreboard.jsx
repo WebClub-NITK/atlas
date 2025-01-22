@@ -4,17 +4,20 @@ import { useAuth } from '../hooks/useAuth';
 
 function Scoreboard() {
   const [teams, setTeams] = useState([]);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
     const fetchScoreboard = async () => {
       try {
+        setLoading(true);
         const data = await getScoreboard(user.token);
         setTeams(data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Failed to fetch scoreboard:', error);
+      } catch (err) {
+        console.error('Error fetching scoreboard:', err);
+        setError('Failed to fetch scoreboard');
+      } finally {
         setLoading(false);
       }
     };
@@ -23,6 +26,7 @@ function Scoreboard() {
   }, [user.token]);
 
   if (loading) return <div>Loading...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
 
   return (
     <div className="container mx-auto py-8">

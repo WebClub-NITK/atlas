@@ -1,19 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { useAuth } from '../hooks/useAuth';
 import { joinTeam } from '../api/teams';
 
-function TeamCard({ team }) {
-  const { user } = useAuth();
-
+function TeamCard({ team, onJoinSuccess }) {
   const handleJoinTeam = async () => {
     try {
-      await joinTeam(team.id, user.token);
-      alert('Successfully joined the team!');
-      // Optionally, you can refresh the team list or update the UI accordingly
+      await joinTeam(team.id);
+      onJoinSuccess?.();
     } catch (error) {
       console.error('Failed to join team:', error);
-      alert('Failed to join the team. Please try again.');
     }
   };
 
@@ -37,11 +32,13 @@ function TeamCard({ team }) {
 
 TeamCard.propTypes = {
   team: PropTypes.shape({
+    id: PropTypes.number.isRequired,
     name: PropTypes.string.isRequired,
     members: PropTypes.arrayOf(PropTypes.string).isRequired,
     score: PropTypes.number.isRequired,
     id: PropTypes.number.isRequired,
   }).isRequired,
+  onJoinSuccess: PropTypes.func,
 };
 
 export default TeamCard;

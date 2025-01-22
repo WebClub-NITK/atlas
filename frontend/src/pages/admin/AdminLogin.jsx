@@ -19,7 +19,7 @@ function AdminLogin() {
         return;
       }
       login(data);
-      navigate('/admin/dashboard');
+      navigate('/admin/dashboard', { replace: true });
     } catch (err) {
       setError('Login failed. Please check your credentials.');
     }

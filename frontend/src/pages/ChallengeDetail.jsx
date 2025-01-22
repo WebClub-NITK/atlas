@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ColourfulText } from '../components/ColourfulText';
 import { useAuth } from '../hooks/useAuth';
-import { startChallenge, submitFlag, getChallengeById } from '../api/challenges';
+import { getChallengeById, startChallenge, submitFlag } from '../api/challenges';
+
 
 function ChallengeDetail() {
   const { challengeId } = useParams();
@@ -17,20 +17,21 @@ function ChallengeDetail() {
   useEffect(() => {
     const fetchChallenge = async () => {
       try {
-        const data = await getChallengeById(challengeId, user.token);
+        const data = await getChallengeById(challengeId);
+        console.log("Challenge data:", data);
         setChallenge(data);
       } catch (err) {
-        setError(err.message);
+        setError('Failed to fetch challenge');
       } finally {
         setLoading(false);
       }
     };
     fetchChallenge();
-  }, [challengeId, user.token]);
+  }, [challengeId]);
 
   const handleStartChallenge = async () => {
     try {
-      const details = await startChallenge(challengeId, user.token);
+      const details = await startChallenge(challengeId);
       setSshDetails(details);
       setChallengeStarted(true);
     } catch (error) {
@@ -40,8 +41,9 @@ function ChallengeDetail() {
 
   const handleSubmitFlag = async () => {
     try {
-      const response = await submitFlag(challengeId, flag, user.token);
-      alert(response.message);
+      const response = await submitFlag(challengeId, flag);
+      alert(response.message || 'Flag submitted successfully!');
+      setFlag('');
     } catch (error) {
       setError('Failed to submit flag');
     }
@@ -52,11 +54,9 @@ function ChallengeDetail() {
   if (!challenge) return <div>Challenge not found</div>;
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      <div className="max-w-4xl mx-auto bg-[#FFF7ED] rounded-lg p-6 shadow-sm border border-neutral-200">
-        <h1 className="text-3xl font-bold mb-6 text-neutral-900">
-          <ColourfulText text={challenge.name} />
-        </h1>
+    <div className="min-h-screen p-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-red-500"> {challenge.name}</h1>
         
         <div className="mb-6 flex justify-between items-center">
           <span className="text-sm bg-[#F1EFEF] px-3 py-1.5 rounded text-neutral-700">
@@ -82,25 +82,23 @@ function ChallengeDetail() {
               <div className="bg-[#F1EFEF] rounded-lg p-4">
                 <h4 className="text-lg font-semibold text-neutral-800 mb-2">SSH Details:</h4>
                 <div className="space-y-1 text-neutral-700">
-                  <p>Host: {sshDetails.host}</p>
-                  <p>Port: {sshDetails.port}</p>
-                  <p>Username: {sshDetails.username}</p>
-                  <p>Password: {sshDetails.password}</p>
+                  <p>Host: {sshDetails?.host}</p>
+                  <p>Port: {sshDetails?.port}</p>
+                  <p>Username: {sshDetails?.username}</p>
+                  <p>Password: {sshDetails?.password}</p>
                 </div>
               </div>
             )}
           </div>
-        ) : (
-          challenge.link && (
-            <a 
-              href={challenge.link.startsWith('http') ? challenge.link : `https://${challenge.link}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full text-center px-4 py-2 bg-[#F1EFEF] text-neutral-800 rounded hover:bg-neutral-200 transition-colors mb-4"
-            >
-              Challenge Link
-            </a>
-          )
+        ) : challenge.link && (
+          <a 
+            href={challenge.link.startsWith('http') ? challenge.link : `https://${challenge.link}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full text-center px-4 py-2 bg-[#F1EFEF] text-neutral-800 rounded hover:bg-neutral-200 mb-4"
+          >
+            Challenge Link
+          </a>
         )}
 
         <div className="mt-6 space-y-2">

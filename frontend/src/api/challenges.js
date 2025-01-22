@@ -1,64 +1,175 @@
-import axios from 'axios';
-import { API_URL } from './config';
 import apiClient from './config';
+import { jwtDecode } from 'jwt-decode';
 
-export const getChallenges = async (token) => {
-  const response = await axios.get(`${API_URL}/challenges`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
-};
+// export const getChallenges = async () => {
+//   console.log('Token before request:', localStorage.getItem('token'));
+//   console.log('Sending the request with token:', jwtDecode(localStorage.getItem('token')));
+//   try {
+//     const response = await apiClient.get('/challenges');
+//     return response.data;
+//   } catch (error) {
+//     console.error('Challenge request error:', {
+//       status: error.response?.status,
+//       data: error.response?.data,
+//       headers: error.config?.headers
+//     });
+//     throw error;
+//   }
+// };
 
-export const submitFlag = async (challengeId, flag, token) => {
-  const response = await axios.post(
-    `${API_URL}/challenges/${challengeId}/submit`,
-    { flag },
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    },
-  );
-  return response.data;
-};
-
-
-export const startChallenge = async (challengeId, token) => {
-  const response = await axios.post(
-    `${API_URL}/challenges/${challengeId}/start`,
-    {},
-    {
-      headers: { Authorization: `Bearer ${token}` },
-    },
-  );
-  return response.data;
-}
-
-export const getChallengeById = async (challengeId, token) => {
-  // try {
-  //   const response = await fetch(`${API_URL}/api/challenges/${challengeId}/`, {
-  //     method: 'GET',
-  //     headers: {
-  //       'Authorization': `Bearer ${token}`,
-  //       'Content-Type': 'application/json',
-  //     },
-  //   });
-
-  //   if (!response.ok) {
-  //     throw new Error('Failed to fetch challenge');
-  //   }
-
-  //   return await response.json();
-  // } catch (error) {
-  //   throw new Error(error.message);
-  // }
-  return {
+const mockChallenges = [
+  {
     id: 1,
-    name: 'Challenge 1',
-    description: 'Description of Challenge 1',
-    category: 'Web',
-    points: 100,
+    name: "Basic Buffer Overflow",
+    category: "PWN",
+    description: "Can you overflow this basic buffer?",
+    points: 500,
+    no_of_tries: 0,
     docker: true,
-    no_of_tries: 5,
-    link: 'www.google.com',
+    link: null,
+    challengeStarted: false
+
+  },
+  {
+    id: 2,
+    name: "Web Authentication Bypass",
+    category: "Web", 
+    description: "Find a way to bypass the authentication mechanism.",
+    points: 300,
+    no_of_tries: 0,
+    docker: false,
+    link: "http://challenge.example.com/web-auth"
+  },
+  {
+    id: 3,
+    name: "Simple Cryptography",
+    category: "Crypto",
+    description: "Basic cryptography challenge to test your skills.",
+    points: 200,
+    no_of_tries: 0,
+    docker: false,
+    link: "http://challenge.example.com/crypto"
+  }
+];
+
+// Mock SSH details for docker challenges
+const mockSSHDetails = {
+  host: "challenge.example.com",
+  port: "2222",
+  username: "ctf-user",
+  password: "challenge-password"
+};
+
+export const getChallenges = async () => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Return mock data as array
+  return mockChallenges;
+};
+
+export const submitFlag = async (challengeId, flag) => {
+  try {
+    const response = await apiClient.post(`/challenges/${challengeId}/submit`, {
+      flag_submitted: flag,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting flag:', error);
+    throw error;
   }
 };
 
+// export const startChallenge = async (challengeId) => {
+//   try {
+//     const response = await apiClient.post(`/challenges/${challengeId}/start`);
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error starting challenge:', error);
+//     throw error;
+//   }
+// };
+
+export const startChallenge = async (challengeId) => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return mockSSHDetails;
+};
+
+// Admin challenge APIs
+export const getAdminChallenges = async () => {
+  try {
+    const response = await apiClient.get('/challenges/admin');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin challenges:', error);
+    throw error;
+  }
+};
+
+export const createChallenge = async (challengeData) => {
+  try {
+    const response = await apiClient.post('/challenges/create', challengeData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating challenge:', error);
+    throw error;
+  }
+};
+
+export const updateChallenge = async (challengeData, challengeId) => {
+  try {
+    const response = await apiClient.patch(
+      `/challenges/${challengeId}/update`, 
+      challengeData
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error updating challenge:', error);
+    throw error;
+  }
+};
+
+export const deleteChallenge = async (challengeId) => {
+  try {
+    const response = await apiClient.delete(`/challenges/${challengeId}/delete`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting challenge:', error);
+    throw error;
+  }
+};
+
+export const getChallengeById = async (challengeId) => {
+  // try {
+  //   const response = await apiClient.get(`/challenges/${challengeId}`);
+  //   return response.data;
+  // } catch (error) {
+  //   console.error('Error fetching challenge:', error);
+  //   throw error;
+  // }
+  try {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const challenge = {
+      id: 1,
+      name: "Basic Buffer Overflow",
+      category: "PWN",
+      description: "Can you overflow this basic buffer?",
+      points: 500,
+      no_of_tries: 0,
+      docker: true,
+      link: null,
+      challengeStarted: false
+  
+    };
+    if (!challenge) {
+      throw new Error('Challenge not found');
+    }
+    
+    return challenge;
+  } catch (error) {
+    console.error('Error fetching challenge:', error);
+    throw error;
+  }
+};

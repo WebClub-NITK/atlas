@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getChallenges } from '../api/challenges';
-import { useAuth } from '../hooks/useAuth';
 import ChallengeCard from '../components/ChallengeCard';
 import { getChallengeCategories } from '../data/dummyChallenges';
 
@@ -9,69 +8,89 @@ function Challenges() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const { user } = useAuth();
 
   useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        setLoading(true);
+        const data = await getChallenges();
+        console.log(data);
+        setChallenges(data);
+      } catch (err) {
+        console.error('Error fetching challenges:', err);
+        setError('Failed to fetch challenges');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchChallenges();
   }, []);
 
-  const fetchChallenges = async () => {
-    try {
-      setLoading(true);
-      const fetchedChallenges = await getChallenges(user.token);
-      setChallenges(fetchedChallenges);
-    } catch (err) {
-      setError('Failed to fetch challenges');
-    } finally {
-      setLoading(false);
+  // Group challenges by category
+  const challengesByCategory = challenges.reduce((acc, challenge) => {
+    if (!acc[challenge.category]) {
+      acc[challenge.category] = [];
     }
-  };
+    acc[challenge.category].push(challenge);
+    return acc;
+  }, {});
 
-  const filteredChallenges = challenges.filter(challenge => 
-    selectedCategory === 'all' || challenge.category.toLowerCase() === selectedCategory.toLowerCase()
-  );
+  const categories = ['all', ...Object.keys(challengesByCategory)];
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div>Loading challenges...</div>;
 
   return (
-    <div className="bg-white min-h-screen p-8">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-2xl font-semibold mb-6 text-red-500">Challenges</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        
-        {/* Category Filter */}
-        <div className="mb-6 flex gap-2 flex-wrap">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              selectedCategory === 'all'
-                ? 'bg-blue-500 text-white'
-                : 'bg-[#F1EFEF] text-neutral-700 hover:bg-neutral-200'
-            }`}
-          >
-            All
-          </button>
-          {getChallengeCategories().map(category => (
+    <div className="responsive-padding">
+      {/* Category Filter */}
+      <div className="mb-6">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {categories.map(category => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
+              className={`px-4 py-2 rounded-full text-sm font-medium ${
                 selectedCategory === category
                   ? 'bg-blue-500 text-white'
-                  : 'bg-[#F1EFEF] text-neutral-700 hover:bg-neutral-200'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              {category}
+              {category.charAt(0).toUpperCase() + category.slice(1)}
             </button>
           ))}
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredChallenges.map((challenge) => (
-            <ChallengeCard key={challenge.id} challenge={challenge} />
-          ))}
-        </div>
       </div>
+
+      {/* Challenges Display */}
+      {selectedCategory === 'all' ? (
+        // Show all categories
+        Object.entries(challengesByCategory).map(([category, categoryChallenges]) => (
+          <div key={category} className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4 capitalize">
+              {category} Challenges
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categoryChallenges.map(challenge => (
+                <ChallengeCard key={challenge.id} challenge={challenge} />
+              ))}
+            </div>
+          </div>
+        ))
+      ) : (
+        // Show selected category
+        <div>
+          <h2 className="text-2xl font-semibold mb-4 capitalize">
+            {selectedCategory} Challenges
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {challengesByCategory[selectedCategory]?.map(challenge => (
+              <ChallengeCard key={challenge.id} challenge={challenge} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {error && <p className="text-red-500 mt-4">{error}</p>}
     </div>
   );
 }

@@ -1,18 +1,28 @@
-import { API_URL } from './config';
-import axios from 'axios';
+import apiClient from './config';
 
-export const getScoreboard = async (token) => {
-  const response = await axios.get(`${API_URL}/scoreboard`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return response.data;
+const mockTeams = [
+  { id: 1, name: "Team Alpha", score: 1500 },
+  { id: 2, name: "Team Beta", score: 1200 },
+  { id: 3, name: "Team Gamma", score: 900 }
+];
+
+export const getScoreboard = async () => {
+  // try {
+  //   const response = await apiClient.get('/scoreboard');
+  //   return response.data;
+  // } catch (error) {
+  //   console.error('Error fetching scoreboard:', error);
+  //   throw error;
+  // }
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Return mock data
+  return mockTeams;
 };
 
-export const getTeams = async (token) => {
+export const getTeams = async () => {
   try {
-    const response = await axios.get(`${API_URL}/teams`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await apiClient.get('/teams');
     return response.data;
   } catch (error) {
     console.error('Error fetching teams:', error);

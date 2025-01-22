@@ -1,97 +1,406 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { register } from '../api/auth';
-import { useAuth } from '../hooks/useAuth';
-import {
-  validateEmail,
-  validatePassword,
-  validateUsername,
-} from '../utils/validators';
+// import React, { useState } from 'react';
+// import { useNavigate } from 'react-router-dom';
+// import { register } from '../api/auth';
+// import { useAuth } from '../hooks/useAuth';
+// import { validateEmail } from '../utils/validators';
 
-function Register() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-  const { login } = useAuth();
+// function Register() {
+//   const [formData, setFormData] = useState({
+//     teamName: '',
+//     teamEmail: '',
+//     password: '',
+//     member1Name: '',
+//     member1Email: '',
+//     member2Name: '',
+//     member2Email: '',
+//     member3Name: '',
+//     member3Email: '',
+//   });
+//   const [error, setError] = useState('');
+//   const navigate = useNavigate();
+//   const { login } = useAuth();
+
+//   const handleChange = (e) => {
+//     setFormData({
+//       ...formData,
+//       [e.target.name]: e.target.value
+//     });
+//   };
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     setError('');
+
+//     // Calculate team size based on provided member emails
+//     const memberCount = [
+//       formData.member1Email,
+//       formData.member2Email,
+//       formData.member3Email
+//     ].filter(Boolean).length;
+
+//     try {
+//       console.log(formData);
+//       const data = await register({
+//         ...formData,
+//         teamSize: memberCount // Add team size to registration data
+//       });
+//       login(data);
+//       navigate('/');
+//     } catch (err) {
+//       setError('Registration failed. Please try again.');
+//     }
+//   };
+
+//   return (
+//     <div className="max-w-md mx-auto">
+//       <h2 className="text-2xl font-semibold mb-4">Team Registration</h2>
+//       {error && <p className="text-red-500 mb-4">{error}</p>}
+//       <form onSubmit={handleSubmit}>
+//         {/* Team Information */}
+//         <div className="mb-4">
+//           <h3 className="text-xl font-semibold mb-2">Team Information</h3>
+//           <div className="mb-2">
+//             <label htmlFor="teamName" className="block mb-1">Team Name *</label>
+//             <input
+//               type="text"
+//               name="teamName"
+//               value={formData.teamName}
+//               onChange={handleChange}
+//               className="input"
+//               required
+//             />
+//           </div>
+//           <div className="mb-2">
+//             <label htmlFor="teamEmail" className="block mb-1">Team Email *</label>
+//             <input
+//               type="email"
+//               name="teamEmail"
+//               value={formData.teamEmail}
+//               onChange={handleChange}
+//               className="input"
+//               required
+//             />
+//           </div>
+//           <div className="mb-2">
+//             <label htmlFor="password" className="block mb-1">Team Password *</label>
+//             <input
+//               type="password"
+//               name="password"
+//               value={formData.password}
+//               onChange={handleChange}
+//               className="input"
+//               required
+//               minLength={8}
+//             />
+//           </div>
+//         </div>
+
+//         {/* Member 1 (Required) */}
+//         <div className="mb-4">
+//           <h3 className="text-xl font-semibold mb-2">Member 1 (Required)</h3>
+//           <div className="mb-2">
+//             <label htmlFor="member1Name" className="block mb-1">Name *</label>
+//             <input
+//               type="text"
+//               name="member1Name"
+//               value={formData.member1Name}
+//               onChange={handleChange}
+//               className="input"
+//               required
+//             />
+//           </div>
+//           <div className="mb-2">
+//             <label htmlFor="member1Email" className="block mb-1">Email *</label>
+//             <input
+//               type="email"
+//               name="member1Email"
+//               value={formData.member1Email}
+//               onChange={handleChange}
+//               className="input"
+//               required
+//             />
+//           </div>
+//         </div>
+
+//         {/* Member 2 (Optional) */}
+//         <div className="mb-4">
+//           <h3 className="text-xl font-semibold mb-2">Member 2 (Optional)</h3>
+//           <div className="mb-2">
+//             <label htmlFor="member2Name" className="block mb-1">Name</label>
+//             <input
+//               type="text"
+//               name="member2Name"
+//               value={formData.member2Name}
+//               onChange={handleChange}
+//               className="input"
+//             />
+//           </div>
+//           <div className="mb-2">
+//             <label htmlFor="member2Email" className="block mb-1">Email</label>
+//             <input
+//               type="email"
+//               name="member2Email"
+//               value={formData.member2Email}
+//               onChange={handleChange}
+//               className="input"
+//             />
+//           </div>
+//         </div>
+
+//         {/* Member 3 (Optional) */}
+//         <div className="mb-4">
+//           <h3 className="text-xl font-semibold mb-2">Member 3 (Optional)</h3>
+//           <div className="mb-2">
+//             <label htmlFor="member3Name" className="block mb-1">Name</label>
+//             <input
+//               type="text"
+//               name="member3Name"
+//               value={formData.member3Name}
+//               onChange={handleChange}
+//               className="input"
+//             />
+//           </div>
+//           <div className="mb-2">
+//             <label htmlFor="member3Email" className="block mb-1">Email</label>
+//             <input
+//               type="email"
+//               name="member3Email"
+//               value={formData.member3Email}
+//               onChange={handleChange}
+//               className="input"
+//             />
+//           </div>
+//         </div>
+
+//         <button type="submit" className="btn btn-primary w-full">
+//           Register Team
+//         </button>
+//       </form>
+//     </div>
+//   );
+// }
+
+// export default Register;
+
+
+import React, { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { register } from "../api/auth"
+import { useAuth } from "../hooks/useAuth"
+import { validateEmail } from "../utils/validators"
+
+function Registration() {
+  const [formData, setFormData] = useState({
+    teamName: "",
+    teamEmail: "",
+    password: "",
+    member1Name: "",
+    member1Email: "",
+    member2Name: "",
+    member2Email: "",
+    member3Name: "",
+    member3Email: "",
+  })
+  const [error, setError] = useState("")
+  const navigate = useNavigate()
+  const { login } = useAuth()
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    })
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
+    setError("")
 
-    if (!validateUsername(username)) {
-      setError('Invalid username format');
-      return;
-    }
-    if (!validateEmail(email)) {
-      setError('Invalid email format');
-      return;
-    }
-    if (!validatePassword(password)) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
+    // Calculate team size based on provided member emails
+    const memberCount = [formData.member1Email, formData.member2Email, formData.member3Email].filter(Boolean).length
 
     try {
-      const data = await register(username, email, password);
-      login(data);
-      navigate('/');
+      console.log(formData)
+      const data = await register({
+        ...formData,
+        teamSize: memberCount, // Add team size to registration data
+      })
+      login(data)
+      navigate("/")
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      setError("Registration failed. Please try again.")
     }
-  };
+  }
 
   return (
-    <div className="max-w-md mx-auto mt-20">
-      <h2 className="text-2xl font-semibold mb-4">Register</h2>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label htmlFor="username" className="block mb-2">
-            Username
-          </label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="input"
-            required
-          />
+    <div className="max-w-4xl mx-auto p-6">
+      <h2 className="text-3xl font-bold mb-6 text-center">Team Registration</h2>
+      {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Team Information */}
+          <div className="flex-1 space-y-4 p-4 border border-gray-300 rounded-md">
+            <h3 className="text-xl font-semibold mb-4">Team Information</h3>
+            <div>
+              <label htmlFor="teamName" className="block mb-1 font-medium">
+                Team Name *
+              </label>
+              <input
+                type="text"
+                id="teamName"
+                name="teamName"
+                value={formData.teamName}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="teamEmail" className="block mb-1 font-medium">
+                Team Email *
+              </label>
+              <input
+                type="email"
+                id="teamEmail"
+                name="teamEmail"
+                value={formData.teamEmail}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block mb-1 font-medium">
+                Team Password *
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                minLength={8}
+              />
+            </div>
+          </div>
+
+          {/* Team Members */}
+          <div className="flex-1 space-y-4">
+            {/* Member 1 (Required) */}
+            <div className="p-4 border border-gray-300 rounded-md">
+              <h3 className="text-lg font-semibold mb-2">Member 1 (Required)</h3>
+              <div className="space-y-2">
+                <div>
+                  <label htmlFor="member1Name" className="block mb-1 font-medium">
+                    Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="member1Name"
+                    name="member1Name"
+                    value={formData.member1Name}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="member1Email" className="block mb-1 font-medium">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    id="member1Email"
+                    name="member1Email"
+                    value={formData.member1Email}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Member 2 (Optional) */}
+            <div className="p-4 border border-gray-300 rounded-md">
+              <h3 className="text-lg font-semibold mb-2">Member 2 (Optional)</h3>
+              <div className="space-y-2">
+                <div>
+                  <label htmlFor="member2Name" className="block mb-1 font-medium">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    id="member2Name"
+                    name="member2Name"
+                    value={formData.member2Name}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="member2Email" className="block mb-1 font-medium">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    id="member2Email"
+                    name="member2Email"
+                    value={formData.member2Email}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Member 3 (Optional) */}
+            <div className="p-4 border border-gray-300 rounded-md">
+              <h3 className="text-lg font-semibold mb-2">Member 3 (Optional)</h3>
+              <div className="space-y-2">
+                <div>
+                  <label htmlFor="member3Name" className="block mb-1 font-medium">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    id="member3Name"
+                    name="member3Name"
+                    value={formData.member3Name}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="member3Email" className="block mb-1 font-medium">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    id="member3Email"
+                    name="member3Email"
+                    value={formData.member3Email}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="mb-4">
-          <label htmlFor="email" className="block mb-2">
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="input"
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label htmlFor="password" className="block mb-2">
-            Password
-          </label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="input"
-            required
-            minLength={8}
-          />
-        </div>
-        <button type="submit" className="btn btn-primary w-full">
-          Register
+
+        <button
+          type="submit"
+          className="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Register Team
         </button>
       </form>
     </div>
-  );
+  )
 }
 
-export default Register;
+export default Registration
+

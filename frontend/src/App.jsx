@@ -43,7 +43,7 @@ function App() {
           
           {/* Admin Routes */}
           <Route path="/admin">
-            <Route path="login" element={<AdminLogin />} />
+            <Route path="login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
             <Route element={<ProtectedRoute requireAdmin={true}><AdminLayout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/admin/dashboard" />} />
               <Route path="dashboard" element={<AdminDashboard />} />
