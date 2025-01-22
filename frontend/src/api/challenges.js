@@ -42,7 +42,7 @@ export const startChallenge = async (challengeId) => {
 // Admin challenge APIs
 export const getAdminChallenges = async () => {
   try {
-    const response = await apiClient.get('/challenges/admin');
+    const response = await apiClient.get('/api/admin/challenges');
     return response.data;
   } catch (error) {
     console.error('Error fetching admin challenges:', error);
@@ -52,7 +52,7 @@ export const getAdminChallenges = async () => {
 
 export const createChallenge = async (challengeData) => {
   try {
-    const response = await apiClient.post('/challenges/create', challengeData);
+    const response = await apiClient.post('/api/admin/challenges/create', challengeData);
     return response.data;
   } catch (error) {
     console.error('Error creating challenge:', error);
@@ -63,7 +63,7 @@ export const createChallenge = async (challengeData) => {
 export const updateChallenge = async (challengeData, challengeId) => {
   try {
     const response = await apiClient.patch(
-      `/challenges/${challengeId}/update`, 
+      `/api/admin/challenges/${challengeId}/update`, 
       challengeData
     );
     return response.data;
@@ -75,7 +75,7 @@ export const updateChallenge = async (challengeData, challengeId) => {
 
 export const deleteChallenge = async (challengeId) => {
   try {
-    const response = await apiClient.delete(`/challenges/${challengeId}/delete`);
+    const response = await apiClient.delete(`/api/admin/challenges/${challengeId}/delete`);
     return response.data;
   } catch (error) {
     console.error('Error deleting challenge:', error);
@@ -85,7 +85,7 @@ export const deleteChallenge = async (challengeId) => {
 
 export const getChallengeById = async (challengeId) => {
   try {
-    const response = await apiClient.get(`/challenges/${challengeId}`);
+    const response = await apiClient.get(`/api/admin/challenges/${challengeId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching challenge:', error);

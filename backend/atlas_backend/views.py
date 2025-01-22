@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import jwt
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password, check_password
+import re
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -26,14 +27,48 @@ logger = logging.getLogger('atlas_backend')
 @permission_classes([AllowAny])
 def signup(request):
     data = request.data
+    
+    # Required fields validation
+    required_fields = ['teamName', 'teamEmail', 'password', 'member1Name', 'member1Email']
+    for field in required_fields:
+        if not data.get(field):
+            return Response(
+                {'error': f'{field} is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    # Email format validation
+    email_fields = ['teamEmail', 'member1Email']
+    for field in email_fields:
+        email = data.get(field)
+        if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
+            return Response(
+                {'error': f'Invalid email format for {field}'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    # Check if team name already exists
+    if Team.objects.filter(name=data['teamName']).exists():
+        return Response(
+            {'error': 'Team name already exists'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Check if team email already exists
+    if Team.objects.filter(team_email=data['teamEmail']).exists():
+        return Response(
+            {'error': 'Team email already exists'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     try:
-        # Create team first
+        # Create team
         team = Team.objects.create(
             name=data['teamName'],
-            team_email=data['teamEmail'],
-            team_size=3,
-            password=make_password(data['password'])
+            team_email=data['teamEmail']
         )
+        team.set_password(data['password'])
+        team.save()
 
         # Create users for all team members
         users = []
@@ -80,7 +115,10 @@ def signup(request):
         }, status=status.HTTP_201_CREATED)
 
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'error': str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -742,7 +780,7 @@ def admin_login(request):
         )
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUser])
 def admin_get_challenges(request):
     # Check if user is superuser
     if not request.user.is_superuser:

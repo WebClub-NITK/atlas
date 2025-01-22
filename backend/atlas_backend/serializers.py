@@ -2,9 +2,10 @@ from rest_framework import serializers
 from .models import User, Challenge, Team, Submission, Container
 
 class UserSerializer(serializers.ModelSerializer):
+    team_name = serializers.CharField(source='team.name',read_only=True)
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'team']
+        fields = ['id', 'username', 'email', 'team', 'team_name']
 
 class SignupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,7 +21,7 @@ class ChallengeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Challenge
-        fields = ['id', 'name', 'description', 'points', 'category', 
+        fields = ['id', 'title', 'description', 'max_points', 'category', 
                  'difficulty', 'is_solved']
 
     def get_is_solved(self, obj):
