@@ -208,6 +208,10 @@ def get_challenges(request):
     
     return Response(challenges_list)
 
+from django.core.cache import cache
+from django.conf import settings
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def submit_flag(request, challenge_id):
@@ -216,57 +220,71 @@ def submit_flag(request, challenge_id):
             {'error': 'You must be in a team to submit flags'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     challenge = get_object_or_404(Challenge, id=challenge_id)
-    flag = request.data.get('flag')
+    flag = request.data.get('flag', '').strip()
     
     if not flag:
         return Response(
             {'error': 'Flag is required'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-    existing_submission = Submission.objects.filter(
+
+    # Get submission count for attempt limiting
+    submission_count = Submission.objects.filter(
         team=request.user.team,
         challenge=challenge
-    ).first()
-    
-    if existing_submission:
-        if existing_submission.is_correct:
-            return Response(
-                {'error': 'Challenge already solved'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        attempt_number = existing_submission.attempt_number + 1
-        existing_submission.delete()  # Remove previous attempt
-    else:
-        attempt_number = 1
-    
+    ).count()
+
+    max_attempts = settings.FLAG_SUBMIT_MAX_ATTEMPTS
+    if submission_count >= max_attempts:
+        return Response(
+            {'error': f'Maximum {max_attempts} attempts allowed for this challenge'},
+            status=status.HTTP_429_TOO_MANY_REQUESTS
+        )
+
+    # Check if already solved
+    if Submission.objects.filter(
+        team=request.user.team,
+        challenge=challenge,
+        is_correct=True
+    ).exists():
+        return Response(
+            {'error': 'Challenge already solved'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    attempt_number = submission_count + 1
     is_correct = challenge.flag == flag
-    points = challenge.max_points if is_correct else 0
     
-    try:
+    try: 
         submission = Submission.objects.create(
             team=request.user.team,
             challenge=challenge,
             user=request.user,
             flag_submitted=flag,
             is_correct=is_correct,
-            points_awarded=points,
+            points_awarded=challenge.max_points if is_correct else 0,
             attempt_number=attempt_number
         )
-        
+
+        if is_correct:
+            request.user.team.challenges.add(challenge)
+
         return Response({
             'message': 'Correct flag!' if is_correct else 'Incorrect flag',
-            'points_awarded': points,
+            'points_awarded': submission.points_awarded,
             'is_correct': is_correct,
-            'attempt_number': attempt_number
+            'attempt_number': attempt_number,
+            'attempts_remaining': max_attempts - attempt_number,
+            'timestamp': submission.timestamp.isoformat() 
         })
-    except IntegrityError:
-        return Response(
-            {'error': 'Submission error occurred'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+
+    except ValidationError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': 'Submission error occurred'}, 
+                       status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -427,14 +445,27 @@ def leave_team(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_scoreboard(request):
+    cache_key = "scoreboard_data"
+    cached_data = cache.get(cache_key)
+
+    if cached_data:
+        return Response(cached_data)
+
     teams = Team.objects.annotate(
-        total_score=Sum('submissions__points_awarded', default=0),
+        total_score=Sum('submissions__points_awarded', 
+                       filter=Q(submissions__is_correct=True)),
         member_count=Count('members', distinct=True),
-        solved_count=Count('submissions', filter=Q(submissions__is_correct=True))
+        solved_count=Count('submissions', 
+                         filter=Q(submissions__is_correct=True))
     ).order_by('-total_score')
     
     serializer = TeamSerializer(teams, many=True)
-    return Response(serializer.data)
+    data = serializer.data
+
+    # Cache for 1 minute
+    cache.set(cache_key, data, 60)
+    
+    return Response(data)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -678,12 +709,12 @@ def team_profile(request):
         
         # Get total score
         total_score = team.submissions.filter(is_correct=True).aggregate(
-            total=Sum('challenge__points')
+            total=Sum('points_awarded')   
         )['total'] or 0
         
         # Get team rank
         teams_ranking = Team.objects.annotate(
-            score=Sum('submissions__challenge__points', 
+            score=Sum('submissions__points_awarded', 
                      filter=Q(submissions__is_correct=True))
         ).order_by('-score')
         team_rank = list(teams_ranking.values_list('id', flat=True)).index(team_id) + 1
@@ -707,8 +738,8 @@ def team_profile(request):
             'rank': team_rank,
             'recent_activity': [{
                 'id': sub.id,
-                'challenge_name': sub.challenge.name,
-                'points': sub.challenge.points,
+                'challenge_name': sub.challenge.title,
+                'points': sub.points_awarded,
                 'solved_at': sub.submitted_at.isoformat()
             } for sub in recent_submissions]
         }
@@ -841,4 +872,26 @@ def get_challenge_detail(request, challenge_id):
             {"error": "Challenge not found"}, 
             status=status.HTTP_404_NOT_FOUND
         )
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_challenge_submissions(request, challenge_id):
+    challenge = get_object_or_404(Challenge, id=challenge_id)
+    
+    # For regular users, show only their team's submissions
+    if not request.user.is_superuser:
+        if not request.user.team:
+            return Response(
+                {'error': 'You must be in a team to view submissions'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        submissions = Submission.objects.filter(
+            team=request.user.team,
+            challenge=challenge
+        )
+    else:
+        # Admins can see all submissions
+        submissions = Submission.objects.filter(challenge=challenge)
+    
+    serializer = SubmissionSerializer(submissions, many=True)
+    return Response(serializer.data)
 

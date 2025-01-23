@@ -12,6 +12,9 @@ urlpatterns = [
     # Challenge routes
     path('challenges', views.get_challenges, name='get_challenges'),
     path('challenges/<int:challenge_id>/submit', views.submit_flag, name='submit_flag'),
+    path('challenges/<int:challenge_id>/submissions', 
+         views.get_challenge_submissions, 
+         name='get_challenge_submissions'),
     
     # Team routes
     path('teams', views.get_teams, name='get_teams'),

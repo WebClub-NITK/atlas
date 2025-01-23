@@ -92,6 +92,16 @@ class Challenge(models.Model):
     def __str__(self):
         return self.title
 
+    def get_remaining_attempts(self, team):
+        """Get remaining submission attempts for a team"""
+        from django.conf import settings
+        submission_count = self.submissions.filter(team=team).count()
+        return max(0, settings.FLAG_SUBMIT_MAX_ATTEMPTS - submission_count)
+
+    def can_submit(self, team):
+        """Check if team can submit a flag"""
+        return self.get_remaining_attempts(team) > 0
+
 class Container(models.Model):
     STATUS_CHOICES = [
         ("running", "Running"),
@@ -121,11 +131,11 @@ class Submission(models.Model):
     is_correct = models.BooleanField(default=False)
     points_awarded = models.IntegerField(validators=[MinValueValidator(0)])
     attempt_number = models.IntegerField(default=1)
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True) 
 
     class Meta:
-        unique_together = ("team", "challenge", "attempt_number")
         ordering = ["-timestamp"]
+        unique_together = [['team', 'challenge', 'attempt_number']]
 
     def __str__(self):
         return f"{self.team.name} - {self.challenge.title}"
