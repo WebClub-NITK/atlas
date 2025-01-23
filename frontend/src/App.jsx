@@ -23,6 +23,7 @@ import AdminChallengeDetail from './pages/admin/ChallengeDetail';
 import CreateChallenge from './pages/admin/CreateChallenge';
 import AdminLogin from './pages/admin/AdminLogin';
 import TeamProfile from './pages/user/TeamProfile';
+import AdminContainers from './pages/admin/Containers';
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
               <Route path="challenges" element={<AdminChallenges />} />
               <Route path="challenges/:id" element={<AdminChallengeDetail />} />
               <Route path="challenges/create" element={<CreateChallenge />} />
+              <Route path="containers" element={<AdminContainers />} />
             </Route>
           </Route>
 

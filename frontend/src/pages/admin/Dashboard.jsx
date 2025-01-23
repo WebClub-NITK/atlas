@@ -29,6 +29,15 @@ function AdminDashboard() {
             <p className="text-gray-500 mt-2">Manage challenges →</p>
           </div>
         </Link>
+
+        <Link to="/admin/containers" className="block">
+          <div className="bg-white p-6 rounded-lg shadow-md transition-transform hover:scale-105">
+            <h2 className="text-xl font-semibold mb-2">Containers</h2>
+            <p className="text-4xl font-bold text-blue-600">12</p>
+            <p className="text-gray-500 mt-2">Manage containers →</p>
+          </div>
+        </Link>
+
       </div>
     </div>
   );
