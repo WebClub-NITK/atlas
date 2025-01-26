@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login as apiLogin } from '../../api/auth';
+import { adminLogin } from '../../api/admin';
 import { useAuth } from '../../hooks/useAuth';
 
 function AdminLogin() {
@@ -13,13 +13,13 @@ function AdminLogin() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const data = await apiLogin(email, password);
+      const data = await adminLogin(email, password);
       if (!data.user?.isAdmin) {
         setError('Unauthorized access');
         return;
       }
-      login(data.token);
-      navigate('/admin/dashboard');
+      login(data);
+      navigate('/admin/dashboard', { replace: true });
     } catch (err) {
       setError('Login failed. Please check your credentials.');
     }

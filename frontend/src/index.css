@@ -9,7 +9,19 @@
 }
 
 body {
-  @apply bg-gray-100 text-gray-900;
+  @apply bg-white text-gray-900;
+}
+
+.card {
+  @apply bg-white border border-gray-200 shadow-sm;
+}
+
+h2, h3 {
+  @apply text-[#FB3E3C];
+}
+
+p, span, button {
+  @apply text-gray-900;
 }
 
 .btn {

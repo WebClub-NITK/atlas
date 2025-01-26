@@ -1,36 +1,40 @@
 import axios from 'axios';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-export const apiClient = axios.create({
+export const API_URL = 'http://localhost:8000';
+
+const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-    Accept: 'application/json',
-  },
+  }
 });
 
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  },
-);
-
+// Add request interceptor to include auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    // console.log('Token:', token);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const tokenString = localStorage.getItem('token');
+    if (tokenString) {
+      const { access } = JSON.parse(tokenString);
+      config.headers.Authorization = `Bearer ${access}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
+
+// Add response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('Response error:', error);
+    if (error.response?.status === 403) {
+      // Handle forbidden error - could be auth issue
+      console.error('Authentication error:', error.response.data);
+    }
+    return Promise.reject(error);
+  }
+);
+
+
 
 export default apiClient;
