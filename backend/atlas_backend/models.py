@@ -40,7 +40,7 @@ class Team(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     password = models.CharField(max_length=128, default=make_password('default_password'))
     team_email = models.EmailField(unique=True, default='team@example.com')
-    max_attempts_per_challenge = models.IntegerField(default=10)  # Add this line
+    max_attempts_per_challenge = models.IntegerField(default=10)
 
     def __str__(self):
         return self.name
