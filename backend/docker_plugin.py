@@ -1,7 +1,8 @@
-import docker
+from docker import DockerClient, APIClient
+from docker.transport import SSHHTTPAdapter
 import secrets
 import logging
-import docker.errors
+from docker.errors import APIError
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s", level=logging.ERROR
@@ -13,14 +14,31 @@ ALLOWED_CHARACTERS = (
 
 
 class DockerPlugin:
-    def __init__(self, base_url: str = "unix://var/run/docker.sock"):
-        self.client = docker.DockerClient(base_url=base_url)
+    def __init__(self, base_url: str = "unix://var/run/docker.sock", key_file: str = None):
+        if key_file is None:
+            self.docker_client = DockerClient(base_url=base_url)
+        else:
+            class MySSHHTTPAdapter(SSHHTTPAdapter):
+                def _connect(self):
+                    if self.ssh_client:
+                        self.ssh_params["key_filename"] = key_file
+                        self.ssh_client.connect(**self.ssh_params)
+
+            self.docker_client = DockerClient()
+            api_client = APIClient(
+                base_url="ssh://ip:22",
+                use_ssh_client=True,
+                version='1.41',
+            )
+            ssh_client = MySSHHTTPAdapter(base_url)
+            api_client.mount("http+docker://ssh", ssh_client)
+            self.docker_client.api = api_client
 
     def add_image(self, data: bytes):
         try:
-            images = self.client.images.load(data)
+            images = self.docker_client.images.load(data)
             return images[0].id
-        except docker.errors.APIError as error:
+        except APIError as error:
             logging.error(error)
         return None
 
@@ -40,7 +58,7 @@ class DockerPlugin:
                 logging.error("Invalid container name.")
                 return None
 
-            container = self.client.containers.run(
+            container = self.docker_client.containers.run(
                 image,
                 detach=True,
                 auto_remove=True,
@@ -53,46 +71,46 @@ class DockerPlugin:
                 mem_limit=resources["memory"],
             )
             return container.id, password
-        except docker.errors.APIError as error:
+        except APIError as error:
             logging.error(error)
         return None
 
     def stop_container(self, container_id: str):
         try:
-            container = self.client.containers.get(container_id)
+            container = self.docker_client.containers.get(container_id)
             container.stop()
             return True
-        except docker.errors.APIError as error:
+        except APIError as error:
             logging.error(error)
         return False
 
     def restart_container(self, container_id: str):
         try:
-            container = self.client.containers.get(container_id)
+            container = self.docker_client.containers.get(container_id)
             container.restart()
             return True
-        except docker.errors.APIError as error:
+        except APIError as error:
             logging.error(error)
         return False
 
     def get_images(self):
-        return self.client.images.list()
+        return self.docker_client.images.list()
 
     def get_container_ports(self, container_id: str):
         try:
-            container = self.client.containers.get(container_id)
+            container = self.docker_client.containers.get(container_id)
             if len(container.ports) == 0:
                 return None
             else:
                 return container.ports
-        except docker.errors.APIError as error:
+        except APIError as error:
             logging.error(error)
         return None
 
     def get_container_logs(self, container_id: str, stream: bool = True):
         try:
-            container = self.client.containers.get(container_id)
+            container = self.docker_client.containers.get(container_id)
             return container.logs(stream=stream)
-        except docker.errors.APIError as error:
+        except APIError as error:
             logging.error(error)
         return None
