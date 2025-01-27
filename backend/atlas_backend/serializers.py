@@ -5,7 +5,7 @@ class UserSerializer(serializers.ModelSerializer):
     team_name = serializers.CharField(source='team.name',read_only=True)
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'team']
+        fields = ['id', 'username', 'email', 'team', 'team_name']
 
 class SignupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,8 +21,18 @@ class ChallengeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Challenge
-        fields = ['id', 'name', 'description', 'points', 'category', 
-                 'difficulty', 'is_solved']
+        fields = [
+            'id', 
+            'title', 
+            'description', 
+            'max_points', 
+            'category',
+            'docker_image', 
+            'is_hidden', 
+            'hints', 
+            'file_links', 
+            'is_solved'
+        ]
 
     def get_is_solved(self, obj):
         user_team = self.context.get('user_team')
@@ -46,9 +56,6 @@ class TeamSerializer(serializers.ModelSerializer):
                  'total_score', 'member_count', 'solved_count', 'challenges']
 
 class SubmissionSerializer(serializers.ModelSerializer):
-    challenge_name = serializers.CharField(source='challenge.title')
-    submitted_by = serializers.CharField(source='user.username')
-    
     class Meta:
         model = Submission
         fields = ['id', 'challenge_name', 'submitted_by', 'flag_submitted', 
