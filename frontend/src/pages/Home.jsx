@@ -22,6 +22,7 @@ function AnimatedButton({ icon: Icon, text, className, onClick }) {
 
 function Home() {
   const { isAuthenticated, user } = useAuth();
+  console.log(user);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">

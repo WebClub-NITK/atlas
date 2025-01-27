@@ -36,7 +36,6 @@ TeamCard.propTypes = {
     name: PropTypes.string.isRequired,
     members: PropTypes.arrayOf(PropTypes.string).isRequired,
     score: PropTypes.number.isRequired,
-    id: PropTypes.number.isRequired,
   }).isRequired,
   onJoinSuccess: PropTypes.func,
 };

@@ -29,8 +29,14 @@ Atlas is an open-source platform for hosting CTF competitions, utilizing dynamic
 3. Build and run the docker containers
    
    ```bash
-   docker-compose up --build
+   docker compose up --build
    ```
+
+4. For admin panel
+    ```bash
+    docker exec -it atlas_backend python manage.py createsuperuser
+    ```
+    The corresponding email and the password would be used for logging in to admin panel and use its functionality. 
 
 ## Coding Guidelines
 

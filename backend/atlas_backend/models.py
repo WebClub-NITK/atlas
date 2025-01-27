@@ -40,6 +40,7 @@ class Team(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     password = models.CharField(max_length=128, default=make_password('default_password'))
     team_email = models.EmailField(unique=True, default='team@example.com')
+    max_attempts_per_challenge = models.IntegerField(default=10)
 
     def __str__(self):
         return self.name
@@ -82,7 +83,7 @@ class Challenge(models.Model):
     docker_image = models.CharField(max_length=200)
     flag = models.CharField(max_length=200)
     max_points = models.IntegerField(validators=[MinValueValidator(0)])
-    max_team_size = models.IntegerField(default=4)
+    max_team_size = models.IntegerField(default=3)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_hidden = models.BooleanField(default=False)
@@ -124,8 +125,8 @@ class Submission(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("team", "challenge", "attempt_number")
         ordering = ["-timestamp"]
+        unique_together = [['team', 'challenge', 'attempt_number']]
 
     def __str__(self):
         return f"{self.team.name} - {self.challenge.title}"

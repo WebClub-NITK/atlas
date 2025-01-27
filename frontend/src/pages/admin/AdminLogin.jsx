@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminLogin } from '../../api/admin';
 import { useAuth } from '../../hooks/useAuth';
+import { adminLogin } from '../../api/auth';
 
 function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -12,6 +13,8 @@ function AdminLogin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
     try {
       const data = await adminLogin(email, password);
       if (!data.user?.isAdmin) {
@@ -21,31 +24,34 @@ function AdminLogin() {
       login(data);
       navigate('/admin/dashboard', { replace: true });
     } catch (err) {
-      setError('Login failed. Please check your credentials.');
+      console.error('Admin login error:', err);
+      setError(err.response?.data?.error || 'Failed to login');
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-8">
-      <h2 className="text-2xl font-semibold mb-4">Admin Login</h2>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+    <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-6">Admin Login</h2>
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label htmlFor="email" className="block mb-2">Email</label>
+          <label className="block mb-2">Email</label>
           <input
             type="email"
-            id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full p-2 border rounded"
             required
           />
         </div>
-        <div className="mb-4">
-          <label htmlFor="password" className="block mb-2">Password</label>
+        <div className="mb-6">
+          <label className="block mb-2">Password</label>
           <input
             type="password"
-            id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full p-2 border rounded"
@@ -53,10 +59,10 @@ function AdminLogin() {
           />
         </div>
         <button 
-          type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+          type="submit" 
+          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
         >
-          Login
+          Login as Admin
         </button>
       </form>
     </div>

@@ -188,3 +188,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Security settings
 # CSRF_TRUSTED_ORIGINS = ["https://yourfrontenddomain.com"]  # Update with your frontend domain
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
