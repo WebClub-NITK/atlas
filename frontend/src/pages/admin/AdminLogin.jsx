@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { adminLogin } from '../../api/admin';
 import { useAuth } from '../../hooks/useAuth';
 import { adminLogin } from '../../api/auth';
 
@@ -15,9 +16,13 @@ function AdminLogin() {
     setError('');
 
     try {
-      const response = await adminLogin(email, password);
-      login(response);
-      navigate('/admin/challenges');
+      const data = await adminLogin(email, password);
+      if (!data.user?.isAdmin) {
+        setError('Unauthorized access');
+        return;
+      }
+      login(data);
+      navigate('/admin/dashboard', { replace: true });
     } catch (err) {
       console.error('Admin login error:', err);
       setError(err.response?.data?.error || 'Failed to login');

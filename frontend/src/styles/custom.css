@@ -1,6 +1,7 @@
 /* Add any custom styles here */
 .challenge-card {
   @apply transition-all duration-300 ease-in-out;
+  @apply bg-neutral-800 text-gray-100;
 }
 
 .challenge-card:hover {
@@ -9,6 +10,7 @@
 
 .team-card {
   @apply transition-all duration-300 ease-in-out;
+  @apply bg-neutral-800 text-gray-100;
 }
 
 .team-card:hover {
@@ -25,3 +27,87 @@
   @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
 }
 
+/* Dark theme colors */
+:root {
+  --dark-bg-primary: #121212;
+  --dark-bg-secondary: #1e1e1e;
+  --dark-bg-tertiary: #2d2d2d;
+  --dark-text-primary: #e0e0e0;
+  --dark-text-secondary: #a0a0a0;
+  --dark-border: #404040;
+}
+
+/* Dark mode styles */
+.dark-layout {
+  @apply bg-neutral-900 min-h-screen text-gray-100;
+}
+
+.dark-sidebar {
+  @apply bg-neutral-800 text-gray-100 h-screen fixed left-0 top-0;
+}
+
+.dark-content {
+  @apply bg-neutral-900 text-gray-100;
+}
+
+.dark-card {
+  @apply bg-neutral-800 border-neutral-700 text-gray-100;
+}
+
+/* Dark mode table styles */
+.dark-table {
+  @apply bg-neutral-800 text-gray-100;
+}
+
+.dark-table th {
+  @apply bg-neutral-700 text-gray-100;
+}
+
+.dark-table tr:nth-child(even) {
+  @apply bg-neutral-700;
+}
+
+.dark-table tr:nth-child(odd) {
+  @apply bg-neutral-800;
+}
+
+/* Dark mode profile styles */
+.dark-profile-card {
+  @apply bg-gray-800 border-gray-700 text-gray-100 shadow-lg rounded-lg;
+}
+
+.dark-input {
+  @apply bg-neutral-700 border-neutral-600 text-gray-100 focus:ring-neutral-500 focus:border-neutral-500;
+}
+
+.dark-button-primary {
+  @apply bg-neutral-700 text-white hover:bg-neutral-600 focus:ring-neutral-500;
+}
+
+.dark-button-secondary {
+  @apply bg-neutral-600 text-white hover:bg-neutral-700 focus:ring-neutral-500;
+}
+
+.dark-submission-item {
+  @apply bg-gray-700 hover:bg-gray-600 text-gray-100;
+}
+
+/* Sidebar logo transition */
+.font-mario {
+  @apply transition-all duration-300;
+}
+
+.font-mario:hover {
+  @apply text-gray-300;
+}
+
+
+.btn {
+  @apply px-4 py-2 rounded-xl text-white font-semibold 
+  transition-all duration-200 transform hover:scale-105 
+  focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-orange {
+  @apply bg-orange-500 hover:bg-orange-600 focus:ring-orange-500;
+}

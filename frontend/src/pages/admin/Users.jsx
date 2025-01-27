@@ -292,7 +292,7 @@ function Users() {
     <div className="p-6">
       <div className="mb-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Users</h1>
+          <h1 className="text-2xl font-bold text-red-500">Users</h1>
           <div className="flex space-x-3">
             <button
               onClick={() => {

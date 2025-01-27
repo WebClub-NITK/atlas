@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 import jwt
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password, check_password
-import re
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -27,48 +26,14 @@ logger = logging.getLogger('atlas_backend')
 @permission_classes([AllowAny])
 def signup(request):
     data = request.data
-    
-    # Required fields validation
-    required_fields = ['teamName', 'teamEmail', 'password', 'member1Name', 'member1Email']
-    for field in required_fields:
-        if not data.get(field):
-            return Response(
-                {'error': f'{field} is required'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    
-    # Email format validation
-    email_fields = ['teamEmail', 'member1Email']
-    for field in email_fields:
-        email = data.get(field)
-        if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
-            return Response(
-                {'error': f'Invalid email format for {field}'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-    # Check if team name already exists
-    if Team.objects.filter(name=data['teamName']).exists():
-        return Response(
-            {'error': 'Team name already exists'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # Check if team email already exists
-    if Team.objects.filter(team_email=data['teamEmail']).exists():
-        return Response(
-            {'error': 'Team email already exists'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
     try:
-        # Create team
+        # Create team first
         team = Team.objects.create(
             name=data['teamName'],
-            team_email=data['teamEmail']
+            team_email=data['teamEmail'],
+            team_size=3,
+            password=make_password(data['password'])
         )
-        team.set_password(data['password'])
-        team.save()
 
         # Create users for all team members
         users = []
@@ -115,10 +80,7 @@ def signup(request):
         }, status=status.HTTP_201_CREATED)
 
     except Exception as e:
-        return Response(
-            {'error': str(e)}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -208,10 +170,6 @@ def get_challenges(request):
     
     return Response(challenges_list)
 
-from django.core.cache import cache
-from django.conf import settings
-
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def submit_flag(request, challenge_id):
@@ -220,71 +178,57 @@ def submit_flag(request, challenge_id):
             {'error': 'You must be in a team to submit flags'},
             status=status.HTTP_400_BAD_REQUEST
         )
-
+    
     challenge = get_object_or_404(Challenge, id=challenge_id)
-    flag = request.data.get('flag', '').strip()
+    flag = request.data.get('flag')
     
     if not flag:
         return Response(
             {'error': 'Flag is required'},
             status=status.HTTP_400_BAD_REQUEST
         )
-
-    # Get submission count for attempt limiting
-    submission_count = Submission.objects.filter(
+    
+    existing_submission = Submission.objects.filter(
         team=request.user.team,
         challenge=challenge
-    ).count()
-
-    max_attempts = settings.FLAG_SUBMIT_MAX_ATTEMPTS
-    if submission_count >= max_attempts:
-        return Response(
-            {'error': f'Maximum {max_attempts} attempts allowed for this challenge'},
-            status=status.HTTP_429_TOO_MANY_REQUESTS
-        )
-
-    # Check if already solved
-    if Submission.objects.filter(
-        team=request.user.team,
-        challenge=challenge,
-        is_correct=True
-    ).exists():
-        return Response(
-            {'error': 'Challenge already solved'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    attempt_number = submission_count + 1
-    is_correct = challenge.flag == flag
+    ).first()
     
-    try: 
+    if existing_submission:
+        if existing_submission.is_correct:
+            return Response(
+                {'error': 'Challenge already solved'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        attempt_number = existing_submission.attempt_number + 1
+        existing_submission.delete()  # Remove previous attempt
+    else:
+        attempt_number = 1
+    
+    is_correct = challenge.flag == flag
+    points = challenge.max_points if is_correct else 0
+    
+    try:
         submission = Submission.objects.create(
             team=request.user.team,
             challenge=challenge,
             user=request.user,
             flag_submitted=flag,
             is_correct=is_correct,
-            points_awarded=challenge.max_points if is_correct else 0,
+            points_awarded=points,
             attempt_number=attempt_number
         )
-
-        if is_correct:
-            request.user.team.challenges.add(challenge)
-
+        
         return Response({
             'message': 'Correct flag!' if is_correct else 'Incorrect flag',
-            'points_awarded': submission.points_awarded,
+            'points_awarded': points,
             'is_correct': is_correct,
-            'attempt_number': attempt_number,
-            'attempts_remaining': max_attempts - attempt_number,
-            'timestamp': submission.timestamp.isoformat() 
+            'attempt_number': attempt_number
         })
-
-    except ValidationError as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({'error': 'Submission error occurred'}, 
-                       status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except IntegrityError:
+        return Response(
+            {'error': 'Submission error occurred'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -445,27 +389,14 @@ def leave_team(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_scoreboard(request):
-    cache_key = "scoreboard_data"
-    cached_data = cache.get(cache_key)
-
-    if cached_data:
-        return Response(cached_data)
-
     teams = Team.objects.annotate(
-        total_score=Sum('submissions__points_awarded', 
-                       filter=Q(submissions__is_correct=True)),
+        total_score=Sum('submissions__points_awarded', default=0),
         member_count=Count('members', distinct=True),
-        solved_count=Count('submissions', 
-                         filter=Q(submissions__is_correct=True))
+        solved_count=Count('submissions', filter=Q(submissions__is_correct=True))
     ).order_by('-total_score')
     
     serializer = TeamSerializer(teams, many=True)
-    data = serializer.data
-
-    # Cache for 1 minute
-    cache.set(cache_key, data, 60)
-    
-    return Response(data)
+    return Response(serializer.data)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -709,12 +640,12 @@ def team_profile(request):
         
         # Get total score
         total_score = team.submissions.filter(is_correct=True).aggregate(
-            total=Sum('points_awarded')   
+            total=Sum('challenge__points')
         )['total'] or 0
         
         # Get team rank
         teams_ranking = Team.objects.annotate(
-            score=Sum('submissions__points_awarded', 
+            score=Sum('submissions__challenge__points', 
                      filter=Q(submissions__is_correct=True))
         ).order_by('-score')
         team_rank = list(teams_ranking.values_list('id', flat=True)).index(team_id) + 1
@@ -738,8 +669,8 @@ def team_profile(request):
             'rank': team_rank,
             'recent_activity': [{
                 'id': sub.id,
-                'challenge_name': sub.challenge.title,
-                'points': sub.points_awarded,
+                'challenge_name': sub.challenge.name,
+                'points': sub.challenge.points,
                 'solved_at': sub.submitted_at.isoformat()
             } for sub in recent_submissions]
         }
@@ -811,7 +742,7 @@ def admin_login(request):
         )
 
 @api_view(['GET'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated])
 def admin_get_challenges(request):
     # Check if user is superuser
     if not request.user.is_superuser:
@@ -872,26 +803,4 @@ def get_challenge_detail(request, challenge_id):
             {"error": "Challenge not found"}, 
             status=status.HTTP_404_NOT_FOUND
         )
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_challenge_submissions(request, challenge_id):
-    challenge = get_object_or_404(Challenge, id=challenge_id)
-    
-    # For regular users, show only their team's submissions
-    if not request.user.is_superuser:
-        if not request.user.team:
-            return Response(
-                {'error': 'You must be in a team to view submissions'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        submissions = Submission.objects.filter(
-            team=request.user.team,
-            challenge=challenge
-        )
-    else:
-        # Admins can see all submissions
-        submissions = Submission.objects.filter(challenge=challenge)
-    
-    serializer = SubmissionSerializer(submissions, many=True)
-    return Response(serializer.data)
 

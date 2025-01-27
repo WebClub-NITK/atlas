@@ -15,41 +15,51 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [token, setToken] = useState({ access: null }); 
 
   useEffect(() => {
-    // Check for token on load
-    const token = localStorage.getItem('token');
-    console.log('Initial token check:', !!token);
-    
-    if (token) {
+    const tokenString = localStorage.getItem('token');
+    if (tokenString) {
       try {
-        const decoded = jwtDecode(JSON.parse(token).access);
-        console.log('Token decoded successfully:', decoded);
+        const parsedToken = JSON.parse(tokenString);
+        const decoded = jwtDecode(parsedToken.access);
+        setToken(parsedToken);
         
-        setUser({
-          teamId: decoded.team_id,
-          teamName: decoded.team_name,
-          teamEmail: decoded.team_email,
-          memberCount: decoded.member_count,
-          memberEmails: decoded.member_emails
-        });
+        if (decoded.is_admin) {
+          // Set admin user data
+          setUser({
+            id: decoded.user_id,
+            email: decoded.email,
+            username: decoded.username,
+            isAdmin: true
+          });
+        } else {
+          // Set team user data
+          setUser({
+            teamId: decoded.team_id,
+            teamName: decoded.team_name,
+            teamEmail: decoded.team_email,
+            memberCount: decoded.member_count,
+            memberEmails: decoded.member_emails
+          });
+        }
+        
         setIsAuthenticated(true);
         setIsAdmin(decoded.is_admin || false);
-        console.log('Auth state set to true on load');
       } catch (error) {
         console.error('Error loading user:', error);
         localStorage.removeItem('token');
+        setToken({ access: null });
         setIsAuthenticated(false);
+        setIsAdmin(false);
       }
     }
   }, []);
 
   const login = (tokenData) => {
-    console.log('Login called with token data:', tokenData);
-    
     localStorage.setItem('token', JSON.stringify(tokenData));
+    setToken(tokenData);
     const decoded = decodeToken(tokenData.access);
-    
     setUser({
       teamId: decoded.team_id,
       teamName: decoded.team_name,
@@ -59,7 +69,6 @@ export const AuthProvider = ({ children }) => {
     });
     setIsAuthenticated(true);
     setIsAdmin(decoded?.is_admin || false);
-    console.log('Auth state set to true after login');
   };
 
   const logout = () => {
@@ -67,21 +76,17 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);
-    console.log('Auth state set to false after logout');
   };
-
-  const value = {
-    user,
-    login,
-    logout,
-    isAuthenticated,
-    isAdmin
-  };
-
-  console.log('Current auth state:', value);
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      login,
+      logout,
+      isAuthenticated,
+      isAdmin
+    }}>
       {children}
     </AuthContext.Provider>
   );

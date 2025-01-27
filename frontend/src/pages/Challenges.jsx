@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getChallenges } from '../api/challenges';
 import ChallengeCard from '../components/ChallengeCard';
+import { getChallengeCategories } from '../data/dummyChallenges';
 
 function Challenges() {
   const [challenges, setChallenges] = useState([]);

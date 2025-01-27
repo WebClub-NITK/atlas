@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+export const API_URL = 'http://localhost:8000';
+
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   }
@@ -32,5 +34,7 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+
 
 export default apiClient;

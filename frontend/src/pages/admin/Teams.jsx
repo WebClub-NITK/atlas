@@ -242,7 +242,7 @@ function Teams() {
     <div className="p-6">
       <div className="mb-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Teams</h1>
+          <h1 className="text-2xl font-bold text-red-500">Teams</h1>
           <div className="flex space-x-3">
             <button
               onClick={() => {
@@ -396,4 +396,4 @@ function Teams() {
   );
 }
 
-export default Teams; 
+export default Teams;
