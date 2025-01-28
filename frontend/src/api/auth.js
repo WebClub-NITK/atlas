@@ -9,7 +9,7 @@ export const login = async (teamName, password) => {
 };
 
 export const register = async (formData) => {
-  const response = await apiClient.post('/auth/register', formData);
+  const response = await apiClient.post('/auth/signup', formData);
   return response.data;
 };
 

@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.core.cache import cache
 from .models import User, Challenge, Submission, Team, Container
 from .serializers import SignupSerializer, ChallengeSerializer, TeamSerializer, SubmissionSerializer, UserSerializer
-from .docker_plugin import DockerManager
+# from .docker_plugin import DockerManager
 
 import logging
 

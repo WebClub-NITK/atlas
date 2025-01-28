@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getScoreboard } from '../api/scoreboard';
 import { useAuth } from '../hooks/useAuth';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function Scoreboard() {
   const [teams, setTeams] = useState([]);
@@ -25,7 +26,7 @@ function Scoreboard() {
     fetchScoreboard();
   }, [user.token]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <LoadingSpinner/>;
   if (error) return <div className="text-red-500">{error}</div>;
 
   return (
@@ -45,7 +46,7 @@ function Scoreboard() {
               <tr key={team.id} className="border-b border-neutral-200">
                 <td className="px-6 py-4">{index + 1}</td>
                 <td className="px-6 py-4">{team.name}</td>
-                <td className="px-6 py-4 text-right">{team.score}</td>
+                <td className="px-6 py-4 text-right">{team.total_score}</td>
               </tr>
             ))}
           </tbody>

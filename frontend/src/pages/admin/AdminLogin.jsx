@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminLogin } from '../../api/admin';
+// import { adminLogin } from '../../api/admin';
 import { useAuth } from '../../hooks/useAuth';
 import { adminLogin } from '../../api/auth';
 
