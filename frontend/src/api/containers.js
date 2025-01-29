@@ -54,9 +54,35 @@ const mockContainers = [
 
 // Get all containers
 export const getContainers = async () => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return mockContainers;
+  try {
+    // When backend is ready, uncomment:
+    // const response = await apiClient.get('/admin/containers');
+    // return response.data;
+    
+    // Mock data for now
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return [
+      {
+        id: 1,
+        container_id: "abc123xyz456",
+        team: {
+          id: 1,
+          name: "Team Alpha"
+        },
+        challenge: {
+          id: 1,
+          title: "Basic Buffer Overflow"
+        },
+        status: "running",
+        created_at: "2024-03-20T10:00:00Z",
+        ssh_host: "localhost", 
+        ssh_port: 2222
+      }
+    ];
+  } catch (error) {
+    console.error('Error fetching containers:', error);
+    return []; // Return empty array on error
+  }
 };
 
 // Stop a container

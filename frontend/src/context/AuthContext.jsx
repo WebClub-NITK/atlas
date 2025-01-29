@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { adminLogin as apiAdminLogin } from '../api/auth';
 
 export const AuthContext = createContext();
 
@@ -15,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [token, setToken] = useState({ access: null }); 
+  const [token, setToken] = useState({ access: null });
 
   useEffect(() => {
     const tokenString = localStorage.getItem('token');
@@ -26,15 +27,13 @@ export const AuthProvider = ({ children }) => {
         setToken(parsedToken);
         
         if (decoded.is_admin) {
-          // Set admin user data
           setUser({
             id: decoded.user_id,
             email: decoded.email,
-            username: decoded.username,
             isAdmin: true
           });
+          setIsAdmin(true);
         } else {
-          // Set team user data
           setUser({
             teamId: decoded.team_id,
             teamName: decoded.team_name,
@@ -42,37 +41,69 @@ export const AuthProvider = ({ children }) => {
             memberCount: decoded.member_count,
             memberEmails: decoded.member_emails
           });
+          setIsAdmin(false);
         }
-        
         setIsAuthenticated(true);
-        setIsAdmin(decoded.is_admin || false);
       } catch (error) {
         console.error('Error loading user:', error);
         localStorage.removeItem('token');
         setToken({ access: null });
+        setUser(null);
         setIsAuthenticated(false);
         setIsAdmin(false);
       }
     }
   }, []);
 
+  const adminLogin = async (email, password) => {
+    try {
+      const response = await apiAdminLogin(email, password);
+      localStorage.setItem('token', JSON.stringify(response));
+      setToken(response);
+      const decoded = decodeToken(response.access);
+      
+      setUser({
+        id: decoded.user_id,
+        email: decoded.email,
+        isAdmin: true
+      });
+      
+      setIsAuthenticated(true);
+      setIsAdmin(true);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const login = (tokenData) => {
     localStorage.setItem('token', JSON.stringify(tokenData));
     setToken(tokenData);
     const decoded = decodeToken(tokenData.access);
-    setUser({
-      teamId: decoded.team_id,
-      teamName: decoded.team_name,
-      teamEmail: decoded.team_email,
-      memberCount: decoded.member_count,
-      memberEmails: decoded.member_emails
-    });
+    
+    if (decoded.is_admin) {
+      setUser({
+        id: decoded.user_id,
+        email: decoded.email,
+        isAdmin: true
+      });
+      setIsAdmin(true);
+    } else {
+      setUser({
+        teamId: decoded.team_id,
+        teamName: decoded.team_name,
+        teamEmail: decoded.team_email,
+        memberCount: decoded.member_count,
+        memberEmails: decoded.member_emails
+      });
+      setIsAdmin(false);
+    }
     setIsAuthenticated(true);
-    setIsAdmin(decoded?.is_admin || false);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    setToken({ access: null });
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);
@@ -83,6 +114,7 @@ export const AuthProvider = ({ children }) => {
       user,
       token,
       login,
+      adminLogin,
       logout,
       isAuthenticated,
       isAdmin

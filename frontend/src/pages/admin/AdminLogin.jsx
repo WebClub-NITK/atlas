@@ -1,31 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { adminLogin } from '../../api/admin';
 import { useAuth } from '../../hooks/useAuth';
-import { adminLogin } from '../../api/auth';
+// import { adminLogin } from '../../api/auth';
 
 function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { adminLogin } = useAuth(); 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      const data = await adminLogin(email, password);
-      if (!data.user?.isAdmin) {
-        setError('Unauthorized access');
-        return;
-      }
-      login(data);
+      await adminLogin(email, password); 
       navigate('/admin/dashboard', { replace: true });
     } catch (err) {
       console.error('Admin login error:', err);
-      setError(err.response?.data?.error || 'Failed to login');
+      setError(err.response?.data?.error || 'Invalid admin credentials');
     }
   };
 

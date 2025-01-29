@@ -621,40 +621,54 @@ def token_refresh(request):
             {'error': str(e)}, 
             status=status.HTTP_401_UNAUTHORIZED
         )
-
+    
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([AllowAny]) 
 def admin_login(request):
     try:
         email = request.data.get('email')
         password = request.data.get('password')
         
+        logger.info(f"Admin login attempt for: {email}")
+        
+        if not email or not password:
+            return Response(
+                {'error': 'Email and password are required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Get superuser by email
         user = User.objects.get(email=email, is_superuser=True)
+        logger.info(f"Found admin user: {user.email}")
         
         if not user.check_password(password):
-            raise User.DoesNotExist
+            logger.warning(f"Invalid password for admin: {email}")
+            return Response(
+                {'error': 'Invalid admin credentials'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         refresh = RefreshToken.for_user(user)
-        
-        # Add admin claims to token
-        refresh['is_admin'] = True
+        refresh['is_admin'] = True 
         refresh['email'] = user.email
         refresh['user_id'] = user.id
 
+        logger.info(f"Admin login successful for: {email}")
         return Response({
             'access': str(refresh.access_token),
-            'refresh': str(refresh),
+            'refresh': str(refresh)
         })
-        
+
     except User.DoesNotExist:
+        logger.warning(f"Admin user not found: {email}")
         return Response(
-            {'error': 'Invalid admin credentials'}, 
+            {'error': 'Invalid admin credentials'},
             status=status.HTTP_401_UNAUTHORIZED
         )
     except Exception as e:
+        logger.error(f"Admin login error: {str(e)}")
         return Response(
-            {'error': 'Login failed'}, 
+            {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 

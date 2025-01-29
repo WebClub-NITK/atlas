@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { dummyTeams } from '../../data/dummyTeams';
+import { getTeams, createTeam, updateTeam, deleteTeams } from '../../api/teams';
 
 function BulkEditModal({ teams, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -174,7 +174,7 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
 }
 
 function Teams() {
-  const [teams, setTeams] = useState(dummyTeams);
+  const [teams, setTeams] = useState([]);
   const [selectedTeams, setSelectedTeams] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
@@ -185,6 +185,22 @@ function Teams() {
     team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     team.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  useEffect(() =>{
+    fetchTeams();
+  },[])
+
+  const fetchTeams = async () => {
+    try {
+      setLoading(true);
+      const data = await getTeams();
+      setTeams(data);
+    } catch (err) {
+      setError('Failed to fetch teams');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSelectTeam = (teamId) => {
     if (selectedTeams.includes(teamId)) {
@@ -206,36 +222,45 @@ function Teams() {
     setShowModal(true);
   };
 
-  const handleDeleteTeams = () => {
+  const handleDeleteTeams = async () => {
     if (selectedTeams.length === 0) {
       alert('Please select at least one team');
       return;
     }
-    // TODO: For backend integration
-    // Make DELETE request to remove teams from database
-    setTeams(teams.filter(team => !selectedTeams.includes(team.id)));
-    setSelectedTeams([]);
+    
+    if (window.confirm('Are you sure you want to delete the selected teams?')) {
+      try {
+        await deleteTeams(selectedTeams);
+        setTeams(teams.filter(team => !selectedTeams.includes(team.id)));
+        setSelectedTeams([]);
+      } catch (err) {
+        console.error('Error deleting teams:', err);
+      }
+    }
   };
 
-  const handleSaveTeam = (teamData) => {
-    if (modalMode === 'create') {
-      setTeams([...teams, teamData]);
-    } else if (modalMode === 'edit') {
-      setTeams(teams.map(team => 
-        team.id === teamData.id ? teamData : team
-      ));
-    } else if (modalMode === 'bulk') {
-      setTeams(teams.map(team => {
-        if (!selectedTeams.includes(team.id)) return team;
-        return {
-          ...team,
-          ...(teamData.isHidden !== '' && { isHidden: teamData.isHidden === 'true' }),
-          ...(teamData.isBanned !== '' && { isBanned: teamData.isBanned === 'true' })
-        };
-      }));
+  const handleSaveTeam = async (teamData) => {
+    try {
+      if (modalMode === 'create') {
+        const newTeam = await createTeam(teamData);
+        setTeams([...teams, newTeam]);
+      } else if (modalMode === 'edit') {
+        const updatedTeam = await updateTeam(teamData.id, teamData);
+        setTeams(teams.map(team => 
+          team.id === updatedTeam.id ? updatedTeam : team
+        ));
+      } else if (modalMode === 'bulk') {
+        const promises = selectedTeams.map(teamId => 
+          updateTeam(teamId, teamData)
+        );
+        await Promise.all(promises);
+        fetchTeams(); // Refresh list after bulk update
+      }
+      setShowModal(false);
+      setSelectedTeams([]);
+    } catch (err) {
+      console.error('Error saving team:', err);
     }
-    setShowModal(false);
-    setSelectedTeams([]);
   };
 
   return (
