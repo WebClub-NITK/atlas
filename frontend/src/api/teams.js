@@ -26,30 +26,6 @@ export const addTeamMember = async (name, email) => {
 };
 
 
-
-export const updateTeamInfo = async (userInfo, token) => {
-  // Mocked response
-return {
-  ...userInfo,
-  id: 1,
-  isAdmin: false,
-  isVerified: true,
-  teamId: 1,
-};
-};
-
-export const getTeamHistory = async (token) => {
-// Mocked response
-return {
-  teamName: 'Team Alpha',
-  teamScore: 1000,
-  submissions: [
-    { id: 1, challengeName: 'Challenge 1', points: 100, solvedAt: '2024-03-15' },
-    { id: 2, challengeName: 'Challenge 2', points: 200, solvedAt: '2024-03-16' },
-  ],
-};
-};
-
 // Used For Admin Routes
 
 export const deleteTeams = async (teamIds) => {
@@ -60,8 +36,7 @@ export const deleteTeams = async (teamIds) => {
     return response.data;
   } catch (error) {
     console.error('Error deleting teams:', error);
-    // Mock successful deletion for now
-    return true; 
+    throw error;
   }
 };
 
@@ -70,9 +45,8 @@ export const getTeams = async () => {
     const response = await apiClient.get('/teams');
     return response.data;
   } catch (error) {
-    
-    console.log('Falling back to mock data');
-    return dummyTeams;
+    console.error("Failed to fetch teams")
+    throw error;
   }
 };
 
@@ -83,11 +57,7 @@ export const createTeam = async (teamData) => {
     return response.data;
   } catch (error) {
     console.error('Error creating team:', error);
-    // Mock successful creation
-    return {
-      id: Date.now(),
-      ...teamData
-    };
+    throw error;
   }
 };
 
@@ -98,10 +68,7 @@ export const updateTeam = async (teamId, teamData) => {
     return response.data;
   } catch (error) {
     console.error('Error updating team:', error);
-    return {
-      id: teamId,
-      ...teamData 
-    };
+    throw error;
   }
 };
 
@@ -112,7 +79,7 @@ export const deleteTeam = async (teamId) => {
     return true;
   } catch (error) {
     console.error('Error deleting team:', error);
-    return true; // Mock successful deletion
+    throw error;
   }
 };
 
@@ -126,9 +93,6 @@ export const bulkUpdateTeams = async (teamIds, updateData) => {
     return response.data;
   } catch (error) {
     console.error('Error bulk updating teams:', error);
-    return teamIds.map(id => ({
-      id,
-      ...updateData
-    }));
+    throw error;
   }
 };

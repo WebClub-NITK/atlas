@@ -20,13 +20,6 @@ export const getChallenges = async () => {
   }
 };
 
-const mockSSHDetails = {
-  host: "challenge.example.com",
-  port: "2222",
-  username: "ctf-user",
-  password: "challenge-password"
-};
-
 export const getChallengeById_Team = async (challengeId) => {
   try {
     const response = await apiClient.get(`/challenges/${challengeId}`);
@@ -53,8 +46,15 @@ export const submitFlag = async (challengeId, flag) => {
 
 
 export const startChallenge = async (challengeId) => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return mockSSHDetails;
+  try{
+    const response=await apiClient.post(`/challenges/${challengeId}/startContainer`,{
+      challengeId
+    });
+    return response.data;
+  }catch(error){
+    console.error("Failed to start container");
+    throw error;
+  }
 };
 
 // Admin challenge APIs
@@ -111,24 +111,7 @@ export const getChallengeById = async (challengeId) => {
   }
 };
 
-const mockSubmissions = [
-  {
-    id: 1,
-    userId: 1,
-    teamId: 1,
-    flag_submitted: "flag{test}",
-    is_correct: true,
-    timestamp: new Date().toISOString(),
-    user: {
-      id: 1,
-      email: "user@test.com"
-    },
-    team: {
-      id: 1,
-      name: "Test Team"
-    }
-  }
-];
+
 
 export const getChallengeSubmissions = async (challengeId) => {
   try {
@@ -136,7 +119,6 @@ export const getChallengeSubmissions = async (challengeId) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching challenge submissions:', error);
-    console.log('Falling back to mock data');
-    return mockSubmissions;
+    throw error;
   }
 };

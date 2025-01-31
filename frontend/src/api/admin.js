@@ -6,12 +6,6 @@ export const getDashboardStats = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
-    console.log('Falling back to mock data');
-    // Mock stats
-    return {
-      totalTeams: 1,
-      totalChallenges: 1, 
-      activeContainers: 1
-    };
+    throw error;
   }
 };
