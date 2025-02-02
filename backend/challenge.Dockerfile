@@ -11,8 +11,10 @@ WORKDIR /home/atlas/
 COPY challenge.sh /home/atlas/challenge.sh
 RUN chmod +x /home/atlas/challenge.sh
 
-# ENV PASS=atlas
+USER atlas
+
+# Do your build here
+
+USER root
 
 CMD [ "/bin/sh", "-c", "/home/atlas/challenge.sh" ]
-
-# EXPOSE 22
