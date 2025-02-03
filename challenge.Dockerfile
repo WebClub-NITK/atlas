@@ -1,10 +1,8 @@
 FROM alpine:latest
 
-RUN apk add --no-cache openssh-server
-
-RUN adduser -D atlas
-
-RUN ssh-keygen -A
+RUN apk add --no-cache openssh-server && \
+    adduser -D atlas && \
+    ssh-keygen -A
 
 WORKDIR /home/atlas/
 
