@@ -51,12 +51,8 @@ class DockerPlugin:
             resources = {
                 "cpu_quota": 50000,  # 50% of a single core
                 "cpu_period": 100000,  # 100% of a single core
-                "memory": "512m",
+                "memory": "128m",
             }
-
-            if container_name and not container_name.isalnum():
-                logging.error("Invalid container name.")
-                return None
 
             container = self.docker_client.containers.run(
                 image,
