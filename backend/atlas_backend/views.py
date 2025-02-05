@@ -353,7 +353,7 @@ def start_challenge(request, challenge_id):
             container_name=f"{request.user.team.name.replace(" ", "_")}-{challenge.title.replace(" ", "_")}"
         )
 
-import time
+        import time
         timeout = 30
         start_time = time.time()
         while True:
