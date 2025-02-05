@@ -353,11 +353,19 @@ def start_challenge(request, challenge_id):
             container_name=f"{request.user.team.name.replace(" ", "_")}-{challenge.title.replace(" ", "_")}"
         )
 
+import time
+        timeout = 30
+        start_time = time.time()
         while True:
             ports = client.get_container_ports(container_id)
             if ports:
                 break
-
+            time.sleep(1)
+            if time.time() - start_time > timeout:
+                return Response(
+                    {'error': 'Timeout waiting for container ports'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
         container = Container.objects.create(
             team=request.user.team,
             challenge=challenge,
