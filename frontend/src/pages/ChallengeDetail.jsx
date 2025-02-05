@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { getChallengeById, startChallenge, submitFlag } from '../api/challenges';
+import { getChallengeById_Team, startChallenge, submitFlag } from '../api/challenges';
 
 
 function ChallengeDetail() {

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getChallengeById, updateChallenge, deleteChallenge } from '../../api/challenges';
+import { getChallengeById, updateChallenge, deleteChallenge,getChallengeSubmissions } from '../../api/challenges';
 import { getUserById } from '../../data/dummyUsers';
 import { dummyUsers } from '../../data/dummyUsers';
 import { dummyTeams } from '../../data/dummyTeams';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 function EditChallengeModal({ challenge, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -259,61 +260,26 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
 }
 
 function ChallengeDetail() {
+
   const { id } = useParams();
   const navigate = useNavigate();
   const [challenge, setChallenge] = useState(null);
+  const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  // Placeholder dummy data for submissions (temporary)
-  const dummySubmissions = {
-    correct: [
-      {
-        id: 1,
-        userId: 1,
-        teamId: 1,
-        submittedAt: new Date().toISOString(),
-        username: "user1",
-        teamName: "Team Alpha",
-      },
-      {
-        id: 2,
-        userId: 2,
-        teamId: 1,
-        submittedAt: new Date().toISOString(),
-        username: "user2",
-        teamName: "Team Alpha",
-      }
-    ],
-    incorrect: [
-      {
-        id: 3,
-        userId: 3,
-        teamId: 2,
-        submittedAt: new Date().toISOString(),
-        username: "user3",
-        teamName: "Team Beta",
-        submission: "wrong_flag{123}"
-      },
-      {
-        id: 4,
-        userId: 4,
-        teamId: 2,
-        submittedAt: new Date().toISOString(),
-        username: "user4",
-        teamName: "Team Beta",
-        submission: "incorrect_flag{456}"
-      }
-    ]
-  };
-
   useEffect(() => {
-    const fetchChallenge = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getChallengeById(id);
-        console.log(data)
-        setChallenge(data);
+        setLoading(true);
+        const [challengeData, submissionsData] = await Promise.all([
+          getChallengeById(id),
+          getChallengeSubmissions(id)
+        ]);
+        
+        setChallenge(challengeData);
+        setSubmissions(submissionsData);
       } catch (err) {
         setError('Failed to fetch challenge details');
         console.error(err);
@@ -322,12 +288,12 @@ function ChallengeDetail() {
       }
     };
 
-    fetchChallenge();
+    fetchData();
   }, [id]);
 
   const handleSaveChallenge = async (updatedData) => {
     try {
-      await updateChallenge(updatedData, id);
+      await updateChallenge(id, updatedData);
       setChallenge(updatedData);
       setShowEditModal(false);
     } catch (error) {
@@ -342,21 +308,17 @@ function ChallengeDetail() {
         navigate('/admin/challenges');
       } catch (error) {
         console.error('Error deleting challenge:', error);
-        alert('Failed to delete challenge');
       }
     }
   };
 
-  const getUserById = (userId) => dummyUsers.find(user => user.id === userId);
-  const getTeamById = (teamId) => dummyTeams.find(team => team.id === teamId);
-
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div><LoadingSpinner/></div>;
   if (error) return <div className="text-red-500">{error}</div>;
   if (!challenge) return <div>Challenge not found</div>;
 
-  // Using placeholder data instead of real submissions
-  const correctSubmissions = dummySubmissions.correct;
-  const incorrectSubmissions = dummySubmissions.incorrect;
+  const correctSubmissions = submissions.filter(sub => sub.is_correct);
+  const incorrectSubmissions = submissions.filter(sub => !sub.is_correct);
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

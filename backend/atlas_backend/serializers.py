@@ -53,9 +53,13 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
         fields = ['id', 'name', 'description', 'team_size', 'members', 
-                 'total_score', 'member_count', 'solved_count', 'challenges']
+                 'total_score', 'member_count', 'solved_count', 'challenges',
+                 'max_attempts_per_challenge'] 
 
 class SubmissionSerializer(serializers.ModelSerializer):
+    challenge_name = serializers.CharField(source='challenge.title', read_only=True)
+    submitted_by = serializers.CharField(source='user.email', read_only=True)
+
     class Meta:
         model = Submission
         fields = ['id', 'challenge_name', 'submitted_by', 'flag_submitted', 

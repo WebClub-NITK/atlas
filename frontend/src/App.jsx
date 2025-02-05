@@ -48,7 +48,7 @@ function App() {
             <Route element={<ProtectedRoute requireAdmin={true}><AdminLayout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/admin/dashboard" />} />
               <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="users" element={<AdminUsers />} />
+              {/* <Route path="users" element={<AdminUsers />} /> */}
               <Route path="users/:id" element={<AdminUserDetail />} />
               <Route path="teams" element={<AdminTeams />} />
               <Route path="teams/:id" element={<AdminTeamDetail />} />

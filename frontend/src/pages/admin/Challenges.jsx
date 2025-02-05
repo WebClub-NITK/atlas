@@ -49,7 +49,7 @@ function Challenges() {
     <div className="p-6">
       <div className="mb-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Challenges</h1>
+          <h1 className="text-2xl font-bold text-red-500">Challenges</h1>
           <Link
             to="/admin/challenges/create"
             className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"

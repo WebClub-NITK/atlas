@@ -106,7 +106,7 @@ def signup(request):
         refresh['team_email'] = team.team_email
         refresh['member_count'] = len(users)
         refresh['member_emails'] = [user.email for user in users]
-
+        
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
@@ -132,8 +132,8 @@ def signin(request):
         )
 
     try:
-        team = Team.objects.get(name=team_name)
-        if not check_password(password, team.password):
+        team = Team.objects.filter(name__iexact=team_name).first()
+        if not team or not check_password(password, team.password):
             raise Team.DoesNotExist
 
         # Get the first team member as the "main" user for authentication
@@ -297,7 +297,7 @@ def submit_flag(request, challenge_id):
             # need to handle hints logic here
             points_awarded=challenge.max_points if is_correct else 0,
             attempt_number=attempt_number
-        )
+        )        
 
         if is_correct:
             request.user.team.challenges.add(challenge)
@@ -633,7 +633,7 @@ def reset_password(request):
             {'error': 'Token and new password are required'},
             status=status.HTTP_400_BAD_REQUEST
         )
-
+    
     try:
         # Validate password
         if len(new_password) < 8:
@@ -877,8 +877,8 @@ def token_refresh(request):
 
         refresh = RefreshToken(refresh_token)
         return Response({
-            'access': str(refresh.access_token),
-        })
+                'access': str(refresh.access_token),
+            })
     except Exception as e:
         return Response(
             {'error': str(e)},

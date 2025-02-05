@@ -9,7 +9,7 @@ export const login = async (teamName, password) => {
 };
 
 export const register = async (formData) => {
-  const response = await apiClient.post('/auth/register', formData);
+  const response = await apiClient.post('/auth/signup', formData);
   return response.data;
 };
 
@@ -29,6 +29,9 @@ export const resetPassword = async (token, newPassword) => {
 };
 
 export const adminLogin = async (email, password) => {
+  console.log('Admin login');
+  console.log(email)
+  console.log(password)
   try {
     const response = await apiClient.post('/auth/admin/login', {
       email,
