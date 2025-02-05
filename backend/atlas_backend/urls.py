@@ -14,6 +14,7 @@ urlpatterns = [
     path('challenges/<int:challenge_id>',views.get_challenge_by_id, name='get_challenge_by_id'),
     path('challenges/<int:challenge_id>/submit', views.submit_flag, name='submit_flag'),
     path('challenges/<int:challenge_id>/start', views.start_challenge, name='start_challenge'),
+    path('challenges/<int:challenge_id>/stop', views.stop_challenge, name='stop_challenge'),
     
     # Team routes
     path('teams', views.get_teams, name='get_teams'),
@@ -34,5 +35,6 @@ urlpatterns = [
     path('api/admin/challenges/<int:challenge_id>', views.get_challenge_detail, name='get_challenge_by_id'),
     path('api/admin/challenges/<int:challenge_id>/submissions', views.get_challenge_submissions, name='get_challenge_submissions'),
     path('api/admin/submissions', views.get_all_submissions, name='get_all_submissions'),
-
+    path('api/admin/containers', views.get_containers, name='get_containers'),
+    path('api/admin/container/<str:container_id>/stop', views.admin_stop_container, name='admin_stop_container'),
 ]
