@@ -21,7 +21,7 @@ urlpatterns = [
     path('teams', views.get_teams, name='get_teams'),
     path('teams/profile', views.team_profile, name='team_profile'),
     path('teams/<int:team_id>/score', views.get_team_score, name='get_team_score'),
-    path('teams/<int:team_id>/submissions', views.get_submission_history, name='get_submission_history'),
+    path('teams/submissions', views.get_submission_history, name='get_submission_history'),
     # path('teams/create', views.create_team, name='create_team'),
     # path('teams/<int:team_id>', views.update_delete_team, name='update_delete_team'),
     # path('teams/bulk-delete', views.bulk_delete_teams, name='bulk_delete_teams'),
@@ -29,6 +29,8 @@ urlpatterns = [
 
     # Scoreboard route
     path('scoreboard', views.get_scoreboard, name='get_scoreboard'),
+    # path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
 
     # Admin routes
     path('auth/admin/login', views.admin_login, name='admin_login'),
