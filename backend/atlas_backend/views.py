@@ -347,6 +347,7 @@ def start_challenge(request, challenge_id):
     try:
         client = DockerPlugin()
 
+        # container name constraints [a-zA-Z0-9][a-zA-Z0-9_.-]
         container_id, password = client.run_container(
             challenge.docker_image,
             port=22,
