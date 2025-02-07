@@ -47,7 +47,7 @@ export const submitFlag = async (challengeId, flag) => {
 
 export const startChallenge = async (challengeId) => {
   try{
-    const response=await apiClient.post(`/challenges/${challengeId}/startContainer`,{
+    const response=await apiClient.post(`/challenges/${challengeId}/start`,{
       challengeId
     });
     return response.data;
@@ -78,7 +78,8 @@ export const createChallenge = async (challengeData) => {
   }
 };
 
-export const updateChallenge = async (challengeData, challengeId) => {
+
+export const updateChallenge = async (challengeId, challengeData) => {
   try {
     const response = await apiClient.patch(
       `api/admin/challenges/${challengeId}/update`,
@@ -119,6 +120,16 @@ export const getChallengeSubmissions = async (challengeId) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching challenge submissions:', error);
+    throw error;
+  }
+};
+
+export const purchaseHint = async (challengeId, hintIndex) => {
+  try {
+    const response = await apiClient.post(`/challenges/${challengeId}/hints/${hintIndex}/purchase`);
+    return response.data;
+  } catch (error) {
+    console.error('Error purchasing hint:', error);
     throw error;
   }
 };

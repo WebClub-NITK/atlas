@@ -53,7 +53,7 @@ function App() {
               <Route path="teams" element={<AdminTeams />} />
               <Route path="teams/:id" element={<AdminTeamDetail />} />
               <Route path="challenges" element={<AdminChallenges />} />
-              <Route path="challenges/:id" element={<AdminChallengeDetail />} />
+              <Route path="challenges/:challengeId" element={<AdminChallengeDetail />} />
               <Route path="challenges/create" element={<CreateChallenge />} />
               <Route path="containers" element={<AdminContainers />} />
             </Route>

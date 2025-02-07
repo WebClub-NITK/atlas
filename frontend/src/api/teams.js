@@ -12,18 +12,6 @@ export const getTeamProfile = async () => {
   }
 };
 
-export const addTeamMember = async (name, email) => {
-  try {
-    const response = await apiClient.post('/teams/members/add', {
-      name,
-      email,
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error adding team member:', error);
-    throw error;
-  }
-};
 
 
 // Used For Admin Routes
@@ -64,7 +52,7 @@ export const createTeam = async (teamData) => {
 // Update team
 export const updateTeam = async (teamId, teamData) => {
   try {
-    const response = await apiClient.patch(`/teams/${teamId}`, teamData);
+    const response = await apiClient.patch(`api/admin/teams/update/${teamId}`, teamData);
     return response.data;
   } catch (error) {
     console.error('Error updating team:', error);
@@ -75,7 +63,7 @@ export const updateTeam = async (teamId, teamData) => {
 // Delete team
 export const deleteTeam = async (teamId) => {
   try {
-    await apiClient.delete(`/teams/${teamId}`);
+    await apiClient.delete(`api/admin/teams/delete/${teamId}`);
     return true;
   } catch (error) {
     console.error('Error deleting team:', error);
@@ -83,16 +71,3 @@ export const deleteTeam = async (teamId) => {
   }
 };
 
-// Bulk update teams
-export const bulkUpdateTeams = async (teamIds, updateData) => {
-  try {
-    const response = await apiClient.patch('/teams/bulk-update', {
-      teamIds,
-      ...updateData
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error bulk updating teams:', error);
-    throw error;
-  }
-};

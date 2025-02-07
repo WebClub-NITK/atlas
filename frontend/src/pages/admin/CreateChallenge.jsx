@@ -8,7 +8,7 @@ function CreateChallenge() {
     title: '',
     description: '',
     category: 'web',
-    docker_image: '',
+    docker_image: null,
     flag: '',
     max_points: '',
     max_team_size: 3,
@@ -19,7 +19,8 @@ function CreateChallenge() {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
+  const [dockerFileName, setDockerFileName] = useState('');
+  
   const categoryOptions = [
     'web',
     'crypto',
@@ -29,42 +30,105 @@ function CreateChallenge() {
     'misc'
   ];
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      setFormData({...formData, docker_image: null});
+      setDockerFileName('');
+      return;
+    }
+
+    if (!file.name.endsWith('.tar') && !file.name.endsWith('.tar.gz')) {
+      setError('Only .tar and .tar.gz files are allowed');
+      e.target.value = '';
+      return;
+    }
+
+    setError('');
+    setFormData({...formData, docker_image: file});
+    setDockerFileName(file.name);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const challengeData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        category: formData.category,
-        docker_image: formData.docker_image.trim(),
-        flag: formData.flag.trim(),
-        max_points: parseInt(formData.max_points),
-        max_team_size: 3,
-        is_hidden: formData.is_hidden,
-        hints: formData.hints.map(hint => ({
-          content: hint.content.trim(),
-          cost: parseInt(hint.cost)
-        })),
-        file_links: formData.file_links.filter(link => link.trim() !== '')
-      };
+      const formDataToSend = new FormData();
+      
+      // Validate required fields (removed docker_image validation)
+      if (!formData.title.trim()) throw new Error('Title is required');
+      if (!formData.description.trim()) throw new Error('Description is required');
+      if (!formData.flag.trim()) throw new Error('Flag is required');
+      if (!formData.max_points) throw new Error('Points are required');
 
-      const response = await createChallenge(challengeData);
-      console.log('Challenge created:', response);
+      // Append form fields
+      formDataToSend.append('title', formData.title.trim());
+      formDataToSend.append('description', formData.description.trim());
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('flag', formData.flag.trim());
+      formDataToSend.append('max_points', formData.max_points);
+      formDataToSend.append('max_team_size', formData.max_team_size);
+      formDataToSend.append('is_hidden', formData.is_hidden);
+
+      // Only append docker_image if one is selected
+      if (formData.docker_image) {
+        formDataToSend.append('docker_image', formData.docker_image);
+      }
+
+      formDataToSend.append('hints', JSON.stringify(formData.hints.map(hint => ({
+        content: hint.content.trim(),
+        cost: parseInt(hint.cost)
+      }))));
+      
+      formDataToSend.append('file_links', JSON.stringify(
+        formData.file_links.filter(link => link.trim() !== '')
+      ));
+
+      const response = await createChallenge(formDataToSend);
       navigate(`/admin/challenges/${response.challenge_id}`);
     } catch (error) {
       console.error('Error creating challenge:', error);
-      setError(error.response?.data?.error || 'Failed to create challenge');
+      setError(error.response?.data?.error || error.message || 'Failed to create challenge');
     } finally {
       setLoading(false);
     }
   };
 
+  const addHint = () => {
+    setFormData({
+      ...formData,
+      hints: [...formData.hints, { content: '', cost: 0 }]
+    });
+  };
+
+  const removeHint = (index) => {
+    const newHints = formData.hints.filter((_, i) => i !== index);
+    setFormData({...formData, hints: newHints});
+  };
+
+  const updateHint = (index, field, value) => {
+    const newHints = [...formData.hints];
+    newHints[index] = { ...newHints[index], [field]: value };
+    setFormData({...formData, hints: newHints});
+  };
+
+  const addFileLink = () => {
+    setFormData({
+      ...formData,
+      file_links: [...formData.file_links, '']
+    });
+  };
+
+  const removeFileLink = (index) => {
+    const newLinks = formData.file_links.filter((_, i) => i !== index);
+    setFormData({...formData, file_links: newLinks});
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Create Challenge</h1>
+      <h1 className="text-2xl font-bold mb-6 text-red-500">Create Challenge</h1>
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -114,11 +178,31 @@ function CreateChallenge() {
           </div>
 
           <div>
-            <label className="block mb-2 font-medium">Docker Image</label>
+            <label className="block mb-2 font-medium">Docker Image (Optional)</label>
+            <div className="flex items-center space-x-4">
+              <input
+                type="file"
+                accept=".tar,.tar.gz"
+                onChange={handleFileChange}
+                className="w-full border rounded-lg px-4 py-2"
+              />
+              {dockerFileName && (
+                <span className="text-sm text-gray-600">
+                  Selected: {dockerFileName}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              Upload .tar or .tar.gz file (optional)
+            </p>
+          </div>
+
+          <div>
+            <label className="block mb-2 font-medium">Flag</label>
             <input
               type="text"
-              value={formData.docker_image}
-              onChange={(e) => setFormData({...formData, docker_image: e.target.value})}
+              value={formData.flag}
+              onChange={(e) => setFormData({...formData, flag: e.target.value})}
               className="w-full border rounded-lg px-4 py-2"
               maxLength={200}
               required
@@ -133,18 +217,6 @@ function CreateChallenge() {
               onChange={(e) => setFormData({...formData, max_points: e.target.value})}
               className="w-full border rounded-lg px-4 py-2"
               min="0"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block mb-2 font-medium">Flag</label>
-            <input
-              type="text"
-              value={formData.flag}
-              onChange={(e) => setFormData({...formData, flag: e.target.value})}
-              className="w-full border rounded-lg px-4 py-2"
-              maxLength={200}
               required
             />
           </div>
@@ -179,10 +251,7 @@ function CreateChallenge() {
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      const newLinks = formData.file_links.filter((_, i) => i !== index);
-                      setFormData({...formData, file_links: newLinks});
-                    }}
+                    onClick={() => removeFileLink(index)}
                     className="px-3 py-2 bg-red-500 text-white rounded-lg"
                   >
                     Remove
@@ -191,10 +260,7 @@ function CreateChallenge() {
               ))}
               <button
                 type="button"
-                onClick={() => setFormData({
-                  ...formData,
-                  file_links: [...formData.file_links, '']
-                })}
+                onClick={addFileLink}
                 className="px-4 py-2 bg-green-500 text-white rounded-lg"
               >
                 Add File Link
@@ -211,10 +277,7 @@ function CreateChallenge() {
                     <span className="font-medium">Hint {index + 1}</span>
                     <button
                       type="button"
-                      onClick={() => {
-                        const newHints = formData.hints.filter((_, i) => i !== index);
-                        setFormData({...formData, hints: newHints});
-                      }}
+                      onClick={() => removeHint(index)}
                       className="text-red-500"
                     >
                       Remove
@@ -225,11 +288,7 @@ function CreateChallenge() {
                       <input
                         type="text"
                         value={hint.content}
-                        onChange={(e) => {
-                          const newHints = [...formData.hints];
-                          newHints[index] = { ...hint, content: e.target.value };
-                          setFormData({...formData, hints: newHints});
-                        }}
+                        onChange={(e) => updateHint(index, 'content', e.target.value)}
                         className="w-full border rounded-lg px-4 py-2"
                         placeholder="Hint content"
                       />
@@ -238,11 +297,7 @@ function CreateChallenge() {
                       <input
                         type="number"
                         value={hint.cost}
-                        onChange={(e) => {
-                          const newHints = [...formData.hints];
-                          newHints[index] = { ...hint, cost: parseInt(e.target.value) };
-                          setFormData({...formData, hints: newHints});
-                        }}
+                        onChange={(e) => updateHint(index, 'cost', parseInt(e.target.value))}
                         className="w-full border rounded-lg px-4 py-2"
                         placeholder="Cost"
                         min="0"
@@ -253,10 +308,7 @@ function CreateChallenge() {
               ))}
               <button
                 type="button"
-                onClick={() => setFormData({
-                  ...formData,
-                  hints: [...formData.hints, { content: '', cost: 0 }]
-                })}
+                onClick={addHint}
                 className="px-4 py-2 bg-green-500 text-white rounded-lg"
               >
                 Add Hint
@@ -288,4 +340,4 @@ function CreateChallenge() {
   );
 }
 
-export default CreateChallenge; 
+export default CreateChallenge;

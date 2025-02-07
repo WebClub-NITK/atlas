@@ -1,88 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getTeams, createTeam, updateTeam, deleteTeams } from '../../api/teams';
-
-function BulkEditModal({ teams, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    isHidden: '',
-    isBanned: ''
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(formData);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg w-96">
-        <h2 className="text-xl font-bold mb-4">
-          Bulk Edit Teams ({teams.length} selected)
-        </h2>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label className="block mb-2 font-medium">Visibility</label>
-              <select
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.isHidden}
-                onChange={(e) => setFormData({...formData, isHidden: e.target.value})}
-              >
-                <option value="">No Change</option>
-                <option value="false">Visible</option>
-                <option value="true">Hidden</option>
-              </select>
-            </div>
-            <div>
-              <label className="block mb-2 font-medium">Access</label>
-              <select
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.isBanned}
-                onChange={(e) => setFormData({...formData, isBanned: e.target.value})}
-              >
-                <option value="">No Change</option>
-                <option value="false">Active</option>
-                <option value="true">Banned</option>
-              </select>
-            </div>
-          </div>
-          <div className="mt-6 flex justify-end space-x-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+import { getTeams, createTeam, updateTeam, deleteTeam } from '../../api/teams';
 
 function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
   const [formData, setFormData] = useState({
     name: team?.name || '',
     email: team?.email || '',
-    password: '', // Required for new teams, optional for edit
+    password: '',
     isHidden: team?.isHidden || false,
     isBanned: team?.isBanned || false
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Only include fields that were changed
+    const changedData = {};
+    Object.keys(formData).forEach(key => {
+      if (formData[key] !== (team?.[key] || '')) {
+        changedData[key] = formData[key];
+      }
+    });
+    
     onSave({
       ...team,
-      ...formData,
-      id: team?.id || Date.now()
+      ...changedData
     });
     onClose();
   };
@@ -98,33 +39,33 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
             <div>
               <label className="block mb-2 font-medium">Team Name</label>
               <input
-                type="text"
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                type="text" 
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
-                required
+                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required={mode === 'create'} // Only required for new teams
               />
             </div>
             <div>
               <label className="block mb-2 font-medium">Email</label>
               <input
                 type="email"
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                required
+                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required={mode === 'create'} // Only required for new teams
               />
             </div>
             <div>
               <label className="block mb-2 font-medium">
-                {mode === 'create' ? 'Password' : 'New Password (leave blank to keep current)'}
+                {mode === 'create' ? 'Password' : 'New Password (optional)'}
               </label>
               <input
                 type="password"
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
-                required={mode === 'create'}
+                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required={mode === 'create'} // Only required for new teams
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -175,20 +116,16 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
 
 function Teams() {
   const [teams, setTeams] = useState([]);
-  const [selectedTeams, setSelectedTeams] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create');
-  const [selectedTeamForEdit, setSelectedTeamForEdit] = useState(null);
+  const [selectedTeam, setSelectedTeam] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const filteredTeams = teams.filter(team => 
-    team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    team.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  useEffect(() =>{
+  useEffect(() => {
     fetchTeams();
-  },[])
+  }, []);
 
   const fetchTeams = async () => {
     try {
@@ -202,39 +139,19 @@ function Teams() {
     }
   };
 
-  const handleSelectTeam = (teamId) => {
-    if (selectedTeams.includes(teamId)) {
-      setSelectedTeams(selectedTeams.filter(id => id !== teamId));
-    } else {
-      setSelectedTeams([...selectedTeams, teamId]);
-    }
-  };
-
-  const handleEditClick = () => {
-    if (selectedTeams.length === 0) {
-      alert('Please select at least one team');
-      return;
-    }
-    setModalMode(selectedTeams.length === 1 ? 'edit' : 'bulk');
-    if (selectedTeams.length === 1) {
-      setSelectedTeamForEdit(teams.find(team => team.id === selectedTeams[0]));
-    }
+  const handleEditTeam = (team) => {
+    setSelectedTeam(team);
+    setModalMode('edit');
     setShowModal(true);
   };
 
-  const handleDeleteTeams = async () => {
-    if (selectedTeams.length === 0) {
-      alert('Please select at least one team');
-      return;
-    }
-    
-    if (window.confirm('Are you sure you want to delete the selected teams?')) {
+  const handleDeleteTeam = async (teamId) => {
+    if (window.confirm('Are you sure you want to delete this team?')) {
       try {
-        await deleteTeams(selectedTeams);
-        setTeams(teams.filter(team => !selectedTeams.includes(team.id)));
-        setSelectedTeams([]);
+        await deleteTeam(teamId);
+        setTeams(teams.filter(team => team.id !== teamId));
       } catch (err) {
-        console.error('Error deleting teams:', err);
+        console.error('Error deleting team:', err);
       }
     }
   };
@@ -244,63 +161,45 @@ function Teams() {
       if (modalMode === 'create') {
         const newTeam = await createTeam(teamData);
         setTeams([...teams, newTeam]);
-      } else if (modalMode === 'edit') {
+      } else {
         const updatedTeam = await updateTeam(teamData.id, teamData);
         setTeams(teams.map(team => 
           team.id === updatedTeam.id ? updatedTeam : team
         ));
-      } else if (modalMode === 'bulk') {
-        const promises = selectedTeams.map(teamId => 
-          updateTeam(teamId, teamData)
-        );
-        await Promise.all(promises);
-        fetchTeams(); // Refresh list after bulk update
       }
       setShowModal(false);
-      setSelectedTeams([]);
+      setSelectedTeam(null);
     } catch (err) {
       console.error('Error saving team:', err);
     }
   };
+
+  const filteredTeams = teams.filter(team => 
+    team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    team.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
 
   return (
     <div className="p-6">
       <div className="mb-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-red-500">Teams</h1>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => {
-                setModalMode('create');
-                setSelectedTeamForEdit(null);
-                setShowModal(true);
-              }}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-              </svg>
-              New Team
-            </button>
-            <button
-              onClick={handleEditClick}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit Team
-            </button>
-            <button
-              onClick={handleDeleteTeams}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Delete Selected
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              setModalMode('create');
+              setSelectedTeam(null);
+              setShowModal(true);
+            }}
+            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+            </svg>
+            New Team
+          </button>
         </div>
       </div>
 
@@ -311,21 +210,11 @@ function Teams() {
             placeholder="Search teams by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 pl-10 pr-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg 
-              className="h-5 w-5 text-gray-400"
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth="2" 
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
         </div>
@@ -335,42 +224,20 @@ function Teams() {
         <table className="min-w-full bg-white">
           <thead>
             <tr className="bg-gray-100">
-              <th className="w-12 px-4 py-2 text-center">
-                <input
-                  type="checkbox"
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedTeams(filteredTeams.map(team => team.id));
-                    } else {
-                      setSelectedTeams([]);
-                    }
-                  }}
-                  checked={selectedTeams.length === filteredTeams.length}
-                />
-              </th>
               <th className="px-4 py-2 text-left">ID</th>
               <th className="px-4 py-2 text-left">Team</th>
               <th className="px-4 py-2 text-left">Email</th>
               <th className="w-24 px-4 py-2 text-center">Hidden</th>
               <th className="w-24 px-4 py-2 text-center">Banned</th>
+              <th className="w-24 px-4 py-2 text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredTeams.map(team => (
               <tr key={team.id} className="border-t">
-                <td className="px-4 py-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedTeams.includes(team.id)}
-                    onChange={() => handleSelectTeam(team.id)}
-                  />
-                </td>
                 <td className="px-4 py-2">{team.id}</td>
                 <td className="px-4 py-2">
-                  <Link 
-                    to={`/admin/teams/${team.id}`}
-                    className="text-blue-500 hover:underline"
-                  >
+                  <Link to={`/admin/teams/${team.id}`} className="text-blue-500 hover:underline">
                     {team.name}
                   </Link>
                 </td>
@@ -389,6 +256,20 @@ function Teams() {
                     </span>
                   )}
                 </td>
+                <td className="px-4 py-2 text-center">
+                  <button 
+                    onClick={() => handleEditTeam(team)}
+                    className="text-blue-500 hover:text-blue-700 mr-2"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTeam(team.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -396,26 +277,15 @@ function Teams() {
       </div>
 
       {showModal && (
-        modalMode === 'bulk' ? (
-          <BulkEditModal
-            teams={teams.filter(team => selectedTeams.includes(team.id))}
-            onClose={() => {
-              setShowModal(false);
-              setSelectedTeamForEdit(null);
-            }}
-            onSave={handleSaveTeam}
-          />
-        ) : (
-          <TeamFormModal
-            team={modalMode === 'edit' ? selectedTeamForEdit : null}
-            mode={modalMode}
-            onClose={() => {
-              setShowModal(false);
-              setSelectedTeamForEdit(null);
-            }}
-            onSave={handleSaveTeam}
-          />
-        )
+        <TeamFormModal
+          team={modalMode === 'edit' ? selectedTeam : null}
+          mode={modalMode}
+          onClose={() => {
+            setShowModal(false);
+            setSelectedTeam(null);
+          }}
+          onSave={handleSaveTeam}
+        />
       )}
     </div>
   );

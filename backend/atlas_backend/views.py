@@ -3,6 +3,7 @@ from django.conf import settings
 from django.db.models import Sum, Count, Q
 from datetime import datetime, timedelta
 import jwt
+import json
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework import status
@@ -15,6 +16,7 @@ from .models import User, Challenge, Submission, Team, Container
 from .serializers import SignupSerializer, ChallengeSerializer, TeamSerializer, SubmissionSerializer, UserSerializer
 import re
 from docker_plugin import DockerPlugin
+from django.http import QueryDict
 
 import logging
 
@@ -489,21 +491,18 @@ def get_team_score(request, team_id=None):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_submission_history(request, team_id=None):
+def get_submission_history(request):
     """
     Get submission history for a team
     """
     try:
         # Determine which team's history to get
-        if team_id:
-            team = get_object_or_404(Team, id=team_id)
-        else:
-            team = request.user.team
-            if not team:
-                return Response(
-                    {'error': 'User not associated with any team'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+        team = request.user.team
+        if not team:
+            return Response(
+                {'error': 'User not associated with any team'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         submissions = Submission.objects.filter(team=team).order_by(
             'challenge', '-timestamp'
@@ -671,7 +670,6 @@ def reset_password(request):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def create_challenge(request):
-    # Check if user is superuser
     if not request.user.is_superuser:
         return Response(
             {"error": "Only administrators can create challenges"},
@@ -682,8 +680,7 @@ def create_challenge(request):
         data = request.data
 
         # Validate required fields
-        required_fields = ['title', 'description',
-                           'category', 'docker_image', 'flag', 'max_points']
+        required_fields = ['title', 'description', 'category', 'flag', 'max_points']
         for field in required_fields:
             if not data.get(field):
                 return Response(
@@ -691,32 +688,33 @@ def create_challenge(request):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        try:
-            if request.FILES.get('docker_image'):
+        # Convert is_hidden from string to boolean
+        is_hidden = str(data.get('is_hidden', 'false')).lower() == 'true'
+
+        # Handle docker image optionally
+        image_id = None
+        if request.FILES.get('docker_image'):
+            try:
                 client = DockerPlugin()
-                image_id = client.add_image(
-                    request.FILES['docker_image'].read()
+                image_id = client.add_image(request.FILES['docker_image'].read())
+            except Exception as e:
+                return Response(
+                    {"error": "Failed to add Docker image", "exception": f"{str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-            else:
-                image_id = None
-        except Exception as e:
-            logger.info(f"Error adding image: {str(e)}")
-            return Response({"error": "Failed to add Docker image", "exception": f"${e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Create challenge
         challenge = Challenge.objects.create(
             title=data['title'],
             description=data['description'],
             category=data['category'],
-            docker_image=image_id,
+            docker_image=image_id if image_id else '',
             flag=data['flag'],
             max_points=int(data['max_points']),
-            max_team_size=3,  # Fixed as 3
-            is_hidden=data.get('is_hidden', False),
+            max_team_size=3,
+            is_hidden=is_hidden,  # Use converted boolean
             hints=data.get('hints', []),
-            file_links=data.get('file_links', []),
-            port=22,
-            ssh_user='atlas'
+            file_links=data.get('file_links', [])
         )
 
         return Response({
@@ -726,10 +724,42 @@ def create_challenge(request):
 
     except Exception as e:
         return Response(
-            {"error": "Failed to create challenge", "exception": f"{e}"},
+            {"error": "Failed to create challenge", "exception": f"{str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+
+# @api_view(['PATCH'])
+# @permission_classes([IsAdminUser])
+# def update_challenge(request, challenge_id):
+#     try:
+#         challenge = Challenge.objects.get(id=challenge_id)
+#         data = request.data
+
+#         # Update fields if they exist in request
+#         fields = [
+#             'title', 'description', 'category', 'docker_image',
+#             'flag', 'max_points', 'is_hidden', 'hints', 'file_links'
+#         ]
+
+#         for field in fields:
+#             if field in data:
+#                 setattr(challenge, field, data[field])
+
+#         challenge.save()
+#         return Response({"message": "Challenge updated successfully"})
+
+#     except Challenge.DoesNotExist:
+#         return Response(
+#             {"error": "Challenge not found"},
+#             status=status.HTTP_404_NOT_FOUND
+#         )
+#     except Exception as e:
+#         logger.error(f"Error updating challenge: {str(e)}")
+#         return Response(
+#             {"error": "Failed to update challenge"},
+#             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        # )
 
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
@@ -738,15 +768,48 @@ def update_challenge(request, challenge_id):
         challenge = Challenge.objects.get(id=challenge_id)
         data = request.data
 
-        # Update fields if they exist in request
-        fields = [
-            'title', 'description', 'category', 'docker_image',
-            'flag', 'max_points', 'is_hidden', 'hints', 'file_links'
-        ]
+        # Handle form data properly
+        if isinstance(data, QueryDict):
+            data = data.dict()
 
-        for field in fields:
-            if field in data:
-                setattr(challenge, field, data[field])
+        # Convert max_points with validation
+        if 'max_points' in data:
+            try:
+                data['max_points'] = int(data['max_points'] or 0)  # Default to 0 if None/empty
+            except (ValueError, TypeError):
+                data['max_points'] = 0
+
+        # Convert is_hidden to boolean
+        if 'is_hidden' in data:
+            data['is_hidden'] = str(data['is_hidden']).lower() == 'true'
+
+        # Parse JSON strings for hints and file_links
+        if 'hints' in data and isinstance(data['hints'], str):
+            try:
+                data['hints'] = json.loads(data['hints'])
+            except json.JSONDecodeError:
+                data['hints'] = []
+
+        if 'file_links' in data and isinstance(data['file_links'], str):
+            try:
+                data['file_links'] = json.loads(data['file_links'])
+            except json.JSONDecodeError:
+                data['file_links'] = []
+
+        # Handle docker image file if present
+        if request.FILES.get('docker_image'):
+            try:
+                client = DockerPlugin()
+                image_id = client.add_image(request.FILES['docker_image'].read())
+                data['docker_image'] = image_id
+            except Exception as e:
+                logger.error(f"Docker image upload error: {str(e)}")
+                raise Exception("Failed to upload docker image")
+
+        # Update fields
+        for field, value in data.items():
+            if hasattr(challenge, field) and value is not None:
+                setattr(challenge, field, value)
 
         challenge.save()
         return Response({"message": "Challenge updated successfully"})
@@ -759,10 +822,9 @@ def update_challenge(request, challenge_id):
     except Exception as e:
         logger.error(f"Error updating challenge: {str(e)}")
         return Response(
-            {"error": "Failed to update challenge"},
+            {"error": f"Failed to update challenge: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
 
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])

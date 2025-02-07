@@ -3,10 +3,12 @@ import { Outlet } from 'react-router-dom';
 
 function AdminLayout() {
   return (
-    <div className="min-h-screen py-8 mt-10">
-      <Outlet />
+    <div className="min-h-screen py-8 relative">
+      <div className="relative z-0"> 
+        <Outlet />
+      </div>
     </div>
   );
 }
 
-export default AdminLayout; 
+export default AdminLayout;

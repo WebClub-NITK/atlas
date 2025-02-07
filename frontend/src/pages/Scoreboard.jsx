@@ -7,13 +7,12 @@ function Scoreboard() {
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   useEffect(() => {
     const fetchScoreboard = async () => {
       try {
         setLoading(true);
-        const data = await getScoreboard(user.token);
+        const data = await getScoreboard();
         setTeams(data);
       } catch (err) {
         console.error('Error fetching scoreboard:', err);
@@ -24,7 +23,7 @@ function Scoreboard() {
     };
 
     fetchScoreboard();
-  }, [user.token]);
+  }, []);
 
   if (loading) return <LoadingSpinner/>;
   if (error) return <div className="text-red-500">{error}</div>;
