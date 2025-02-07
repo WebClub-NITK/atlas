@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { getTeamProfile, addTeamMember } from '../../api/teams';
+import { getTeamProfile } from '../../api/teams';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 function TeamProfile() {
