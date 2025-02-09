@@ -12,6 +12,15 @@ export const getTeamProfile = async () => {
   }
 };
 
+export const getTeamSubmissions = async () => {
+  try {
+    const response = await apiClient.get('/teams/submissions');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching team submissions:', error);
+    throw error;
+  }
+};
 
 
 // Used For Admin Routes

@@ -123,8 +123,10 @@ function AdminContainers() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm">
-                        <p>Host: {container.ssh_host || 'N/A'}</p>
-                        <p>Port: {container.ssh_port || 'N/A'}</p>
+                      <p>Host: {container.ssh_host || 'N/A'}</p>
+                      <p>Port: {container.ssh_port || 'N/A'}</p>
+                      <p>User: {container.ssh_user || 'N/A'}</p>
+                      <p>Password: {container.ssh_password || 'N/A'}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

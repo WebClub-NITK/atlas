@@ -129,7 +129,7 @@ function ChallengeDetail() {
               {challenge.file_links.map((link, index) => (
                 <a
                   key={index}
-                  href={link}
+                  href={link.startsWith('http') ? link : `${process.env.REACT_APP_API_URL}${link}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block text-blue-600 hover:text-blue-800 hover:underline"

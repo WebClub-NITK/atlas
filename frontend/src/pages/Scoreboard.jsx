@@ -44,7 +44,7 @@ function Scoreboard() {
             {teams.map((team, index) => (
               <tr key={team.id} className="border-b border-neutral-200">
                 <td className="px-6 py-4">{index + 1}</td>
-                <td className="px-6 py-4">{team.name}</td>
+                <td className="px-6 py-4">{team.team_name}</td>
                 <td className="px-6 py-4 text-right">{team.total_score}</td>
               </tr>
             ))}
