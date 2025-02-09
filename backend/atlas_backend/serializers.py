@@ -46,7 +46,7 @@ class ChallengeSerializer(serializers.ModelSerializer):
 
 class TeamSerializer(serializers.ModelSerializer):
     members = UserSerializer(many=True, read_only=True)
-    total_score = serializers.IntegerField(read_only=True)
+    total_score = serializers.IntegerField(source='team_score', read_only=True)
     member_count = serializers.IntegerField(read_only=True)
     solved_count = serializers.IntegerField(read_only=True)
 

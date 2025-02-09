@@ -1,9 +1,11 @@
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.db.models import Sum, Count, Q
+from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 import jwt
 import json
+import time
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework import status
@@ -12,12 +14,12 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.core.cache import cache
-from .models import User, Challenge, Submission, Team, Container
+from django.db import transaction
+from django.http import QueryDict
+from .models import User, Challenge, Submission, Team, Container, HintPurchase, validate_atlas_name
 from .serializers import SignupSerializer, ChallengeSerializer, TeamSerializer, SubmissionSerializer, UserSerializer
 import re
 from docker_plugin import DockerPlugin
-from django.http import QueryDict
-
 import logging
 
 logger = logging.getLogger('atlas_backend')
@@ -48,7 +50,7 @@ def signup(request):
             )
 
     # Check if team name already exists
-    if Team.objects.filter(name=data['teamName']).exists():
+    if Team.objects.filter(name__iexact=data['teamName']).exists():
         return Response(
             {'error': 'Team name already exists'},
             status=status.HTTP_400_BAD_REQUEST
@@ -65,7 +67,8 @@ def signup(request):
         # Create team
         team = Team.objects.create(
             name=data['teamName'],
-            team_email=data['teamEmail']
+            team_email=data['teamEmail'],
+            team_score=0
         )
         team.set_password(data['password'])
         team.save()
@@ -108,12 +111,14 @@ def signup(request):
         refresh['team_email'] = team.team_email
         refresh['member_count'] = len(users)
         refresh['member_emails'] = [user.email for user in users]
-        
+
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }, status=status.HTTP_201_CREATED)
 
+    except ValidationError as e: 
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -124,7 +129,7 @@ def signup(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signin(request):
-    team_name = request.data.get('teamName')
+    team_name = request.data.get('teamName', '').lower()
     password = request.data.get('password')
 
     if not team_name or not password:
@@ -254,8 +259,6 @@ def submit_flag(request, challenge_id):
             )
 
         challenge = get_object_or_404(Challenge, id=challenge_id)
-        logger.info('Challenge: %s', challenge)
-        logger.info('Request data: %s', request.data)
         flag = request.data.get('flag', '').strip()
 
         if not flag:
@@ -276,33 +279,33 @@ def submit_flag(request, challenge_id):
                 status=status.HTTP_429_TOO_MANY_REQUESTS
             )
 
-        # Check if already solved
-        if Submission.objects.filter(
-            team=request.user.team,
-            challenge=challenge,
-            is_correct=True
-        ).exists():
-            return Response(
-                {'error': 'Challenge already solved'},
-                status=status.HTTP_400_BAD_REQUEST
+        with transaction.atomic():
+            if Submission.objects.filter(
+                team=request.user.team,
+                challenge=challenge,
+                is_correct=True
+            ).exists():
+                return Response(
+                    {'error': 'Challenge already solved'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            attempt_number = submission_count + 1
+            is_correct = challenge.flag == flag
+            submission = Submission.objects.create(
+                team=request.user.team,
+                challenge=challenge,
+                user=request.user,
+                flag_submitted=flag,
+                is_correct=is_correct,
+                points_awarded=challenge.max_points if is_correct else 0,
+                attempt_number=attempt_number
             )
 
-        attempt_number = submission_count + 1
-        is_correct = challenge.flag == flag
-
-        submission = Submission.objects.create(
-            team=request.user.team,
-            challenge=challenge,
-            user=request.user,
-            flag_submitted=flag,
-            is_correct=is_correct,
-            # need to handle hints logic here
-            points_awarded=challenge.max_points if is_correct else 0,
-            attempt_number=attempt_number
-        )        
-
-        if is_correct:
-            request.user.team.challenges.add(challenge)
+            if is_correct:
+                request.user.team.challenges.add(challenge)
+                request.user.team.team_score += challenge.max_points
+                request.user.team.save()
 
         return Response({
             'message': 'Correct flag!' if is_correct else 'Incorrect flag',
@@ -310,7 +313,8 @@ def submit_flag(request, challenge_id):
             'is_correct': is_correct,
             'attempt_number': attempt_number,
             'attempts_remaining': request.user.team.max_attempts_per_challenge - attempt_number,
-            'timestamp': submission.timestamp.isoformat()
+            'timestamp': submission.timestamp.isoformat(),
+            'new_team_score': request.user.team.team_score if is_correct else None
         })
 
     except Exception as e:
@@ -433,11 +437,10 @@ def stop_challenge(request, challenge_id):
 @permission_classes([IsAuthenticated])
 def get_teams(request):
     teams = Team.objects.annotate(
-        total_score=Sum('submissions__points_awarded', default=0),
         member_count=Count('members', distinct=True),
         solved_count=Count('submissions', filter=Q(
-            submissions__is_correct=True))
-    ).order_by('-total_score')
+            submissions__is_correct=True), distinct=True)
+    ).order_by('-team_score', 'created_at')
 
     serializer = TeamSerializer(teams, many=True)
     return Response(serializer.data)
@@ -462,23 +465,13 @@ def get_team_score(request, team_id=None):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        # Calculate total score
-        total_score = Submission.objects.filter(
-            team=team,
-            is_correct=True
-        ).aggregate(
-            total_score=Sum('points_awarded')
-        )['total_score'] or 0
+        total_score = team.team_score
 
-        # Get solved challenges
-        solved_challenges = Challenge.objects.filter(
-            submissions__team=team,
-            submissions__is_correct=True
-        ).distinct().count()
+        solved_challenges = team.challenges.count()
 
         return Response({
             'team_name': team.name,
-            'total_score': total_score,
+            'total_score': team.team_score,
             'solved_challenges': solved_challenges
         })
 
@@ -494,7 +487,7 @@ def get_team_score(request, team_id=None):
 def get_submission_history(request):
     """
     Get submission history for a team
-    """
+     """
     try:
         # Determine which team's history to get
         team = request.user.team
@@ -545,25 +538,20 @@ def get_submission_history(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_scoreboard(request):
-    """
-    Get scoreboard for all teams
-    """
     try:
         teams = Team.objects.annotate(
-            total_score=Sum('submissions__points_awarded', default=0),
             member_count=Count('members', distinct=True),
             solved_count=Count('submissions', filter=Q(
                 submissions__is_correct=True))
-        ).order_by('-total_score')
+        ).order_by('-team_score')  # Use team_score field directly
 
-        # Create serializable response data
         scoreboard_data = []
         for rank, team in enumerate(teams, 1):
             team_data = {
                 'rank': rank,
                 'team_id': team.id,
                 'team_name': team.name,
-                'total_score': team.total_score,
+                'total_score': team.team_score, 
                 'member_count': team.member_count,
                 'solved_challenges': team.solved_count,
                 'last_solve': team.submissions.filter(
@@ -632,7 +620,7 @@ def reset_password(request):
             {'error': 'Token and new password are required'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     try:
         # Validate password
         if len(new_password) < 8:
@@ -687,6 +675,10 @@ def create_challenge(request):
                     {"error": f"{field} is required"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+        title = data.get('title')
+        if not title.endswith('.atlas_backend'):
+            title = f"{title}.atlas_backend"
+
 
         # Convert is_hidden from string to boolean
         is_hidden = str(data.get('is_hidden', 'false')).lower() == 'true'
@@ -705,7 +697,7 @@ def create_challenge(request):
 
         # Create challenge
         challenge = Challenge.objects.create(
-            title=data['title'],
+            title=title,
             description=data['description'],
             category=data['category'],
             docker_image=image_id if image_id else '',
@@ -722,44 +714,13 @@ def create_challenge(request):
             "challenge_id": challenge.id
         }, status=status.HTTP_201_CREATED)
 
+    except ValidationError as e:  # Catch validation errors
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response(
             {"error": "Failed to create challenge", "exception": f"{str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-
-
-# @api_view(['PATCH'])
-# @permission_classes([IsAdminUser])
-# def update_challenge(request, challenge_id):
-#     try:
-#         challenge = Challenge.objects.get(id=challenge_id)
-#         data = request.data
-
-#         # Update fields if they exist in request
-#         fields = [
-#             'title', 'description', 'category', 'docker_image',
-#             'flag', 'max_points', 'is_hidden', 'hints', 'file_links'
-#         ]
-
-#         for field in fields:
-#             if field in data:
-#                 setattr(challenge, field, data[field])
-
-#         challenge.save()
-#         return Response({"message": "Challenge updated successfully"})
-
-#     except Challenge.DoesNotExist:
-#         return Response(
-#             {"error": "Challenge not found"},
-#             status=status.HTTP_404_NOT_FOUND
-#         )
-#     except Exception as e:
-#         logger.error(f"Error updating challenge: {str(e)}")
-#         return Response(
-#             {"error": "Failed to update challenge"},
-#             status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        # )
 
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
@@ -819,6 +780,8 @@ def update_challenge(request, challenge_id):
             {"error": "Challenge not found"},
             status=status.HTTP_404_NOT_FOUND
         )
+    except ValidationError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.error(f"Error updating challenge: {str(e)}")
         return Response(
@@ -874,20 +837,14 @@ def team_profile(request):
         # Get team statistics
         solved_challenges = Challenge.objects.filter(
             submissions__team=team,
-            submissions__is_correct=True
+            submissions__is_correct=True,
         ).distinct().count()
 
         # Get total score
-        total_score = team.submissions.filter(
-            is_correct=True
-        ).aggregate(total=Sum('points_awarded'))['total'] or 0
+        total_score = team.team_score
 
-        # Get team rank
-        team_rank = Team.objects.annotate(
-            score=Sum('submissions__points_awarded',
-                      filter=Q(submissions__is_correct=True))
-        ).filter(
-            score__gt=total_score
+        team_rank = Team.objects.filter(
+            team_score__gt=team.team_score
         ).count() + 1
 
         # Get recent activity (last 5 correct submissions)
@@ -939,8 +896,8 @@ def token_refresh(request):
 
         refresh = RefreshToken(refresh_token)
         return Response({
-                'access': str(refresh.access_token),
-            })
+            'access': str(refresh.access_token),
+        })
     except Exception as e:
         return Response(
             {'error': str(e)},
@@ -1183,7 +1140,7 @@ def get_containers(request):
     except Exception as e:
         return Response(
             {"error": f"Failed to fetch containers: {str(e)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            status=status.HTTP_500_internal_server_error
         )
 
 
@@ -1222,7 +1179,7 @@ def get_dashboard_stats(request):
             {"error": "Only administrators can access this"},
             status=status.HTTP_403_FORBIDDEN
         )
-    
+
     try:
         stats = {
             'teams': {
@@ -1259,7 +1216,7 @@ def delete_team(request, team_id):
             {"error": "Only administrators can perform this action"},
             status=status.HTTP_403_FORBIDDEN
         )
-    
+
     try:
         team = Team.objects.get(id=team_id)
         # Delete associated containers first
@@ -1286,20 +1243,40 @@ def update_team(request, team_id):
             {"error": "Only administrators can perform this action"},
             status=status.HTTP_403_FORBIDDEN
         )
-    
+
     try:
         team = Team.objects.get(id=team_id)
-        serializer = TeamSerializer(team, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        if 'name' in request.data:
+            team.name = request.data['name']
+        if 'email' in request.data:
+            team.team_email = request.data['email']
+        if 'isHidden' in request.data:
+            team.is_hidden = request.data['isHidden']
+        if 'isBanned' in request.data:
+            team.is_banned = request.data['isBanned']
+        if 'password' in request.data and request.data['password']:
+            team.set_password(request.data['password'])
+            
+        team.save()
+        
+        return Response({
+            'id': team.id,
+            'name': team.name,
+            'email': team.team_email,
+            'isHidden': team.is_hidden,
+            'isBanned': team.is_banned,
+            'total_score': team.team_score
+        })
     except Team.DoesNotExist:
         return Response(
             {"error": "Team not found"},
             status=status.HTTP_404_NOT_FOUND
         )
+    except ValidationError as e:  # Catch validation errors
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
+        logger.error(f"Failed to update team {team_id}: {str(e)}")
         return Response(
             {"error": f"Failed to update team: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1311,26 +1288,26 @@ def purchase_hint(request, challenge_id):
     try:
         challenge = Challenge.objects.get(id=challenge_id)
         hint_index = request.data.get('hintIndex')
-        
+
         if hint_index is None:
             return Response(
                 {"error": "Hint index is required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
+
         if hint_index >= len(challenge.hints):
             return Response(
                 {"error": "Invalid hint index"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
+
         team = request.user.team
         if not team:
             return Response(
                 {"error": "User must be part of a team"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
+
         # Check if hint was already purchased
         hint_key = f"hint_{team.id}_{challenge.id}_{hint_index}"
         if cache.get(hint_key):
@@ -1338,27 +1315,41 @@ def purchase_hint(request, challenge_id):
                 "hint": challenge.hints[hint_index],
                 "alreadyPurchased": True
             })
-            
-        # Deduct points for hint (assuming 10% of challenge points)
+
         hint_cost = int(challenge.max_points * 0.1)
-        team.total_score = team.submissions.filter(is_correct=True).aggregate(
-            total=Sum('points_awarded'))['total'] or 0
+
+        with transaction.atomic():
+            # Get fresh team object within transaction
+            team = Team.objects.select_for_update().get(id=request.user.team.id)
             
-        if team.total_score < hint_cost:
-            return Response(
-                {"error": "Not enough points to purchase hint"},
-                status=status.HTTP_400_BAD_REQUEST
+            if team.team_score < hint_cost:
+                return Response(
+                    {"error": "Not enough points to purchase hint"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Update team score and save
+            team.team_score -= hint_cost
+            team.save()
+
+            # Create HintPurchase record
+            HintPurchase.objects.create(
+                team=team,
+                challenge=challenge,
+                hint_index=hint_index,
+                points_deducted=hint_cost
             )
-            
-        # Store hint purchase in cache
-        cache.set(hint_key, True)
-        
+
+            # Store hint purchase in cache after successful transaction
+            cache.set(hint_key, True)
+
         return Response({
             "hint": challenge.hints[hint_index],
             "pointsDeducted": hint_cost,
-            "alreadyPurchased": False
+            "alreadyPurchased": False,
+            "newTeamScore": team.team_score
         })
-        
+
     except Challenge.DoesNotExist:
         return Response(
             {"error": "Challenge not found"},

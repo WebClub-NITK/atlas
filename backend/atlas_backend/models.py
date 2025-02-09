@@ -3,6 +3,16 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager, Group
 from django.core.validators import MinValueValidator
 from django.contrib.auth.hashers import make_password, check_password
 from django.db.models import CharField, TextField, IntegerField, BooleanField, DateTimeField
+from django.core.validators import RegexValidator
+import re
+
+def validate_atlas_name(value):
+    pattern = r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$'
+    if not re.match(pattern, value):
+        raise ValidationError(
+            'Name must start with alphanumeric character and only contain alphanumeric characters, '
+            'dots, underscores, or hyphens'
+        )
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -32,7 +42,15 @@ class CustomUserManager(BaseUserManager):
         return self.get(email=email)
 
 class Team(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(
+        max_length=100,
+        unique=True
+    )
+    
+    def save(self, *args, **kwargs):
+        self.name = self.name.lower()
+        super().save(*args, **kwargs)
+
     description = models.TextField(blank=True)
     team_size = models.IntegerField(default=1)
     challenges = models.ManyToManyField("Challenge", blank=True)
@@ -41,6 +59,7 @@ class Team(models.Model):
     password = models.CharField(max_length=128, default=make_password('default_password'))
     team_email = models.EmailField(unique=True, default='team@example.com')
     max_attempts_per_challenge = models.IntegerField(default=10)
+    team_score = models.IntegerField(default=0)
 
     def __str__(self):
         return self.name
@@ -77,7 +96,10 @@ class Challenge(models.Model):
         ('misc', 'Miscellaneous'),
     ]
 
-    title = models.CharField(max_length=200, unique=True)
+    title = models.CharField(
+        max_length=200,
+        unique=True
+    )
     description = models.TextField()
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     docker_image = models.CharField(max_length=200)
