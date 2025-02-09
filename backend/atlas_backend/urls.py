@@ -16,20 +16,17 @@ urlpatterns = [
     path('challenges/<int:challenge_id>/submit', views.submit_flag, name='submit_flag'),
     path('challenges/<int:challenge_id>/start', views.start_challenge, name='start_challenge'),
     path('challenges/<int:challenge_id>/stop', views.stop_challenge, name='stop_challenge'),
+    path('challenges/<int:challenge_id>/purchase-hint', views.purchase_hint, name='purchase-hint'),
 
     # Team routes
     path('teams', views.get_teams, name='get_teams'),
     path('teams/profile', views.team_profile, name='team_profile'),
     path('teams/<int:team_id>/score', views.get_team_score, name='get_team_score'),
     path('teams/submissions', views.get_submission_history, name='get_submission_history'),
-    # path('teams/create', views.create_team, name='create_team'),
-    # path('teams/<int:team_id>', views.update_delete_team, name='update_delete_team'),
-    # path('teams/bulk-delete', views.bulk_delete_teams, name='bulk_delete_teams'),
-    # path('teams/bulk-update', views.bulk_update_teams, name='bulk_update_teams'),
 
     # Scoreboard route
     path('scoreboard', views.get_scoreboard, name='get_scoreboard'),
-    # path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
 
     # Admin routes
@@ -41,7 +38,9 @@ urlpatterns = [
     path('api/admin/challenges/<int:challenge_id>', views.get_challenge_detail, name='get_challenge_detail'),
     path('api/admin/challenges/<int:challenge_id>/submissions', views.get_challenge_submissions, name='get_challenge_submissions'),
     path('api/admin/submissions', views.get_all_submissions, name='get_all_submissions'),
-    # path('api/admin/dashboard/stats', views.get_dashboard_stats, name='get_dashboard_stats'),
+    path('api/admin/dashboard/stats', views.get_dashboard_stats, name='dashboard-stats'),
+    path('api/admin/teams/<int:team_id>/delete', views.delete_team, name='delete-team'),
+    path('api/admin/teams/<int:team_id>/update', views.update_team, name='update-team'),
     path('api/admin/containers', views.get_containers, name='get_containers'),
-    path('api/admin/container/<str:container_id>/stop', views.admin_stop_container, name='admin_stop_container'),
+    path('api/admin/containers/<str:container_id>/stop', views.admin_stop_container, name='admin_stop_container'),
 ]
