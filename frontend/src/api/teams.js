@@ -61,7 +61,10 @@ export const createTeam = async (teamData) => {
 // Update team
 export const updateTeam = async (teamId, teamData) => {
   try {
-    const response = await apiClient.patch(`api/admin/teams/update/${teamId}`, teamData);
+    const response = await apiClient.patch(
+      `api/admin/teams/${teamId}/update`,
+      teamData,
+    );
     return response.data;
   } catch (error) {
     console.error('Error updating team:', error);
@@ -72,7 +75,7 @@ export const updateTeam = async (teamId, teamData) => {
 // Delete team
 export const deleteTeam = async (teamId) => {
   try {
-    await apiClient.delete(`api/admin/teams/delete/${teamId}`);
+    await apiClient.delete(`api/admin/teams/${teamId}/delete`);
     return true;
   } catch (error) {
     console.error('Error deleting team:', error);

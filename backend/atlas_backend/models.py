@@ -53,7 +53,7 @@ class Team(models.Model):
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
-    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name="members")
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True, related_name="members")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -130,3 +130,13 @@ class Submission(models.Model):
 
     def __str__(self):
         return f"{self.team.name} - {self.challenge.title}"
+
+class HintPurchase(models.Model):
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="hint_purchases")
+    challenge = models.ForeignKey(Challenge, on_delete=models.CASCADE)
+    hint_index = models.IntegerField()
+    points_deducted = models.IntegerField()
+    purchased_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('team', 'challenge', 'hint_index')

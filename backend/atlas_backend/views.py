@@ -352,7 +352,7 @@ def start_challenge(request, challenge_id):
         container_id, password = client.run_container(
             challenge.docker_image,
             port=22,
-            container_name=f"{request.user.team.name.replace(" ", "_")}-{challenge.title.replace(" ", "_")}"
+            container_name=f"{request.user.team.name.replace(' ', '_')}-{challenge.title.replace(' ', '_')}"
         )
 
         import time
@@ -1210,5 +1210,162 @@ def admin_stop_container(request, container_id):
     except Exception as e:
         return Response(
             {"error": f"Failed to stop container: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_dashboard_stats(request):
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only administrators can access this"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        stats = {
+            'teams': {
+                'total': Team.objects.count(),
+                'active': Team.objects.filter(submissions__timestamp__gte=datetime.now() - timedelta(days=1)).distinct().count()
+            },
+            'challenges': {
+                'total': Challenge.objects.count(),
+                'active': Challenge.objects.filter(is_hidden=False).count(),
+                'solved': Challenge.objects.filter(submissions__is_correct=True).distinct().count()
+            },
+            'containers': {
+                'total': Container.objects.count(),
+                'running': Container.objects.filter(status='running').count()
+            },
+            'submissions': {
+                'total': Submission.objects.count(),
+                'correct': Submission.objects.filter(is_correct=True).count(),
+                'last_24h': Submission.objects.filter(timestamp__gte=datetime.now() - timedelta(days=1)).count()
+            }
+        }
+        return Response(stats)
+    except Exception as e:
+        return Response(
+            {"error": f"Failed to fetch dashboard stats: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_team(request, team_id):
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only administrators can perform this action"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        team = Team.objects.get(id=team_id)
+        # Delete associated containers first
+        Container.objects.filter(team=team).delete()
+        # Delete team and cascade to related objects
+        team.delete()
+        return Response({"message": "Team deleted successfully"})
+    except Team.DoesNotExist:
+        return Response(
+            {"error": "Team not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {"error": f"Failed to delete team: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def update_team(request, team_id):
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only administrators can perform this action"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        team = Team.objects.get(id=team_id)
+        serializer = TeamSerializer(team, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Team.DoesNotExist:
+        return Response(
+            {"error": "Team not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {"error": f"Failed to update team: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def purchase_hint(request, challenge_id):
+    try:
+        challenge = Challenge.objects.get(id=challenge_id)
+        hint_index = request.data.get('hintIndex')
+        
+        if hint_index is None:
+            return Response(
+                {"error": "Hint index is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        if hint_index >= len(challenge.hints):
+            return Response(
+                {"error": "Invalid hint index"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        team = request.user.team
+        if not team:
+            return Response(
+                {"error": "User must be part of a team"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Check if hint was already purchased
+        hint_key = f"hint_{team.id}_{challenge.id}_{hint_index}"
+        if cache.get(hint_key):
+            return Response({
+                "hint": challenge.hints[hint_index],
+                "alreadyPurchased": True
+            })
+            
+        # Deduct points for hint (assuming 10% of challenge points)
+        hint_cost = int(challenge.max_points * 0.1)
+        team.total_score = team.submissions.filter(is_correct=True).aggregate(
+            total=Sum('points_awarded'))['total'] or 0
+            
+        if team.total_score < hint_cost:
+            return Response(
+                {"error": "Not enough points to purchase hint"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Store hint purchase in cache
+        cache.set(hint_key, True)
+        
+        return Response({
+            "hint": challenge.hints[hint_index],
+            "pointsDeducted": hint_cost,
+            "alreadyPurchased": False
+        })
+        
+    except Challenge.DoesNotExist:
+        return Response(
+            {"error": "Challenge not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
