@@ -442,6 +442,15 @@ def get_teams(request):
             submissions__is_correct=True), distinct=True)
     ).order_by('-team_score', 'created_at')
 
+    response_data = [{
+        'id': team.id,
+        'name': team.name,
+        'member_count': team.member_count,
+        'total_score': team.team_score,
+        'solved_count': team.solved_count
+    } for team in teams]
+
+    return Response(response_data)
     serializer = TeamSerializer(teams, many=True)
     return Response(serializer.data)
 
@@ -676,8 +685,7 @@ def create_challenge(request):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         title = data.get('title')
-        if not title.endswith('.atlas_backend'):
-            title = f"{title}.atlas_backend"
+
 
 
         # Convert is_hidden from string to boolean
