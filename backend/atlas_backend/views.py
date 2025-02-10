@@ -259,7 +259,7 @@ def submit_flag(request, challenge_id):
             )
 
         challenge = get_object_or_404(Challenge, id=challenge_id)
-        flag = request.data.get('flag', '').strip()
+        flag = request.data.get('flag_submitted', '').strip()
 
         if not flag:
             return Response(
@@ -1322,11 +1322,11 @@ def purchase_hint(request, challenge_id):
             # Get fresh team object within transaction
             team = Team.objects.select_for_update().get(id=request.user.team.id)
             
-            if team.team_score < hint_cost:
-                return Response(
-                    {"error": "Not enough points to purchase hint"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # if team.team_score < hint_cost:
+            #     return Response(
+            #         {"error": "Not enough points to purchase hint"},
+            #         status=status.HTTP_400_BAD_REQUEST
+            #     )
 
             # Update team score and save
             team.team_score -= hint_cost

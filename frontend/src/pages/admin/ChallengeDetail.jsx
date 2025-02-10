@@ -13,7 +13,7 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
     flag: challenge.flag || '',
     is_hidden: challenge.is_hidden || false,
     hints: typeof challenge.hints === 'string' ? JSON.parse(challenge.hints) : [],
-    file_links: typeof challenge.file_links === 'string' ? JSON.parse(challenge.file_links) : []
+    file_links: typeof challenge.file_links === 'string' ? JSON.parse(challenge.file_links) : []  
   });
 
   const [newHint, setNewHint] = useState({ content: '', cost: 0 });
@@ -339,6 +339,15 @@ function ChallengeDetail() {
         if (typeof challengeData.hints === 'string') {
           challengeData.hints = JSON.parse(challengeData.hints);
         }
+        if (typeof challengeData.file_links === 'string') {
+          try {
+            challengeData.file_links = JSON.parse(challengeData.file_links);
+          } catch (e) {
+            console.error("Failed to parse file_links:", e);
+            challengeData.file_links = [];
+            setError("Failed to parse file links");
+          }
+        }
         setChallenge(challengeData);
 
         const submissionsData = await getChallengeSubmissions(challengeId);
@@ -384,7 +393,6 @@ function ChallengeDetail() {
       await updateChallenge(challengeId, updatedData);
       
       const newChallengeData = await getChallengeById(challengeId);
-      
       if (typeof newChallengeData.hints === 'string') {
         newChallengeData.hints = JSON.parse(newChallengeData.hints);
       }
@@ -589,4 +597,3 @@ function ChallengeDetail() {
 }
 
 export default ChallengeDetail
-

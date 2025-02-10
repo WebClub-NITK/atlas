@@ -26,10 +26,21 @@ function TeamProfile() {
         ]);
 
         setTeamProfile(profile);
-        setSubmissions(submissionData);
+        
+        // Transform submission data to match expected format
+        const formattedSubmissions = Object.values(submissionData).map(sub => ({
+          challenge_name: sub.challenge_name,
+          points: sub.max_points,
+          is_correct: sub.is_solved,
+          submitted_at: sub.attempts[0]?.timestamp || null,
+          attempts: sub.attempts
+        }));
+
+        setSubmissions(formattedSubmissions);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to fetch team data');
+        setSubmissions([]);
       } finally {
         setLoading(false);
       }
@@ -83,40 +94,44 @@ function TeamProfile() {
         </div>
 
         {/* Submissions History */}
-        <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6">
+        <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6 overflow-x-auto"> {/* Added overflow-x-auto */}
           <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Submission History</h2>
-          <div className="bg-white rounded-lg overflow-hidden">
-            <table className="w-full">
+          <div className="bg-white rounded-lg overflow-x-auto"> {/* Added overflow-x-auto */}
+            <table className="w-full whitespace-nowrap"> {/* Added whitespace-nowrap */}
               <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Challenge</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Points</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Submitted At</th>
+              <tr>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Challenge</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Points</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Submitted At</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Attempts</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {submissions.map((submission, index) => (
+                <tr key={index}>
+                  <td className="px-4 py-2 text-sm text-gray-900">{submission.challenge_name}</td>
+                  <td className="px-4 py-2 text-sm text-gray-500">{submission.points}</td>
+                  <td className="px-4 py-2 text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      submission.is_correct 
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {submission.is_correct ? 'Correct' : 'Incorrect'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-sm text-gray-500">
+                    {submission.submitted_at ? new Date(submission.submitted_at).toLocaleString() : 'N/A'}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-gray-500">
+                    {submission.attempts?.length || 0}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {submissions.map((submission, index) => (
-                  <tr key={index}>
-                    <td className="px-4 py-2 text-sm text-gray-900">{submission.challenge_name}</td>
-                    <td className="px-4 py-2 text-sm text-gray-500">{submission.points}</td>
-                    <td className="px-4 py-2 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        submission.is_correct 
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {submission.is_correct ? 'Correct' : 'Incorrect'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-500">
-                      {new Date(submission.submitted_at).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
         </div>
       </div>
     </div>

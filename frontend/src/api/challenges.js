@@ -34,7 +34,7 @@ export const getChallengeById_Team = async (challengeId) => {
 export const submitFlag = async (challengeId, flag) => {
   try {
     const response = await apiClient.post(`/challenges/${challengeId}/submit`, {
-      flag_submitted: flag,
+      flag_submitted: flag // Send flag in correct format
     });
     return response.data;
   } catch (error) {
@@ -126,7 +126,10 @@ export const getChallengeSubmissions = async (challengeId) => {
 
 export const purchaseHint = async (challengeId, hintIndex) => {
   try {
-    const response = await apiClient.post(`/challenges/${challengeId}/hints/${hintIndex}/purchase`);
+    const response = await apiClient.post(
+      `challenges/${challengeId}/purchase-hint`,
+      { hintIndex }  // Add request body
+    );
     return response.data;
   } catch (error) {
     console.error('Error purchasing hint:', error);

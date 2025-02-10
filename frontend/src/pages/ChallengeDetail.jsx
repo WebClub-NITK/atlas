@@ -65,15 +65,31 @@ function ChallengeDetail() {
     }
   };
 
-  const handleSubmitFlag = async () => {
+  const handleSubmitFlag = async (e) => {
+    e.preventDefault();
     try {
-      const response = await submitFlag(challengeId, flag);
+      // Send flag directly in the request body
+      const response = await submitFlag(challengeId, flag.trim());
       alert(response.message || 'Flag submitted successfully!');
       setFlag('');
       setError(null);
     } catch (error) {
       console.error('Error submitting flag:', error);
-      setError('Failed to submit flag');
+      setError(error.response?.data?.error || 'Failed to submit flag');
+    }
+  };
+
+  const handlePurchaseHint = async (hintIndex) => {
+    try {
+      const response = await purchaseHint(challengeId, hintIndex);
+      if (response.hint) {
+        setRevealedHints([...revealedHints, hintIndex]);
+        // Refresh challenge data to get updated points
+        const challengeData = await getChallengeById_Team(challengeId);
+        setChallenge(challengeData.challenge);
+      }
+    } catch (error) {
+      setError(error.response?.data?.error || 'Failed to purchase hint');
     }
   };
 
@@ -123,13 +139,13 @@ function ChallengeDetail() {
           )}
 
           {/* File Links Section */}
-          {challenge.file_links && challenge.file_links.length > 0 && (
+          {challenge.file_links && Array.isArray(challenge.file_links) && challenge.file_links.length > 0 && (
             <div className="space-y-2 mb-6">
               <h3 className="text-lg font-semibold mb-2">Challenge Files:</h3>
               {challenge.file_links.map((link, index) => (
                 <a
                   key={index}
-                  href={link.startsWith('http') ? link : `${process.env.REACT_APP_API_URL}${link}`}
+                  href={link}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block text-blue-600 hover:text-blue-800 hover:underline"
@@ -141,12 +157,12 @@ function ChallengeDetail() {
           )}
 
           {/* Hints Section */}
-          {challenge.hints && challenge.hints.length > 0 && (
+          {challenge.hints && Array.isArray(challenge.hints) && challenge.hints.length > 0 && (
             <div className="space-y-4 mb-6">
               <h3 className="text-lg font-semibold">Hints Available: {challenge.hints.length}</h3>
               <div className="space-y-2">
                 {challenge.hints.map((hint, index) => (
-                  <div key={index} className="border rounded-lg p-4">
+                  <div key={index} className="bg-gray-50 p-4 rounded-lg">
                     {revealedHints.includes(index) ? (
                       <p className="text-neutral-700">{hint.content}</p>
                     ) : (
@@ -164,21 +180,22 @@ function ChallengeDetail() {
           )}
 
           {/* Flag Submission */}
-          <div className="space-y-2">
+          <form onSubmit={handleSubmitFlag} className="space-y-2">
             <input
               type="text"
               value={flag}
               onChange={(e) => setFlag(e.target.value)}
               placeholder="Enter flag"
               className="w-full bg-[#F1EFEF] text-neutral-800 px-4 py-2 rounded-lg"
+              required
             />
             <button
-              onClick={handleSubmitFlag}
+              type="submit"
               className="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
             >
               Submit Flag
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>

@@ -1,41 +1,162 @@
-import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getTeamById } from '../../data/dummyTeams';
-import AddMemberModal from './AddMemberModal';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import { getTeamProfile_Admin, updateTeam, deleteTeam, getTeamSubmissions_Admin } from '../../api/teams';
+
+function EditTeamModal({ team, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    name: team.name,
+    email: team.team_email,
+    isHidden: team.is_hidden,
+    isBanned: team.is_banned,
+    password: ''
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await onSave(formData);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg w-96">
+        <h2 className="text-xl font-bold mb-4">Edit Team</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block mb-2">Team Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block mb-2">Email</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block mb-2">New Password (optional)</label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              className="w-full border rounded px-3 py-2"
+            />
+          </div>
+          <div className="flex space-x-4">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.isHidden}
+                onChange={(e) => setFormData({...formData, isHidden: e.target.checked})}
+                className="mr-2"
+              />
+              <label>Hidden</label>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.isBanned}
+                onChange={(e) => setFormData({...formData, isBanned: e.target.checked})}
+                className="mr-2"
+              />
+              <label>Banned</label>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border rounded hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 function TeamDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [team, setTeam] = useState(getTeamById(id));
+  const [team, setTeam] = useState(null);
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
 
-  if (!team) {
-    return <div>Team not found</div>;
-  }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [teamData, submissionsData] = await Promise.all([
+          getTeamProfile_Admin(id),
+          getTeamSubmissions_Admin(id)
+        ]);
+        setTeam(teamData);
+        setSubmissions(submissionsData);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching team data:', err);
+        setError('Failed to load team data');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const totalTeamPoints = team.users.reduce((sum, user) => sum + user.points, 0);
+    fetchData();
+  }, [id]);
 
-  const handleAddMembers = (newMembers) => {
-    setTeam({
-      ...team,
-      users: [...team.users, ...newMembers],
-      memberCount: team.memberCount + newMembers.length
-    });
-  };
-
-  const handleRemoveMember = (userId) => {
-    if (window.confirm('Are you sure you want to remove this member? Their challenge solves will remain with the team.')) {
-      // TODO: Backend integration - Remove user from team
-      //  DELETE /api/teams/{teamId}/members/{userId}
-      
-      setTeam({
-        ...team,
-        users: team.users.filter(user => user.id !== userId),
-        memberCount: team.memberCount - 1
+  const handleUpdateTeam = async (updatedData) => {
+    try {
+      await updateTeam(team.id, {
+        name: updatedData.name,
+        email: updatedData.email,
+        is_hidden: teamData.isHidden,
+        is_banned: teamData.isBanned,
+        ...(updatedData.password && { password: updatedData.password })
       });
+      
+      const refreshedData = await getTeamProfile();
+      setTeam(refreshedData);
+      setShowEditModal(false);
+      setError(null);
+    } catch (err) {
+      console.error('Error updating team:', err);
+      setError('Failed to update team');
     }
   };
+
+  const handleDeleteTeam = async () => {
+    if (window.confirm('Are you sure you want to delete this team?')) {
+      try {
+        await deleteTeam(team.id);
+        navigate('/admin/teams');
+      } catch (err) {
+        console.error('Error deleting team:', err);
+        setError('Failed to delete team');
+      }
+    }
+  };
+
+  if (loading) return <LoadingSpinner />;
+  if (error) return <div className="text-red-500 text-center p-4">{error}</div>;
+  if (!team) return <div className="text-gray-500 text-center p-4">Team not found</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -43,14 +164,14 @@ function TeamDetail() {
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold mb-2">{team.name}</h1>
           <div className="text-gray-600 mb-2">
-            Members: {team.memberCount} | Points: {totalTeamPoints} | Place: #{team.place}
+            Score: {team.total_score}
           </div>
           
           <div className="flex justify-center space-x-2 mb-4">
-            {team.isHidden && (
+            {team.is_hidden && (
               <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded">Hidden</span>
             )}
-            {team.isBanned && (
+            {team.is_banned && (
               <span className="px-2 py-1 bg-red-100 text-red-800 rounded">Banned</span>
             )}
           </div>
@@ -63,16 +184,7 @@ function TeamDetail() {
               Edit Team
             </button>
             <button 
-              onClick={() => setShowAddMemberModal(true)}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              Add Member
-            </button>
-            <button 
-              onClick={() => {
-                // TODO: Add delete confirmation
-                navigate('/admin/teams');
-              }}
+              onClick={handleDeleteTeam}
               className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
             >
               Delete Team
@@ -80,103 +192,53 @@ function TeamDetail() {
           </div>
         </div>
 
-        {/* Team Members Section */}
+        {/* Submissions History */}
         <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">Team Members</h2>
-          <table className="min-w-full">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-4 py-2 text-left">User</th>
-                <th className="px-4 py-2 text-left">Email</th>
-                <th className="px-4 py-2 text-left">Points</th>
-                <th className="px-4 py-2 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {team.users.map(user => (
-                <tr key={user.id} className="border-t">
-                  <td className="px-4 py-2">
-                    <Link 
-                      to={`/admin/users/${user.id}`}
-                      className="text-blue-500 hover:underline"
-                    >
-                      {user.username}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2">{user.email}</td>
-                  <td className="px-4 py-2">{user.points}</td>
-                  <td className="px-4 py-2 text-center">
-                    <button
-                      onClick={() => handleRemoveMember(user.id)}
-                      className="text-red-500 hover:text-red-700"
-                      title="Remove member"
-                    >
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        className="h-5 w-5" 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                      >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
-                        />
-                      </svg>
-                    </button>
-                  </td>
+          <h2 className="text-2xl font-bold mb-4">Submission History</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left">Challenge</th> 
+                  <th className="px-4 py-2 text-left">Points</th>
+                  <th className="px-4 py-2 text-center">Status</th>
+                  <th className="px-4 py-2 text-left">Submitted At</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Solves Section */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">Solves</h2>
-          <table className="min-w-full">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-4 py-2 text-left">Challenge</th>
-                <th className="px-4 py-2 text-left">Category</th>
-                <th className="px-4 py-2 text-left">Points</th>
-                <th className="px-4 py-2 text-left">Solved By</th>
-                <th className="px-4 py-2 text-left">Solved At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {team.solvedChallenges.map(challenge => (
-                <tr key={challenge.id} className="border-t">
-                  <td className="px-4 py-2">{challenge.name}</td>
-                  <td className="px-4 py-2">{challenge.category}</td>
-                  <td className="px-4 py-2">{challenge.points}</td>
-                  <td className="px-4 py-2">
-                    <Link 
-                      to={`/admin/users/${challenge.solvedBy.id}`}
-                      className="text-blue-500 hover:underline"
-                    >
-                      {challenge.solvedBy.username}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2">{new Date(challenge.solvedAt).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {submissions.map((submission, index) => (
+                  <tr key={index} className="border-t">
+                    <td className="px-4 py-2">{submission.challenge_name}</td>
+                    <td className="px-4 py-2">{submission.points}</td>
+                    <td className="px-4 py-2 text-center">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        submission.is_correct 
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {submission.is_correct ? 'Correct' : 'Incorrect'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      {new Date(submission.submitted_at).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      {showAddMemberModal && (
-        <AddMemberModal
-          onClose={() => setShowAddMemberModal(false)}
-          onAdd={handleAddMembers}
-          currentTeamId={team.id}
+      {showEditModal && (
+        <EditTeamModal
+          team={team}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleUpdateTeam}
         />
       )}
     </div>
   );
 }
 
-export default TeamDetail; 
+export default TeamDetail;

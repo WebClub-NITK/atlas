@@ -83,3 +83,22 @@ export const deleteTeam = async (teamId) => {
   }
 };
 
+export const getTeamProfile_Admin = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/api/admin/teams/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching team profile:', error);
+    throw error;
+  }
+};
+
+export const getTeamSubmissions_Admin = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/api/admin/teams/${teamId}/submissions`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching team submissions:', error);
+    throw error;
+  }
+};

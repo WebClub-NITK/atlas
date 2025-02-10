@@ -7,25 +7,29 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
     name: team?.name || '',
     email: team?.email || '',
     password: '',
-    isHidden: team?.isHidden || false,
-    isBanned: team?.isBanned || false
+    is_hidden: team?.is_hidden || false,
+    is_banned: team?.is_banned || false
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Only include fields that were changed
-    const changedData = {};
-    Object.keys(formData).forEach(key => {
-      if (formData[key] !== (team?.[key] || '')) {
-        changedData[key] = formData[key];
+    try {
+      const changedData = {};
+      Object.keys(formData).forEach(key => {
+        if (formData[key] !== (team?.[key] || '')) {
+          changedData[key] = formData[key];
+        }
+      });
+
+      if (formData.password) {
+        changedData.password = formData.password;
       }
-    });
-    
-    onSave({
-      ...team,
-      ...changedData
-    });
-    onClose();
+
+      await onSave(team?.id, changedData);
+      onClose();
+    } catch (error) {
+      console.error("Error updating team:", error);
+    }
   };
 
   return (
@@ -43,7 +47,7 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required={mode === 'create'} // Only required for new teams
+                required={mode === 'create'}
               />
             </div>
             <div>
@@ -53,7 +57,7 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required={mode === 'create'} // Only required for new teams
+                required={mode === 'create'}
               />
             </div>
             <div>
@@ -65,7 +69,7 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required={mode === 'create'} // Only required for new teams
+                required={mode === 'create'}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -73,8 +77,8 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
                 <label className="block mb-2 font-medium">Visibility</label>
                 <select
                   className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={formData.isHidden}
-                  onChange={(e) => setFormData({...formData, isHidden: e.target.value === 'true'})}
+                  value={formData.is_hidden}
+                  onChange={(e) => setFormData({...formData, is_hidden: e.target.value === 'true'})}
                 >
                   <option value="false">Visible</option>
                   <option value="true">Hidden</option>
@@ -84,8 +88,8 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
                 <label className="block mb-2 font-medium">Access</label>
                 <select
                   className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={formData.isBanned}
-                  onChange={(e) => setFormData({...formData, isBanned: e.target.value === 'true'})}
+                  value={formData.is_banned}
+                  onChange={(e) => setFormData({...formData, is_banned: e.target.value === 'true'})}
                 >
                   <option value="false">Active</option>
                   <option value="true">Banned</option>
@@ -156,13 +160,13 @@ function Teams() {
     }
   };
 
-  const handleSaveTeam = async (teamData) => {
+  const handleSaveTeam = async (teamId, teamData) => {
     try {
       if (modalMode === 'create') {
         const newTeam = await createTeam(teamData);
         setTeams([...teams, newTeam]);
       } else {
-        const updatedTeam = await updateTeam(teamData.id, teamData);
+        const updatedTeam = await updateTeam(teamId, teamData);
         setTeams(teams.map(team => 
           team.id === updatedTeam.id ? updatedTeam : team
         ));
@@ -243,14 +247,14 @@ function Teams() {
                 </td>
                 <td className="px-4 py-2">{team.email}</td>
                 <td className="px-4 py-2 text-center">
-                  {team.isHidden && (
+                  {team.is_hidden && (
                     <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                       Hidden
                     </span>
                   )}
                 </td>
                 <td className="px-4 py-2 text-center">
-                  {team.isBanned && (
+                  {team.is_banned && (
                     <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                       Banned
                     </span>
