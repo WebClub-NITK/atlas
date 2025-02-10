@@ -54,7 +54,7 @@ class TeamSerializer(serializers.ModelSerializer):
         model = Team
         fields = ['id', 'name', 'description', 'team_size', 'members', 
                  'total_score', 'member_count', 'solved_count', 'challenges',
-                 'max_attempts_per_challenge'] 
+                 'max_attempts_per_challenge', 'is_banned', 'is_hidden'] 
 
 class SubmissionSerializer(serializers.ModelSerializer):
     challenge_name = serializers.CharField(source='challenge.title', read_only=True)

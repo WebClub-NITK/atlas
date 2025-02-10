@@ -84,9 +84,11 @@ function ChallengeDetail() {
       const response = await purchaseHint(challengeId, hintIndex);
       if (response.hint) {
         setRevealedHints([...revealedHints, hintIndex]);
-        // Refresh challenge data to get updated points
-        const challengeData = await getChallengeById_Team(challengeId);
-        setChallenge(challengeData.challenge);
+        // Update team score and challenge data
+        setChallenge(prev => ({
+          ...prev,
+          team_score: response.newTeamScore
+        }));
       }
     } catch (error) {
       setError(error.response?.data?.error || 'Failed to purchase hint');

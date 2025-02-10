@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, Group
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.hashers import make_password, check_password
 from django.db.models import CharField, TextField, IntegerField, BooleanField, DateTimeField
 from django.core.validators import RegexValidator
@@ -60,6 +60,8 @@ class Team(models.Model):
     team_email = models.EmailField(unique=True, default='team@example.com')
     max_attempts_per_challenge = models.IntegerField(default=10)
     team_score = models.IntegerField(default=0)
+    is_banned = models.BooleanField(default=False)
+    is_hidden = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -109,7 +111,15 @@ class Challenge(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_hidden = models.BooleanField(default=False)
-    hints = models.JSONField(default=list, blank=True)
+    hints = models.JSONField(default=list, blank=True, help_text="""
+        List of hint objects with format:
+        [
+            {
+                "content": "Hint text",
+                "cost": "Percentage of max points (0-100)"
+            }
+        ]
+    """)
     file_links = models.JSONField(default=list, blank=True)
 
     def __str__(self):
@@ -154,11 +164,12 @@ class Submission(models.Model):
         return f"{self.team.name} - {self.challenge.title}"
 
 class HintPurchase(models.Model):
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="hint_purchases")
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
     challenge = models.ForeignKey(Challenge, on_delete=models.CASCADE)
     hint_index = models.IntegerField()
+    hint_cost_percentage = models.IntegerField()
     points_deducted = models.IntegerField()
-    purchased_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('team', 'challenge', 'hint_index')

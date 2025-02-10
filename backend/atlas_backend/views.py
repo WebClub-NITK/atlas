@@ -143,6 +143,12 @@ def signin(request):
         if not team or not check_password(password, team.password):
             raise Team.DoesNotExist
 
+        if team.is_banned:
+            return Response(
+                {'error': 'This team has been banned'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
         # Get the first team member as the "main" user for authentication
         team_member = User.objects.filter(team=team).first()
         if not team_member:
@@ -229,19 +235,37 @@ def get_challenge_by_id(request, challenge_id):
         challenge = Challenge.objects.get(id=challenge_id)
         if (challenge.is_hidden):
             return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            return Response({
-                "challenge": {
-                    "id": challenge.id,
-                    "title": challenge.title,
-                    "description": challenge.description,
-                    "category": challenge.category,
-                    "max_points": challenge.max_points,
-                    "hints": challenge.hints,
-                    "file_links": challenge.file_links,
-                    "docker_image": challenge.docker_image
-                }
-            })
+        if challenge.is_hidden and not request.user.is_superuser:
+            return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get purchased hints for the team
+        purchased_hints = []
+        if request.user.team:
+            purchased_hints = HintPurchase.objects.filter(
+                team=request.user.team,
+                challenge=challenge
+            ).values_list('hint_index', flat=True)
+
+        # Prepare hints with purchase status
+        hints = challenge.hints
+        if isinstance(hints, str):
+            hints = json.loads(hints)
+        
+        for i, hint in enumerate(hints):
+            hint['purchased'] = i in purchased_hints
+
+        return Response({
+            "challenge": {
+                "id": challenge.id,
+                "title": challenge.title,
+                "description": challenge.description,
+                "category": challenge.category,
+                "max_points": challenge.max_points,
+                "hints": hints,
+                "file_links": challenge.file_links,
+                "docker_image": challenge.docker_image
+            }
+        })
     except Challenge.DoesNotExist:
         return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
@@ -261,6 +285,12 @@ def submit_flag(request, challenge_id):
         challenge = get_object_or_404(Challenge, id=challenge_id)
         flag = request.data.get('flag_submitted', '').strip()
 
+        if request.user.team.is_banned:
+            return Response(
+                {'error': 'Your team has been banned'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
         if not flag:
             return Response(
                 {'error': 'Flag is required'},
@@ -292,19 +322,39 @@ def submit_flag(request, challenge_id):
 
             attempt_number = submission_count + 1
             is_correct = challenge.flag == flag
+
+            # Calculate points after hint deductions
+            points_awarded = challenge.max_points
+            if is_correct:
+                # Get all purchased hints for this challenge
+                hint_purchases = HintPurchase.objects.filter(
+                    team=request.user.team,
+                    challenge=challenge
+                )
+                
+                # Calculate total percentage to deduct
+                total_deduction_percentage = sum(
+                    purchase.hint_cost_percentage 
+                    for purchase in hint_purchases
+                )
+                
+                # Calculate final points
+                deduction = (points_awarded * total_deduction_percentage) // 100
+                points_awarded = max(0, points_awarded - deduction)
+
             submission = Submission.objects.create(
                 team=request.user.team,
                 challenge=challenge,
                 user=request.user,
                 flag_submitted=flag,
                 is_correct=is_correct,
-                points_awarded=challenge.max_points if is_correct else 0,
+                points_awarded=points_awarded if is_correct else 0,
                 attempt_number=attempt_number
             )
 
             if is_correct:
                 request.user.team.challenges.add(challenge)
-                request.user.team.team_score += challenge.max_points
+                request.user.team.team_score += points_awarded
                 request.user.team.save()
 
         return Response({
@@ -333,6 +383,12 @@ def start_challenge(request, challenge_id):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    if request.user.team.is_banned:
+        return Response(
+            {'error': 'Your team has been banned'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+        
     challenge = get_object_or_404(Challenge, id=challenge_id)
 
     existing_container = Container.objects.filter(
@@ -436,23 +492,31 @@ def stop_challenge(request, challenge_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_teams(request):
-    teams = Team.objects.annotate(
+    # Only show non-hidden teams for regular users
+    teams = Team.objects.filter(is_hidden=False).annotate(
         member_count=Count('members', distinct=True),
         solved_count=Count('submissions', filter=Q(
             submissions__is_correct=True), distinct=True)
     ).order_by('-team_score', 'created_at')
+
+    if request.user.is_superuser:
+        teams = Team.objects.annotate(
+            member_count=Count('members', distinct=True),
+            solved_count=Count('submissions', filter=Q(
+                submissions__is_correct=True), distinct=True)
+        ).order_by('-team_score', 'created_at')
 
     response_data = [{
         'id': team.id,
         'name': team.name,
         'member_count': team.member_count,
         'total_score': team.team_score,
-        'solved_count': team.solved_count
+        'solved_count': team.solved_count,
+        'is_banned': team.is_banned,  
+        'is_hidden': team.is_hidden  
     } for team in teams]
 
     return Response(response_data)
-    serializer = TeamSerializer(teams, many=True)
-    return Response(serializer.data)
 
 
 @api_view(['GET'])
@@ -1272,9 +1336,10 @@ def update_team(request, team_id):
             'id': team.id,
             'name': team.name,
             'email': team.team_email,
-            'isHidden': team.is_hidden,
-            'isBanned': team.is_banned,
-            'total_score': team.team_score
+            'is_hidden': team.is_hidden,
+            'is_banned': team.is_banned,
+            'total_score': team.team_score,
+            'member_count': team.members.count()
         })
     except Team.DoesNotExist:
         return Response(
@@ -1297,74 +1362,51 @@ def purchase_hint(request, challenge_id):
         challenge = Challenge.objects.get(id=challenge_id)
         hint_index = request.data.get('hintIndex')
 
-        if hint_index is None:
-            return Response(
-                {"error": "Hint index is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if hint_index >= len(challenge.hints):
-            return Response(
-                {"error": "Invalid hint index"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        team = request.user.team
-        if not team:
-            return Response(
-                {"error": "User must be part of a team"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Check if hint was already purchased
-        hint_key = f"hint_{team.id}_{challenge.id}_{hint_index}"
+        if hint_index is None or hint_index >= len(challenge.hints):
+            return Response({"error": "Invalid hint index"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        hints = challenge.hints if isinstance(challenge.hints, list) else json.loads(challenge.hints)
+        hint = hints[hint_index]
+        
+        # Check if hint already purchased
+        hint_key = f"hint_{request.user.team.id}_{challenge.id}_{hint_index}"
         if cache.get(hint_key):
             return Response({
-                "hint": challenge.hints[hint_index],
-                "alreadyPurchased": True
+                "hint": hint,
+                "alreadyPurchased": True,
+                "maxPoints": challenge.max_points
             })
 
-        hint_cost = int(challenge.max_points * 0.1)
-
         with transaction.atomic():
-            # Get fresh team object within transaction
-            team = Team.objects.select_for_update().get(id=request.user.team.id)
-            
-            # if team.team_score < hint_cost:
-            #     return Response(
-            #         {"error": "Not enough points to purchase hint"},
-            #         status=status.HTTP_400_BAD_REQUEST
-            #     )
+            # Calculate points to be deducted
+            points_deducted = (challenge.max_points * hint['cost']) // 100
 
-            # Update team score and save
-            team.team_score -= hint_cost
-            team.save()
-
-            # Create HintPurchase record
             HintPurchase.objects.create(
-                team=team,
-                challenge=challenge,
+                team=request.user.team,
+                challenge=challenge, 
                 hint_index=hint_index,
-                points_deducted=hint_cost
+                hint_cost_percentage=hint['cost'],
+                points_deducted=points_deducted
             )
-
-            # Store hint purchase in cache after successful transaction
+            
             cache.set(hint_key, True)
 
+            # Calculate remaining possible points
+            purchased_hints = HintPurchase.objects.filter(
+                team=request.user.team,
+                challenge=challenge
+            )
+            total_deduction = sum(ph.hint_cost_percentage for ph in purchased_hints)
+            remaining_points = max(0, challenge.max_points * (100 - total_deduction) // 100)
+
         return Response({
-            "hint": challenge.hints[hint_index],
-            "pointsDeducted": hint_cost,
+            "hint": hint,
             "alreadyPurchased": False,
-            "newTeamScore": team.team_score
+            "remainingPoints": remaining_points,
+            "deductionPercentage": total_deduction
         })
 
     except Challenge.DoesNotExist:
-        return Response(
-            {"error": "Challenge not found"},
-            status=status.HTTP_404_NOT_FOUND
-        )
+        return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response(
-            {"error": str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
