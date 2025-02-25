@@ -3,10 +3,12 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { getChallengeById_Team, startChallenge, submitFlag, purchaseHint } from '../api/challenges';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useTheme } from '../context/ThemeContext';
 
 function ChallengeDetail() {
   const { challengeId } = useParams();
   const { user } = useAuth();
+  const {isDarkMode}=useTheme();
   const [challenge, setChallenge] = useState(null);
   const [sshDetails, setSshDetails] = useState(null);
   const [flag, setFlag] = useState('');
@@ -100,7 +102,7 @@ function ChallengeDetail() {
   if (!challenge) return <div className="text-gray-500 text-center p-4">Challenge not found</div>;
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="mt-10 rounded-lg p-6 bg-[#FFF7ED]">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 text-red-500">{challenge.title}</h1>
         
