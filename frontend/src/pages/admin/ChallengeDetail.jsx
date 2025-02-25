@@ -13,7 +13,9 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
     flag: challenge.flag || '',
     is_hidden: challenge.is_hidden || false,
     hints: typeof challenge.hints === 'string' ? JSON.parse(challenge.hints) : [],
-    file_links: typeof challenge.file_links === 'string' ? JSON.parse(challenge.file_links) : []  
+    file_links: typeof challenge.file_links === 'string' ? JSON.parse(challenge.file_links) : [],
+    port: challenge.port || '22',
+    ssh_user: challenge.ssh_user || ''
   });
 
   const [newHint, setNewHint] = useState({ content: '', cost: 0 });
@@ -81,15 +83,16 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
     formDataToSend.append('max_points', formData.max_points || 0); // Default to 0 if null
     formDataToSend.append('flag', formData.flag);
     formDataToSend.append('is_hidden', formData.is_hidden);
+    formDataToSend.append('port', formData.port); // Add port field
     
-    // Only append if arrays have items
-    if (formData.hints && formData.hints.length > 0) {
-      formDataToSend.append('hints', JSON.stringify(formData.hints));
+    // Only append ssh_user if it's provided
+    if (formData.ssh_user.trim()) {
+      formDataToSend.append('ssh_user', formData.ssh_user);
     }
     
-    if (formData.file_links && formData.file_links.length > 0) {
-      formDataToSend.append('file_links', JSON.stringify(formData.file_links));
-    }
+    // Always append hints and file_links arrays
+    formDataToSend.append('hints', JSON.stringify(formData.hints));
+    formDataToSend.append('file_links', JSON.stringify(formData.file_links));
   
     // Only append docker_image if it's a new file
     if (formData.docker_image instanceof File) {
@@ -101,99 +104,129 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 mt-14">
-      <div className="bg-white p-6 rounded-lg w-3/4 max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-4">Edit Challenge</h2>
+      <div className="bg-[#FFF7ED] p-8 rounded-lg w-3/4 max-w-2xl max-h-[90vh] overflow-y-auto">
+        <h2 className="text-2xl font-bold mb-4 text-gray-900">Edit Challenge</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Title</label>
+            <label className="block text-gray-900 text-sm font-bold mb-2">Title</label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+            <label className="block text-gray-900 text-sm font-bold mb-2">Description</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Category</label>
+            <label className="block text-gray-900 text-sm font-bold mb-2">Category</label>
             <input
               type="text"
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Max Points</label>
+            <label className="block text-gray-900 text-sm font-bold mb-2">Max Points</label>
             <input
               type="number"
               name="max_points"
               value={formData.max_points}
               onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Docker Image</label>
+            <label className="block text-gray-900 text-sm font-bold mb-2">Docker Image</label>
             <div className="flex items-center space-x-2">
               <input
                 type="file"
-                name="docker_image"
-                onChange={handleChange}
-                className="hidden"
                 id="docker-image-upload"
                 accept=".tar,.tar.gz"
+                onChange={handleChange}
+                className="hidden"
               />
               <label
                 htmlFor="docker-image-upload"
-                className="cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-lg flex items-center"
+                className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
                 Choose Docker Image
               </label>
-              <span className="text-gray-600">
+              <span className="text-gray-900">
                 {fileName || 'No file chosen'}
               </span>
             </div>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-900">
               Accepted formats: .tar, .tar.gz
             </p>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-900 text-sm font-bold mb-2">
+                Port <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="port"
+                value={formData.port}
+                onChange={handleChange}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
+                placeholder="22"
+                required
+              />
+              <p className="mt-1 text-sm text-gray-600">Port number is required for all containers</p>
+            </div>
+
+            <div>
+              <label className="block text-gray-900 text-sm font-bold mb-2">SSH User</label>
+              <input
+                type="text"
+                name="ssh_user"
+                value={formData.ssh_user}
+                onChange={handleChange}
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
+                placeholder="atlas"
+              />
+              <p className="mt-1 text-sm text-gray-600">Optional: Required only for SSH-type containers</p>
+            </div>
+          </div>
+
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Flag</label>
+            <label className="block text-gray-900 text-sm font-bold mb-2">Flag</label>
             <input
               type="text"
               name="flag"
               value={formData.flag}
               onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label className="block text-gray-900 text-sm font-bold mb-2">
               <input
                 type="checkbox"
                 name="is_hidden"
@@ -206,51 +239,73 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Hints</label>
+            <label className="block text-gray-900 text-sm font-bold mb-2">Hints</label>
             <div className="space-y-2">
               {formData.hints.map((hint, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={hint.content}
-                    readOnly
-                    className="flex-grow border rounded px-2 py-1"
-                  />
-                  <input
-                    type="number"
-                    value={hint.cost}
-                    readOnly
-                    className="w-20 border rounded px-2 py-1"
-                  />
+                <div key={index} className="flex items-center space-x-2 bg-white p-2 rounded-lg border border-gray-200">
+                  <div className="flex-grow grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <label className="block text-xs text-gray-600 mb-1">Content</label>
+                      <input
+                        type="text"
+                        value={hint.content}
+                        readOnly
+                        className="w-full border rounded px-2 py-1 text-gray-900 bg-gray-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Cost</label>
+                      <input
+                        type="number"
+                        value={hint.cost}
+                        readOnly
+                        className="w-full border rounded px-2 py-1 text-gray-900 bg-gray-50"
+                      />
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveHint(index)}
-                    className="text-red-500"
+                    className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center"
                   >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                     Remove
                   </button>
                 </div>
               ))}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={newHint.content}
-                  onChange={(e) => setNewHint({...newHint, content: e.target.value})}
-                  placeholder="Hint content"
-                  className="flex-grow border rounded px-2 py-1"
-                />
-                <input
-                  type="number"
-                  value={newHint.cost}
-                  onChange={(e) => setNewHint({...newHint, cost: parseInt(e.target.value)})}
-                  placeholder="Cost"
-                  className="w-20 border rounded px-2 py-1"
-                />
+              <div className="flex items-center space-x-2 bg-white p-2 rounded-lg border border-gray-200">
+                <div className="flex-grow grid grid-cols-3 gap-2">
+                  <div className="col-span-2">
+                    <label className="block text-xs text-gray-600 mb-1">Content</label>
+                    <input
+                      type="text"
+                      value={newHint.content}
+                      onChange={(e) => setNewHint({...newHint, content: e.target.value})}
+                      placeholder="Enter hint content"
+                      className="w-full border rounded px-2 py-1 text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Cost</label>
+                    <input
+                      type="number"
+                      value={newHint.cost}
+                      onChange={(e) => setNewHint({...newHint, cost: parseInt(e.target.value)})}
+                      placeholder="Cost"
+                      className="w-full border rounded px-2 py-1 text-gray-900"
+                    />
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={handleAddHint}
-                  className="text-green-500"
+                  className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
                 >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
                   Add
                 </button>
               </div>
@@ -258,38 +313,50 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">File Links</label>
+            <label className="block text-gray-900 text-sm font-bold mb-2">File Links</label>
             <div className="space-y-2">
               {formData.file_links.map((link, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={link}
-                    readOnly
-                    className="flex-grow border rounded px-2 py-1"
-                  />
+                <div key={index} className="flex items-center space-x-2 bg-white p-2 rounded-lg border border-gray-200">
+                  <div className="flex-grow">
+                    <label className="block text-xs text-gray-600 mb-1">Link</label>
+                    <input
+                      type="text"
+                      value={link}
+                      readOnly
+                      className="w-full border rounded px-2 py-1 text-gray-900 bg-gray-50"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveFileLink(index)}
-                    className="text-red-500"
+                    className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center"
                   >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                     Remove
                   </button>
                 </div>
               ))}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={newFileLink}
-                  onChange={(e) => setNewFileLink(e.target.value)}
-                  placeholder="Add file link"
-                  className="flex-grow border rounded px-2 py-1"
-                />
+              <div className="flex items-center space-x-2 bg-white p-2 rounded-lg border border-gray-200">
+                <div className="flex-grow">
+                  <label className="block text-xs text-gray-600 mb-1">Link</label>
+                  <input
+                    type="text"
+                    value={newFileLink}
+                    onChange={(e) => setNewFileLink(e.target.value)}
+                    placeholder="Enter file link URL"
+                    className="w-full border rounded px-2 py-1 text-gray-900"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={handleAddFileLink}
-                  className="text-green-500"
+                  className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
                 >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
                   Add
                 </button>
               </div>
@@ -300,13 +367,13 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded hover:bg-gray-100"
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               Save Changes
             </button>
@@ -435,7 +502,7 @@ function ChallengeDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-[#FFF7ED] py-8">
       <div className="max-w-5xl mx-auto px-4">
         <header className="mb-8">
           <div className="flex items-center justify-between">
@@ -443,13 +510,13 @@ function ChallengeDetail() {
             <div>
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-2"
+                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline mr-2"
               >
                 Edit
               </button>
               <button
                 onClick={handleDeleteChallenge}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
               >
                 Delete
               </button>
@@ -459,31 +526,39 @@ function ChallengeDetail() {
 
         <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Description</h2>
-          <p className="text-gray-700">{challenge.description}</p>
+          <p className="text-gray-900">{challenge.description}</p>
         </section>
 
         <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Details</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <span className="text-gray-700 font-bold">Category:</span>
-              <span className="text-gray-600 ml-1">{challenge.category}</span>
+              <span className="text-gray-900 font-bold">Category:</span>
+              <span className="text-gray-900 ml-1">{challenge.category}</span>
             </div>
             <div>
-              <span className="text-gray-700 font-bold">Points:</span>
-              <span className="text-gray-600 ml-1">{challenge.max_points}</span>
+              <span className="text-gray-900 font-bold">Points:</span>
+              <span className="text-gray-900 ml-1">{challenge.max_points}</span>
             </div>
             <div>
-              <span className="text-gray-700 font-bold">Docker Image:</span>
-              <span className="text-gray-600 ml-1">{challenge.docker_image || "N/A"}</span>
+              <span className="text-gray-900 font-bold">Docker Image:</span>
+              <span className="text-gray-900 ml-1">{challenge.docker_image || "N/A"}</span>
             </div>
             <div>
-              <span className="text-gray-700 font-bold">Flag:</span>
-              <span className="text-gray-600 ml-1">{challenge.flag}</span>
+              <span className="text-gray-900 font-bold">Flag:</span>
+              <span className="text-gray-900 ml-1">{challenge.flag}</span>
             </div>
             <div>
-              <span className="text-gray-700 font-bold">Is Hidden:</span>
-              <span className="text-gray-600 ml-1">{challenge.is_hidden ? "Yes" : "No"}</span>
+              <span className="text-gray-900 font-bold">Is Hidden:</span>
+              <span className="text-gray-900 ml-1">{challenge.is_hidden ? "Yes" : "No"}</span>
+            </div>
+            <div>
+              <span className="text-gray-900 font-bold">Port:</span>
+              <span className="text-gray-900 ml-1">{challenge.port}</span>
+            </div>
+            <div>
+              <span className="text-gray-900 font-bold">SSH User:</span>
+              <span className="text-gray-900 ml-1">{challenge.ssh_user || "N/A"}</span>
             </div>
           </div>
         </section>
@@ -501,7 +576,7 @@ function ChallengeDetail() {
                       Cost: {hint.cost} points
                     </span>
                   </div>
-                  <p className="text-gray-700">{hint.content}</p>
+                  <p className="text-gray-900">{hint.content}</p>
                 </div>
               ))}
             </div>
@@ -509,7 +584,7 @@ function ChallengeDetail() {
         ) : (
           <section className="mb-6 bg-gray-100 rounded-xl shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Hints</h2>
-            <p className="text-gray-500">No hints available for this challenge.</p>
+            <p className="text-gray-900">No hints available for this challenge.</p>
           </section>
         )}
 
@@ -534,7 +609,7 @@ function ChallengeDetail() {
         ) : (
           <section className="mb-6 bg-gray-100 rounded-xl shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">File Links</h2>
-            <p className="text-gray-500">No file links available for this challenge.</p>
+            <p className="text-gray-900">No file links available for this challenge.</p>
           </section>
         )}
 
@@ -547,13 +622,13 @@ function ChallengeDetail() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                       Team
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                       Submission Time
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                       Correct
                     </th>
                   </tr>
@@ -580,7 +655,7 @@ function ChallengeDetail() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500">No submissions yet for this challenge.</p>
+            <p className="text-gray-900">No submissions yet for this challenge.</p>
           )}
         </section>
 

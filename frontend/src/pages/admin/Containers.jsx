@@ -64,93 +64,91 @@ function AdminContainers() {
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Container ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Team
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Challenge
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  SSH Details
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {containers.length > 0 ? (
-                containers.map((container) => (
-                  <tr key={container.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="font-mono text-sm">{container.container_id}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Link
-                        to={`/admin/teams/${container.team?.id}`}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        {container.team?.name || 'N/A'}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Link
-                        to={`/admin/challenges/${container.challenge?.id}`}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        {container.challenge?.title || 'N/A'}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(
-                          container.status
-                        )}`}
-                      >
-                        {container.status || 'Unknown'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm">
+      <div className="overflow-x-auto bg-white rounded-lg shadow">
+        <table className="min-w-full bg-[#FFF7ED] rounded-lg overflow-hidden">
+          <thead>
+            <tr className="bg-[#FFF7ED]">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                Container ID
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                Team
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                Challenge
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                SSH Details
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-[#FFF7ED] divide-y divide-gray-200">
+            {containers.length > 0 ? (
+              containers.map((container) => (
+                <tr key={container.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="font-mono text-sm text-gray-900">{container.container_id}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Link
+                      to={`/admin/teams/${container.team?.id}`}
+                      className="text-blue-500 hover:underline"
+                    >
+                      {container.team?.name || 'N/A'}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Link
+                      to={`/admin/challenges/${container.challenge?.id}`}
+                      className="text-blue-500 hover:underline"
+                    >
+                      {container.challenge?.title || 'N/A'}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(
+                        container.status
+                      )}`}
+                    >
+                      {container.status || 'Unknown'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
                       <p>Host: {container.ssh_host || 'N/A'}</p>
                       <p>Port: {container.ssh_port || 'N/A'}</p>
                       <p>User: {container.ssh_user || 'N/A'}</p>
                       <p>Password: {container.ssh_password || 'N/A'}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {container.status === 'running' && (
-                        <button
-                          onClick={() => handleStopContainer(container.id)}
-                          className="text-red-600 hover:text-red-900 font-medium"
-                        >
-                          Stop
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                    No containers found
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    {container.status === 'running' && (
+                      <button
+                        onClick={() => handleStopContainer(container.id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                      >
+                        Stop
+                      </button>
+                    )}
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" className="px-6 py-4 text-center text-gray-900">
+                  No containers found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

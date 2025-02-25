@@ -34,49 +34,49 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg w-96">
-        <h2 className="text-xl font-bold mb-4">
+      <div className="bg-[#FFF7ED] p-8 rounded-lg w-96 shadow-sm">
+        <h2 className="text-xl font-bold mb-4 text-gray-900">
           {mode === 'create' ? 'Create Team' : 'Edit Team'}
         </h2>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label className="block mb-2 font-medium">Team Name</label>
+              <label className="block mb-2 font-medium text-gray-900">Team Name</label>
               <input
                 type="text" 
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 required={mode === 'create'}
               />
             </div>
             <div>
-              <label className="block mb-2 font-medium">Email</label>
+              <label className="block mb-2 font-medium text-gray-900">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 required={mode === 'create'}
               />
             </div>
             <div>
-              <label className="block mb-2 font-medium">
+              <label className="block mb-2 font-medium text-gray-900">
                 {mode === 'create' ? 'Password' : 'New Password (optional)'}
               </label>
               <input
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
-                className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 required={mode === 'create'}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block mb-2 font-medium">Visibility</label>
+                <label className="block mb-2 font-medium text-gray-900">Visibility</label>
                 <select
-                  className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   value={formData.is_hidden}
                   onChange={(e) => setFormData({...formData, is_hidden: e.target.value === 'true'})}
                 >
@@ -85,9 +85,9 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
                 </select>
               </div>
               <div>
-                <label className="block mb-2 font-medium">Access</label>
+                <label className="block mb-2 font-medium text-gray-900">Access</label>
                 <select
-                  className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   value={formData.is_banned}
                   onChange={(e) => setFormData({...formData, is_banned: e.target.value === 'true'})}
                 >
@@ -101,7 +101,7 @@ function TeamFormModal({ team, onClose, onSave, mode = 'create' }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
             >
               Cancel
             </button>
@@ -224,28 +224,28 @@ function Teams() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white">
+      <div className="overflow-x-auto bg-white rounded-lg shadow">
+        <table className="min-w-full bg-[#FFF7ED] rounded-lg overflow-hidden">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="px-4 py-2 text-left">ID</th>
-              <th className="px-4 py-2 text-left">Team</th>
-              <th className="px-4 py-2 text-left">Email</th>
-              <th className="w-24 px-4 py-2 text-center">Hidden</th>
-              <th className="w-24 px-4 py-2 text-center">Banned</th>
-              <th className="w-24 px-4 py-2 text-center">Actions</th>
+            <tr className="bg-[#FFF7ED]">
+              <th className="px-4 py-2 text-left text-gray-900">ID</th>
+              <th className="px-4 py-2 text-left text-gray-900">Team</th>
+              <th className="px-4 py-2 text-left text-gray-900">Email</th>
+              <th className="w-24 px-4 py-2 text-center text-gray-900">Hidden</th>
+              <th className="w-24 px-4 py-2 text-center text-gray-900">Banned</th>
+              <th className="w-24 px-4 py-2 text-center text-gray-900">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredTeams.map(team => (
-              <tr key={team.id} className="border-t">
-                <td className="px-4 py-2">{team.id}</td>
+              <tr key={team.id} className="border-t border-gray-200">
+                <td className="px-4 py-2 text-gray-900">{team.id}</td>
                 <td className="px-4 py-2">
                   <Link to={`/admin/teams/${team.id}`} className="text-blue-500 hover:underline">
                     {team.name}
                   </Link>
                 </td>
-                <td className="px-4 py-2">{team.email}</td>
+                <td className="px-4 py-2 text-gray-900">{team.email}</td>
                 <td className="px-4 py-2 text-center">
                   {team.is_hidden && (
                     <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -261,18 +261,20 @@ function Teams() {
                   )}
                 </td>
                 <td className="px-4 py-2 text-center">
-                  <button 
-                    onClick={() => handleEditTeam(team)}
-                    className="text-blue-500 hover:text-blue-700 mr-2"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTeam(team.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex justify-center space-x-2">
+                    <button 
+                      onClick={() => handleEditTeam(team)}
+                      className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTeam(team.id)}
+                      className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

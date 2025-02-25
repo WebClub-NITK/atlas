@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useTheme } from "../context/ThemeContext";
 
 export function ColourfulText({ text }) {
+  const { isDarkMode } = useTheme();
   const colors = [
-    "rgb(0, 0, 0)",
+    isDarkMode ? "rgb(255, 255, 255)" : "rgb(0, 0, 0)",
   ];
 
   const [currentColors, setCurrentColors] = useState(colors);
   const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    setCurrentColors(colors); // Update colors when theme changes
+  }, [isDarkMode]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -17,7 +23,7 @@ export function ColourfulText({ text }) {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [colors]);
 
   return text.split("").map((char, index) => (
     <motion.span
@@ -42,4 +48,3 @@ export function ColourfulText({ text }) {
     </motion.span>
   ));
 }
-
