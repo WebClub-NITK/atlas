@@ -135,6 +135,18 @@ function CreateChallenge() {
     setFormData({...formData, file_links: newLinks});
   };
 
+  const updateFileLink = (index, value) => {
+    const urlPattern = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
+    if (!urlPattern.test(value)) {
+      setError('Invalid URL. Please include a scheme (http, https, ftp).');
+      return;
+    }
+    setError('');
+    const newLinks = [...formData.file_links];
+    newLinks[index] = value;
+    setFormData({...formData, file_links: newLinks});
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 text-red-500">Create Challenge</h1>
@@ -338,11 +350,7 @@ function CreateChallenge() {
                 <input
                   type="text"
                   value={link}
-                  onChange={(e) => {
-                    const newLinks = [...formData.file_links];
-                    newLinks[index] = e.target.value;
-                    setFormData({...formData, file_links: newLinks});
-                  }}
+                  onChange={(e) => updateFileLink(index, e.target.value)}
                   placeholder="File URL"
                   className="flex-grow border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 />

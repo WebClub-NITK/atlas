@@ -23,6 +23,8 @@ export default function Challenges() {
           hints: ch.hints,
           file_links: ch.file_links,
           docker_image: ch.docker_image,
+          tries: ch.tries,
+          is_correct: ch.is_correct,
         }))
         setChallenges(updatedData)
       } catch (err) {

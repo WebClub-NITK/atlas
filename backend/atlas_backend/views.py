@@ -219,9 +219,19 @@ def get_challenges(request):
         'file_links',
         'docker_image'
     )
-
+    
     # Convert QuerySet to list for JSON serialization
     challenges_list = list(challenges)
+
+    submissions = list (Submission.objects.filter(team=request.user.team).values('challenge_id', 'is_correct', 'id'))
+
+    for sub in submissions:
+        for chal in challenges_list:
+            if sub['challenge_id'] == chal['id']:
+                chal['is_correct'] = sub['is_correct'] or chal.get('is_correct',False)
+                chal['tries'] = chal.get('tries',0) + 1
+                break
+            
 
     logger.info(f"Challenges: {challenges_list}")
 
@@ -778,7 +788,9 @@ def create_challenge(request):
             max_team_size=3,
             is_hidden=is_hidden,  # Use converted boolean
             hints=data.get('hints', []),
-            file_links=data.get('file_links', [])
+            file_links=data.get('file_links', []),
+            port=data.get('port', 22),
+            ssh_user=data.get('ssh_user', None),
         )
 
         return Response({
@@ -1069,7 +1081,9 @@ def get_challenge_detail(request, challenge_id):
             'updated_at': challenge.updated_at,
             'is_hidden': challenge.is_hidden,
             'hints': challenge.hints,
-            'file_links': challenge.file_links
+            'file_links': challenge.file_links,
+            'ssh_user' : challenge.ssh_user,
+            'port' : challenge.port,
         }
         return Response(data)
     except Challenge.DoesNotExist:
@@ -1265,7 +1279,7 @@ def get_dashboard_stats(request):
             },
             'containers': {
                 'total': Container.objects.count(),
-                'running': Container.objects.filter(status='running').count()
+                'running': Container.objects.filter(created_at__gte=datetime.now() - timedelta(minutes=10)).count()
             },
             'submissions': {
                 'total': Submission.objects.count(),
@@ -1410,3 +1424,125 @@ def purchase_hint(request, challenge_id):
         return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_team_submissions_admin(request, team_id):
+    """
+    Get all submissions for a specific team (admin view)
+    """
+    # Check if user is superuser
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only administrators can access this endpoint"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    try:
+        # Get team or return 404
+        team = get_object_or_404(Team, id=team_id)
+
+        # Get all submissions for the team
+        submissions = Submission.objects.filter(team=team).order_by('-timestamp')
+
+        # Format submissions data for response
+        submissions_data = []
+        for submission in submissions:
+            submissions_data.append({
+                'id': submission.id,
+                'challenge_name': submission.challenge.title,
+                'category': submission.challenge.category,
+                'points': submission.points_awarded,
+                'flag_submitted': submission.flag_submitted,
+                'is_correct': submission.is_correct,
+                'submitted_at': submission.timestamp.isoformat()
+            })
+
+        return Response(submissions_data)
+
+    except Team.DoesNotExist:
+        return Response(
+            {"error": "Team not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error fetching team submissions: {str(e)}")
+        return Response(
+            {"error": "Failed to fetch team submissions"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+        
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_team_profile_admin(request, team_id):
+    """
+    Get detailed team profile information for admin
+    """
+    # Check if user is superuser
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only administrators can access this endpoint"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    try:
+        # Get team or return 404
+        team = get_object_or_404(Team, id=team_id)
+
+        # Get team members
+        team_members = User.objects.filter(team=team)
+
+        # Get team statistics
+        solved_challenges = Challenge.objects.filter(
+            submissions__team=team,
+            submissions__is_correct=True,
+        ).distinct().count()
+
+        # Get team rank
+        team_rank = Team.objects.filter(
+            team_score__gt=team.team_score
+        ).count() + 1
+
+        # Get recent activity (last 5 correct submissions)
+        recent_submissions = team.submissions.filter(
+            is_correct=True
+        ).order_by('-timestamp')[:5]
+
+        recent_activity = [{
+            'id': sub.id,
+            'challenge_name': sub.challenge.title,
+            'points': sub.points_awarded,
+            'solved_at': sub.timestamp.isoformat()
+        } for sub in recent_submissions]
+
+        response_data = {
+            'id': team.id,
+            'name': team.name,
+            'team_email': team.team_email,
+            'members': [{
+                'id': member.id,
+                'username': member.username,
+                'email': member.email
+            } for member in team_members],
+            'total_score': team.team_score,
+            'solved_challenges': solved_challenges,
+            'rank': team_rank,
+            'is_hidden': team.is_hidden,
+            'is_banned': team.is_banned,
+            'recent_activity': recent_activity
+        }
+
+        return Response(response_data)
+
+    except Team.DoesNotExist:
+        return Response(
+            {"error": "Team not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error fetching team profile: {str(e)}")
+        return Response(
+            {"error": "Failed to fetch team profile"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

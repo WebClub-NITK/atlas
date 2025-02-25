@@ -121,25 +121,23 @@ class Challenge(models.Model):
         ]
     """)
     file_links = models.JSONField(default=list, blank=True)
+    port = models.IntegerField(blank=True, null=True)
+    ssh_user = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return self.title
 
-class Container(models.Model):
-    STATUS_CHOICES = [
-        ("running", "Running"),
-        ("exited", "Exited"),
-        ("error", "Error"),
-    ]
 
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="containers")
-    challenge = models.ForeignKey(Challenge, on_delete=models.CASCADE, related_name="containers")
-    container_id = models.CharField(max_length=100)
+class Container(models.Model):
+    team = models.ForeignKey(
+        Team, on_delete=models.CASCADE, related_name="containers")
+    challenge = models.ForeignKey(
+        Challenge, on_delete=models.CASCADE, related_name="containers")
+    container_id = models.CharField(max_length=100, primary_key=True)
     ssh_host = models.CharField(max_length=200)
     ssh_port = models.IntegerField()
     ssh_user = models.CharField(max_length=100)
-    ssh_key = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="exited")
+    ssh_password = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

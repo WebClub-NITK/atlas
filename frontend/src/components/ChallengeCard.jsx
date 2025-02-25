@@ -5,11 +5,20 @@ const ChallengeCard = ({ challenge }) => {
   const navigate = useNavigate();
 
   // Default tries to 0 if not provided
-  const tries = challenge.no_of_tries ?? 0;
+  const tries = challenge.tries ?? 0;
+
+  // Determine border color and width based on challenge.is_correct
+  const borderColor = challenge.is_correct ? 'border-green-500' : 'border-neutral-200';
+  const borderWidth = challenge.is_correct ? 'border-4' : 'border';
 
   return (
-    <div className="bg-[#FFF7ED] rounded-lg p-4 sm:p-6 shadow-sm border border-neutral-200">
-      <h3 className="text-xl font-semibold mb-2 text-neutral-900">{challenge.title}</h3>
+    <div className={`bg-[#FFF7ED] rounded-lg p-4 sm:p-6 shadow-sm ${borderWidth} ${borderColor}`}>
+      <h3 className="text-xl font-semibold mb-2 text-neutral-900 flex items-center">
+        {challenge.title}
+        {challenge.is_correct && (
+          <span className="ml-2 text-green-500">✔</span>
+        )}
+      </h3>
       <div className="flex justify-between items-center mb-4">
         <span className="text-sm bg-[#F1EFEF] px-2 py-1 rounded text-neutral-700">
           {challenge.category}

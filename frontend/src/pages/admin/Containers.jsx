@@ -78,9 +78,6 @@ function AdminContainers() {
                 Challenge
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                 SSH Details
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
@@ -112,15 +109,6 @@ function AdminContainers() {
                     </Link>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(
-                        container.status
-                      )}`}
-                    >
-                      {container.status || 'Unknown'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
                       <p>Host: {container.ssh_host || 'N/A'}</p>
                       <p>Port: {container.ssh_port || 'N/A'}</p>
@@ -129,14 +117,12 @@ function AdminContainers() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    {container.status === 'running' && (
                       <button
-                        onClick={() => handleStopContainer(container.id)}
+                        onClick={() => handleStopContainer(container.container_id)}
                         className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                       >
                         Stop
                       </button>
-                    )}
                   </td>
                 </tr>
               ))

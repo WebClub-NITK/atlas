@@ -31,6 +31,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+DOCKER_HOST_IP="localhost"
+
 # Application definition
 
 INSTALLED_APPS = [

@@ -20,7 +20,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy entrypoint
-COPY entrypoint.sh /app/code/entrypoint.sh
+COPY code/entrypoint.sh /app/code/entrypoint.sh
 RUN sed -i 's/\r$//g' /app/code/entrypoint.sh
 RUN chmod +x /app/code/entrypoint.sh
 

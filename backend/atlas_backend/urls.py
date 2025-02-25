@@ -43,4 +43,6 @@ urlpatterns = [
     path('api/admin/teams/<int:team_id>/update', views.update_team, name='update-team'),
     path('api/admin/containers', views.get_containers, name='get_containers'),
     path('api/admin/containers/<str:container_id>/stop', views.admin_stop_container, name='admin_stop_container'),
+    path('api/admin/teams/<int:team_id>', views.get_team_profile_admin, name='get_team_profile_admin'),
+    path('api/admin/teams/<int:team_id>/submissions', views.get_team_submissions_admin, name='get_team_submissions_admin'),
 ]
