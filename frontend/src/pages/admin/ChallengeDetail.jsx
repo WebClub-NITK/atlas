@@ -616,7 +616,7 @@ function ChallengeDetail() {
         
 
         <section className="bg-white rounded-xl shadow-sm p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Submissions</h2>
+          <h2 className="text-2xl font-bold mb-4">Submissions</h2>
           {submissions && submissions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -645,17 +645,17 @@ function ChallengeDetail() {
                           "N/A"
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 text-zinc-900 whitespace-nowrap">
                         {new Date(submission.submission_time).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">{submission.correct ? "Yes" : "No"}</td>
+                      <td className="px-6 py-4 text-zinc-900 whitespace-nowrap">{submission.correct ? "Yes" : "No"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="text-gray-900">No submissions yet for this challenge.</p>
+            <p className="text-zinc-900">No submissions yet for this challenge.</p>
           )}
         </section>
 

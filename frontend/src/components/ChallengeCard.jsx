@@ -26,7 +26,7 @@ const ChallengeCard = ({ challenge }) => {
 
       <button
         onClick={() => navigate(`/challenges/${challenge.id}`)}
-        className="block w-full text-center px-4 py-2 bg-[#F1EFEF] text-neutral-800 rounded hover:bg-neutral-200"
+        className="block w-full text-center px-4 py-2 bg-red-400 text-neutral-800 rounded hover:bg-neutral-200"
       >
         Open Challenge
       </button>
