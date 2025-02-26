@@ -17,37 +17,36 @@ function EditTeamModal({ team, onClose, onSave }) {
     await onSave(formData);
     onClose();
   };
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg w-96">
-        <h2 className="text-xl font-bold mb-4">Edit Team</h2>
+    <div className="fixed inset-0 bg-[#FFF7ED] bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-[#FFF7ED] text-black p-6 rounded-lg w-96 shadow-lg">
+        <h2 className="text-xl font-bold mb-4 text-black">Edit Team</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-2">Team Name</label>
+            <label className="block mb-2 text-black">Team Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 text-black"
             />
           </div>
           <div>
-            <label className="block mb-2">Email</label>
+            <label className="block mb-2 text-black">Email</label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 text-black"
             />
           </div>
           <div>
-            <label className="block mb-2">New Password (optional)</label>
+            <label className="block mb-2 text-black">New Password (optional)</label>
             <input
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 text-black"
             />
           </div>
           <div className="flex space-x-4">
@@ -58,7 +57,7 @@ function EditTeamModal({ team, onClose, onSave }) {
                 onChange={(e) => setFormData({...formData, isHidden: e.target.checked})}
                 className="mr-2"
               />
-              <label>Hidden</label>
+              <label className="text-black">Hidden</label>
             </div>
             <div className="flex items-center">
               <input
@@ -67,14 +66,14 @@ function EditTeamModal({ team, onClose, onSave }) {
                 onChange={(e) => setFormData({...formData, isBanned: e.target.checked})}
                 className="mr-2"
               />
-              <label>Banned</label>
+              <label className="text-black">Banned</label>
             </div>
           </div>
           <div className="flex justify-end space-x-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded hover:bg-gray-50"
+              className="px-4 py-2 border rounded bg-red-500 text-white hover:bg-red-600"
             >
               Cancel
             </button>
@@ -160,10 +159,10 @@ function TeamDetail() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <div className="text-center mb-6">
+      <div className="bg-[#FFF7ED] text-grey-900 rounded-lg shadow-lg p-6">
+        <div className="text-center mb-6 text-gray-900">
           <h1 className="text-3xl font-bold mb-2">{team.name}</h1>
-          <div className="text-gray-600 mb-2">
+          <div className="text-gray-900 mb-2">
             Score: {team.total_score}
           </div>
           
@@ -196,7 +195,7 @@ function TeamDetail() {
         <div className="mt-8">
           <h2 className="text-2xl font-bold mb-4">Submission History</h2>
           <div className="overflow-x-auto">
-            <table className="min-w-full">
+            <table className="min-w-full text-gray-900">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left">Challenge</th> 
