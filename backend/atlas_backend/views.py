@@ -515,10 +515,10 @@ def get_teams(request):
             solved_count=Count('submissions', filter=Q(
                 submissions__is_correct=True), distinct=True)
         ).order_by('-team_score', 'created_at')
-
     response_data = [{
         'id': team.id,
         'name': team.name,
+        'email': team.team_email,
         'member_count': team.member_count,
         'total_score': team.team_score,
         'solved_count': team.solved_count,
@@ -809,6 +809,11 @@ def create_challenge(request):
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def update_challenge(request, challenge_id):
+    if not request.user.is_superuser:
+        return Response(
+            {"error": "Only administrators can update challenges"},
+            status=status.HTTP_403_FORBIDDEN
+        )
     try:
         challenge = Challenge.objects.get(id=challenge_id)
         data = request.data
@@ -833,13 +838,13 @@ def update_challenge(request, challenge_id):
             try:
                 data['hints'] = json.loads(data['hints'])
             except json.JSONDecodeError:
-                data['hints'] = []
-
+                data['hints'] = challenge.hints
+        
         if 'file_links' in data and isinstance(data['file_links'], str):
             try:
                 data['file_links'] = json.loads(data['file_links'])
             except json.JSONDecodeError:
-                data['file_links'] = []
+                data['file_links'] = challenge.file_links
 
         # Handle docker image file if present
         if request.FILES.get('docker_image'):
@@ -850,6 +855,19 @@ def update_challenge(request, challenge_id):
             except Exception as e:
                 logger.error(f"Docker image upload error: {str(e)}")
                 raise Exception("Failed to upload docker image")
+
+        if 'ssh_user' in data:
+            try:
+                data ['ssh_user'] = data['ssh_user'] or None
+            except Exception as e:
+                raise Exception("Failed to upload ssh user :" + str(e))
+        
+        if 'port' in data:
+            try:
+                data['port'] = int(data['port'])
+            except Exception as e:
+                raise Exception("Failed to upload port :" + str(e))
+        
 
         # Update fields
         for field, value in data.items():

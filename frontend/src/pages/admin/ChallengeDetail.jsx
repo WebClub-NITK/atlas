@@ -12,8 +12,10 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
     docker_image: null, // Changed to null for file handling
     flag: challenge.flag || '',
     is_hidden: challenge.is_hidden || false,
-    hints: typeof challenge.hints === 'string' ? JSON.parse(challenge.hints) : [],
-    file_links: typeof challenge.file_links === 'string' ? JSON.parse(challenge.file_links) : [],
+    hints: Array.isArray(challenge.hints) ? challenge.hints : 
+           (typeof challenge.hints === 'string' ? JSON.parse(challenge.hints) : []),
+    file_links: Array.isArray(challenge.file_links) ? challenge.file_links : 
+                (typeof challenge.file_links === 'string' ? JSON.parse(challenge.file_links) : []),
     port: challenge.port || '22',
     ssh_user: challenge.ssh_user || ''
   });
@@ -76,14 +78,14 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
     e.preventDefault();
     const formDataToSend = new FormData();
   
-    // Add validation and default values for required fields
+    // Add all fields to the form data
     formDataToSend.append('title', formData.title);
     formDataToSend.append('description', formData.description);
     formDataToSend.append('category', formData.category);
-    formDataToSend.append('max_points', formData.max_points || 0); // Default to 0 if null
+    formDataToSend.append('max_points', formData.max_points || 0);
     formDataToSend.append('flag', formData.flag);
     formDataToSend.append('is_hidden', formData.is_hidden);
-    formDataToSend.append('port', formData.port); // Add port field
+    formDataToSend.append('port', formData.port);
     
     // Only append ssh_user if it's provided
     if (formData.ssh_user.trim()) {
@@ -91,8 +93,8 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
     }
     
     // Always append hints and file_links arrays
-    formDataToSend.append('hints', JSON.stringify(formData.hints));
-    formDataToSend.append('file_links', JSON.stringify(formData.file_links));
+    formDataToSend.append('hints', JSON.stringify(formData.hints || []));
+    formDataToSend.append('file_links', JSON.stringify(formData.file_links || []));
   
     // Only append docker_image if it's a new file
     if (formData.docker_image instanceof File) {
@@ -541,10 +543,6 @@ function ChallengeDetail() {
               <span className="text-gray-900 ml-1">{challenge.max_points}</span>
             </div>
             <div>
-              <span className="text-gray-900 font-bold">Docker Image:</span>
-              <span className="text-gray-900 ml-1">{challenge.docker_image || "N/A"}</span>
-            </div>
-            <div>
               <span className="text-gray-900 font-bold">Flag:</span>
               <span className="text-gray-900 ml-1">{challenge.flag}</span>
             </div>
@@ -552,13 +550,23 @@ function ChallengeDetail() {
               <span className="text-gray-900 font-bold">Is Hidden:</span>
               <span className="text-gray-900 ml-1">{challenge.is_hidden ? "Yes" : "No"}</span>
             </div>
+          </div>
+        </section>
+
+        <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Docker Image Details</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-gray-900 font-bold">Docker Image:</span>
+              <span className="text-gray-900 ml-1">{challenge.docker_image || "N/A"}</span>
+            </div>
             <div>
               <span className="text-gray-900 font-bold">Port:</span>
-              <span className="text-gray-900 ml-1">{challenge.port}</span>
+              <span className="text-gray-900 ml-1">{challenge.docker_image ? challenge.port : "N/A"}</span>
             </div>
             <div>
               <span className="text-gray-900 font-bold">SSH User:</span>
-              <span className="text-gray-900 ml-1">{challenge.ssh_user || "N/A"}</span>
+              <span className="text-gray-900 ml-1">{challenge.docker_image ? challenge.ssh_user : "N/A"}</span>
             </div>
           </div>
         </section>
@@ -646,9 +654,9 @@ function ChallengeDetail() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-zinc-900 whitespace-nowrap">
-                        {new Date(submission.submission_time).toLocaleString()}
+                        {new Date(submission.timestamp).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 text-zinc-900 whitespace-nowrap">{submission.correct ? "Yes" : "No"}</td>
+                      <td className="px-6 py-4 text-zinc-900 whitespace-nowrap">{submission.is_correct ? "Yes" : "No"}</td>
                     </tr>
                   ))}
                 </tbody>

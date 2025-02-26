@@ -220,14 +220,13 @@ function CreateChallenge() {
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block mb-2 font-medium text-gray-900">Port <span className="text-red-500">*</span></label>
+              <label className="block mb-2 font-medium text-gray-900">Port <span className="text-red-500"></span></label>
               <input
                 type="number"
                 value={formData.port}
                 onChange={(e) => setFormData({...formData, port: e.target.value})}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 placeholder="22"
-                required
               />
               <p className="text-sm text-gray-600 mt-1">Port number is required for all containers</p>
             </div>
