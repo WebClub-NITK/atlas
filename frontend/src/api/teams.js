@@ -61,9 +61,17 @@ export const createTeam = async (teamData) => {
 // Update team
 export const updateTeam = async (teamId, teamData) => {
   try {
+    const formattedData = {
+      name: teamData.name,
+      email: teamData.email,
+      is_hidden: teamData.is_hidden, 
+      is_banned: teamData.is_banned, 
+      ...(teamData.password && { password: teamData.password })
+    };
+
     const response = await apiClient.patch(
-      `api/admin/teams/${teamId}/update`,
-      teamData,
+      `/api/admin/teams/${teamId}/update`,
+      formattedData
     );
     return response.data;
   } catch (error) {
@@ -71,6 +79,7 @@ export const updateTeam = async (teamId, teamData) => {
     throw error;
   }
 };
+
 
 // Delete team
 export const deleteTeam = async (teamId) => {

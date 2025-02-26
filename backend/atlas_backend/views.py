@@ -1355,10 +1355,10 @@ def update_team(request, team_id):
             team.name = request.data['name']
         if 'email' in request.data:
             team.team_email = request.data['email']
-        if 'isHidden' in request.data:
-            team.is_hidden = request.data['isHidden']
-        if 'isBanned' in request.data:
-            team.is_banned = request.data['isBanned']
+        if 'is_hidden' in request.data: 
+            team.is_hidden = request.data['is_hidden']
+        if 'is_banned' in request.data:  
+            team.is_banned = request.data['is_banned']
         if 'password' in request.data and request.data['password']:
             team.set_password(request.data['password'])
             
@@ -1378,7 +1378,7 @@ def update_team(request, team_id):
             {"error": "Team not found"},
             status=status.HTTP_404_NOT_FOUND
         )
-    except ValidationError as e:  # Catch validation errors
+    except ValidationError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.error(f"Failed to update team {team_id}: {str(e)}")
@@ -1386,6 +1386,7 @@ def update_team(request, team_id):
             {"error": f"Failed to update team: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

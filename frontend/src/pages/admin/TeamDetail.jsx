@@ -5,81 +5,115 @@ import { getTeamProfile_Admin, updateTeam, deleteTeam, getTeamSubmissions_Admin 
 
 function EditTeamModal({ team, onClose, onSave }) {
   const [formData, setFormData] = useState({
-    name: team.name,
-    email: team.team_email,
-    isHidden: team.is_hidden,
-    isBanned: team.is_banned,
-    password: ''
+    name: team?.name || '',
+    email: team?.team_email || '',
+    password: '',
+    isHidden: team?.is_hidden || false, 
+    isBanned: team?.is_banned || false   
   });
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await onSave(formData);
-    onClose();
+    try {
+      const updatedData = {
+        name: formData.name,
+        email: formData.email,
+        is_hidden: formData.isHidden, 
+        is_banned: formData.isBanned,  
+        ...(formData.password && { password: formData.password })
+      };
+    
+      await onSave(updatedData);
+      onClose();
+    } catch (error) {
+      console.error("Error updating team:", error);
+    }
   };
+
   return (
-    <div className="fixed inset-0 bg-[#FFF7ED] bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-[#FFF7ED] text-black p-6 rounded-lg w-96 shadow-lg">
-        <h2 className="text-xl font-bold mb-4 text-black">Edit Team</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-2 text-black">Team Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full border rounded px-3 py-2 text-black"
-            />
-          </div>
-          <div>
-            <label className="block mb-2 text-black">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full border rounded px-3 py-2 text-black"
-            />
-          </div>
-          <div>
-            <label className="block mb-2 text-black">New Password (optional)</label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              className="w-full border rounded px-3 py-2 text-black"
-            />
-          </div>
-          <div className="flex space-x-4">
-            <div className="flex items-center">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-[#FFF7ED] p-8 rounded-lg w-96 shadow-sm">
+        <h2 className="text-xl font-bold mb-4 text-gray-900">Edit Team</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-2 font-medium text-gray-900">Team Name</label>
               <input
-                type="checkbox"
-                checked={formData.isHidden}
-                onChange={(e) => setFormData({...formData, isHidden: e.target.checked})}
-                className="mr-2"
+                type="text" 
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                required
               />
-              <label className="text-black">Hidden</label>
             </div>
-            <div className="flex items-center">
+            <div>
+              <label className="block mb-2 font-medium text-gray-900">Email</label>
               <input
-                type="checkbox"
-                checked={formData.isBanned}
-                onChange={(e) => setFormData({...formData, isBanned: e.target.checked})}
-                className="mr-2"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                required
               />
-              <label className="text-black">Banned</label>
+            </div>
+            <div>
+              <label className="block mb-2 font-medium text-gray-900">New Password (optional)</label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-2 font-medium text-gray-900">Visibility</label>
+                <select
+                  name="isHidden"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                  value={formData.isHidden.toString()}
+                  onChange={(e) => setFormData({ ...formData, isHidden: e.target.value === 'true' })}
+                >
+                  <option value="false">Visible</option>
+                  <option value="true">Hidden</option>
+                </select>
+              </div>
+              <div>
+                <label className="block mb-2 font-medium text-gray-900">Access</label>
+                <select
+                  name="isBanned"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                  value={formData.isBanned.toString()}
+                  onChange={(e) => setFormData({ ...formData, isBanned: e.target.value === 'true' })}
+                >
+                  <option value="false">Active</option>
+                  <option value="true">Banned</option>
+                </select>
+              </div>
             </div>
           </div>
-          <div className="flex justify-end space-x-2">
+          <div className="mt-6 flex justify-end space-x-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded bg-red-500 text-white hover:bg-red-600"
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               Save Changes
             </button>
@@ -126,12 +160,12 @@ function TeamDetail() {
       await updateTeam(team.id, {
         name: updatedData.name,
         email: updatedData.email,
-        is_hidden: teamData.isHidden,
-        is_banned: teamData.isBanned,
+        is_hidden: updatedData.is_hidden,
+        is_banned: updatedData.is_banned,
         ...(updatedData.password && { password: updatedData.password })
       });
       
-      const refreshedData = await getTeamProfile();
+      const refreshedData = await getTeamProfile_Admin(team.id);
       setTeam(refreshedData);
       setShowEditModal(false);
       setError(null);
@@ -159,12 +193,10 @@ function TeamDetail() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-[#FFF7ED] text-grey-900 rounded-lg shadow-lg p-6">
-        <div className="text-center mb-6 text-gray-900">
+      <div className="bg-[#FFF7ED] text-gray-900 rounded-lg shadow-lg p-6">
+        <div className="text-center mb-6">
           <h1 className="text-3xl font-bold mb-2">{team.name}</h1>
-          <div className="text-gray-900 mb-2">
-            Score: {team.total_score}
-          </div>
+          <div className="mb-2">Score: {team.total_score}</div>
           
           <div className="flex justify-center space-x-2 mb-4">
             {team.is_hidden && (
