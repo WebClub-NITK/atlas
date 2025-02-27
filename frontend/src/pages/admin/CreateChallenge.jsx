@@ -16,7 +16,8 @@ function CreateChallenge() {
     hints: [],
     file_links: [],
     ssh_user: '',
-    port: '22'
+    port: '22',
+    max_attempts:1
   });
 
   const [error, setError] = useState('');
@@ -75,6 +76,7 @@ function CreateChallenge() {
       formDataToSend.append('max_team_size', formData.max_team_size);
       formDataToSend.append('is_hidden', formData.is_hidden);
       formDataToSend.append('port', formData.port);
+      formDataToSend.append('max_attempts', formData.max_attempts);
       
       // Only append ssh_user if it's provided
       if (formData.ssh_user.trim()) {
@@ -266,6 +268,19 @@ function CreateChallenge() {
               required
               min="0"
             />
+          </div>
+
+          <div>
+            <label className="block mb-2 font-medium text-gray-900">Max Attempts</label>
+            <input
+              type="number"
+              value={formData.max_attempts}
+              onChange={(e) => setFormData({...formData, max_attempts: e.target.value})}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+              required
+              min="1"
+            />
+            <p className="text-sm text-gray-600 mt-1">Maximum number of flag submission attempts allowed</p>
           </div>
 
           <div>

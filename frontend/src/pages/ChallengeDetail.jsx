@@ -195,7 +195,7 @@ function ChallengeDetail() {
                   rel="noopener noreferrer"
                   className="block text-blue-600 hover:text-blue-800 hover:underline"
                 >
-                  Download File {index + 1}
+                  File {index + 1}
                 </a>
               ))}
             </div>

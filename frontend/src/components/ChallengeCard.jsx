@@ -34,7 +34,13 @@ const ChallengeCard = ({ challenge }) => {
       </p>
 
       <button
-        onClick={() => navigate(`/challenges/${challenge.id}`)}
+        onClick={() => {
+          if (challenge.is_correct) {
+            alert("Challenge already solved!");
+          } else {
+            navigate(`/challenges/${challenge.id}`);
+          }
+        }}
         className="block w-full text-center px-4 py-2 bg-red-400 text-neutral-800 rounded hover:bg-neutral-200"
       >
         Open Challenge
