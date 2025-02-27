@@ -26,6 +26,7 @@ class ChallengeSerializer(serializers.ModelSerializer):
             'title', 
             'description', 
             'max_points', 
+            'max_attempts',
             'category',
             'docker_image', 
             'is_hidden', 
@@ -53,8 +54,8 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
         fields = ['id', 'name', 'description', 'team_size', 'members', 
-                 'total_score', 'member_count', 'solved_count', 'challenges',
-                 'max_attempts_per_challenge', 'is_banned', 'is_hidden'] 
+                'total_score', 'member_count', 'solved_count', 'challenges',
+                'is_banned', 'is_hidden'] 
 
 class SubmissionSerializer(serializers.ModelSerializer):
     challenge_name = serializers.CharField(source='challenge.title', read_only=True)

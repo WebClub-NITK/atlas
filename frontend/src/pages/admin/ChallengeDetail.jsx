@@ -17,7 +17,8 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
     file_links: Array.isArray(challenge.file_links) ? challenge.file_links : 
                 (typeof challenge.file_links === 'string' ? JSON.parse(challenge.file_links) : []),
     port: challenge.port || '22',
-    ssh_user: challenge.ssh_user || ''
+    ssh_user: challenge.ssh_user || '',
+    max_attempts: challenge.max_attempts || 100
   });
 
   const [newHint, setNewHint] = useState({ content: '', cost: 0 });
@@ -86,6 +87,7 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
     formDataToSend.append('flag', formData.flag);
     formDataToSend.append('is_hidden', formData.is_hidden);
     formDataToSend.append('port', formData.port);
+    formDataToSend.append('max_attempts', formData.max_attempts);
     
     // Only append ssh_user if it's provided
     if (formData.ssh_user.trim()) {
@@ -154,6 +156,22 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-gray-900 text-sm font-bold mb-2">Max Attempts</label>
+            <input
+              type="number"
+              name="max_attempts"
+              value={formData.max_attempts}
+              onChange={handleChange}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
+              required
+              min="1"
+            />
+            <p className="text-sm text-gray-600 mt-1">
+              Maximum number of flag submission attempts allowed
+            </p>
           </div>
 
           <div>
@@ -418,6 +436,7 @@ function ChallengeDetail() {
           }
         }
         setChallenge(challengeData);
+        console.log(challengeData);
 
         const submissionsData = await getChallengeSubmissions(challengeId);
         setSubmissions(submissionsData);
@@ -550,9 +569,14 @@ function ChallengeDetail() {
               <span className="text-gray-900 font-bold">Is Hidden:</span>
               <span className="text-gray-900 ml-1">{challenge.is_hidden ? "Yes" : "No"}</span>
             </div>
+            <div>
+              <span className="text-gray-900 font-bold">Max Attempts:</span>
+              <span className="text-gray-900 ml-1">{challenge.max_attempts}</span>
+            </div>
           </div>
         </section>
 
+        {challenge.docker_image ? (
         <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Docker Image Details</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -567,9 +591,15 @@ function ChallengeDetail() {
             <div>
               <span className="text-gray-900 font-bold">SSH User:</span>
               <span className="text-gray-900 ml-1">{challenge.docker_image ? challenge.ssh_user : "N/A"}</span>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : (
+          <section className="mb-6 bg-gray-100 rounded-xl shadow-sm p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Docker Image Details</h2>
+            <p className="text-gray-900">No docker image available for this challenge.</p>
+          </section>
+        )}
 
         {/* Hints Section */}
         {challenge.hints && Array.isArray(challenge.hints) && challenge.hints.length > 0 ? (

@@ -4,10 +4,12 @@ import { useAuth } from '../hooks/useAuth';
 import { getChallengeById_Team, startChallenge, submitFlag, purchaseHint } from '../api/challenges';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme } from '../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 
 function ChallengeDetail() {
   const { challengeId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const {isDarkMode}=useTheme();
   const [challenge, setChallenge] = useState(null);
   const [sshDetails, setSshDetails] = useState(null);
@@ -15,7 +17,8 @@ function ChallengeDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [challengeStarted, setChallengeStarted] = useState(false);
-  const [revealedHints, setRevealedHints] = useState([]);
+  const [purchaseInProgress, setPurchaseInProgress] = useState(false);
+  const [remainingPoints, setRemainingPoints] = useState(null);
 
   useEffect(() => {
     const fetchChallenge = async () => {
@@ -27,6 +30,8 @@ function ChallengeDetail() {
 
       try {
         const response = await getChallengeById_Team(challengeId);
+        console.log('Challenge data received:', response);
+        
         if (!response?.challenge) {
           throw new Error('Challenge not found');
         }
@@ -43,6 +48,9 @@ function ChallengeDetail() {
         }
 
         setChallenge(challengeData);
+        console.log(challengeData.hints)
+        // Set remaining points if available, otherwise use max points
+        setRemainingPoints(challengeData.remaining_points || challengeData.max_points);
         setError(null);
       } catch (err) {
         console.error('Error fetching challenge:', err);
@@ -72,7 +80,14 @@ function ChallengeDetail() {
     try {
       // Send flag directly in the request body
       const response = await submitFlag(challengeId, flag.trim());
-      alert(response.message || 'Flag submitted successfully!');
+      console.log('Flag submission response:', response);
+      alert(response.is_correct ? "Flag is correct!" : `Flag is incorrect! ${response.attempts_remaining == 0 ? "You have used all your attempts!" : `Only ${response.attempts_remaining} attempts left!`}`);
+      if(response.is_correct){
+        navigate(`/challenges`);
+      }
+      if(response.attempts_remaining === 0){
+        navigate(`/challenges`);
+      }
       setFlag('');
       setError(null);
     } catch (error) {
@@ -82,19 +97,46 @@ function ChallengeDetail() {
   };
 
   const handlePurchaseHint = async (hintIndex) => {
+    if (purchaseInProgress) return;
+    
     try {
+      setPurchaseInProgress(true);
       const response = await purchaseHint(challengeId, hintIndex);
-      if (response.hint) {
-        setRevealedHints([...revealedHints, hintIndex]);
-        // Update team score and challenge data
-        setChallenge(prev => ({
+      console.log('Hint purchase response:', response);
+      
+      // Update the challenge with the new hint information
+      setChallenge(prev => {
+        const updatedHints = [...prev.hints];
+        updatedHints[hintIndex] = {
+          ...updatedHints[hintIndex],
+          purchased: true,
+          content: response.hint.content
+        };
+        
+        return {
           ...prev,
-          team_score: response.newTeamScore
-        }));
+          hints: updatedHints
+        };
+      });
+      
+      // Update remaining points after hint purchase
+      if (response.remainingPoints !== undefined) {
+        setRemainingPoints(response.remainingPoints);
       }
+      
+      setError(null);
     } catch (error) {
+      console.error('Error purchasing hint:', error);
       setError(error.response?.data?.error || 'Failed to purchase hint');
+    } finally {
+      setPurchaseInProgress(false);
     }
+  };
+
+  // Calculate actual point deduction for a hint
+  const calculateHintDeduction = (hintCost) => {
+    // Direct deduction - hint cost is the number of points to deduct
+    return hintCost;
   };
 
   if (loading) return <LoadingSpinner />;
@@ -107,12 +149,24 @@ function ChallengeDetail() {
         <h1 className="text-3xl font-bold mb-6 text-red-500">{challenge.title}</h1>
         
         <div className="mb-6 flex justify-between items-center">
-          <span className="text-sm bg-[#F1EFEF] px-3 py-1.5 rounded text-neutral-700">
-            {challenge.category}
-          </span>
-          <span className="text-2xl font-bold text-neutral-900">
-            {challenge.max_points} points
-          </span>
+        <div className="flex items-center space-x-3">
+            <span className="text-sm bg-[#F1EFEF] px-3 py-1.5 rounded text-neutral-700">
+              {challenge.category}
+            </span>
+              <span className="text-sm bg-[#F1EFEF] px-3 py-1.5 rounded text-neutral-700">
+                Maximum Attempts: {challenge.max_attempts}
+              </span>
+          </div>
+          <div className="text-right">
+            <span className="text-2xl font-bold text-neutral-900">
+              {remainingPoints} points
+            </span>
+            {remainingPoints !== null && remainingPoints !== challenge.max_points && (
+              <div className="text-sm text-red-500">
+                ({challenge.max_points - remainingPoints} points deducted)
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -154,7 +208,7 @@ function ChallengeDetail() {
                   rel="noopener noreferrer"
                   className="block text-blue-600 hover:text-blue-800 hover:underline"
                 >
-                  Download File {index + 1}
+                  File {index + 1}
                 </a>
               ))}
             </div>
@@ -167,15 +221,29 @@ function ChallengeDetail() {
               <div className="space-y-2">
                 {challenge.hints.map((hint, index) => (
                   <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                    {revealedHints.includes(index) ? (
-                      <p className="text-neutral-700">{hint.content}</p>
+                    {hint.purchased ? (
+                      <div>
+                        <h4 className="text-red-500 font-medium mb-1">
+                          Hint {index + 1} 
+                          <span className="text-red-500 ml-2">
+                            (-{calculateHintDeduction(hint.cost)} points)
+                          </span>
+                        </h4>
+                        <p className="text-neutral-700">{hint.content}</p>
+                      </div>
                     ) : (
-                      <button
-                        onClick={() => handlePurchaseHint(index)}
-                        className="w-full px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                      >
-                        Unlock Hint ({hint.cost} points)
-                      </button>
+                      <div>
+                        <button
+                          onClick={() => handlePurchaseHint(index)}
+                          disabled={purchaseInProgress}
+                          className={`w-full px-4 py-2 ${purchaseInProgress ? 'bg-gray-400' : 'bg-yellow-500 hover:bg-yellow-600'} text-white rounded`}
+                        >
+                          {purchaseInProgress ? 'Processing...' : `Unlock Hint ${index + 1}`}
+                        </button>
+                        <div className="text-sm text-red-500 mt-1 text-center">
+                          Will deduct {hint.cost} points
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}
