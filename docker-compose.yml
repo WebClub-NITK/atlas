@@ -60,6 +60,8 @@ services:
     container_name: atlas_backend
     ports:
       - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}

@@ -31,6 +31,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+DOCKER_HOST_IP="localhost"
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -176,7 +178,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# to uncomment and add var if we were to actually send mail for email verification or forget password
+#to uncomment and add var if we were to actually send mail for email verification or forget password
 # Email settings (use your actual email provider settings for production)
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 # EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
@@ -185,9 +187,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 # EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 # DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@yourdomain.com")
-
-DOCKER_HOST_IP = os.getenv("DOCKER_HOST_IP", "localhost")
-DOCKER_HOST = os.getenv("DOCKER_HOST", "unix://var/run/docker.sock")
 
 # Security settings
 # CSRF_TRUSTED_ORIGINS = ["https://yourfrontenddomain.com"]  # Update with your frontend domain

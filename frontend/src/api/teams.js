@@ -1,22 +1,56 @@
 import apiClient from './config';
 
+// For Team Routes
+
+export const getTeamProfile = async () => {
+  try{
+    const response = await apiClient.get('/teams/profile');
+    return response.data;
+  }catch (error){
+    console.error('Error fetching team profile:', error);
+    throw error;
+  }
+};
+
+export const getTeamSubmissions = async () => {
+  try {
+    const response = await apiClient.get('/teams/submissions');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching team submissions:', error);
+    throw error;
+  }
+};
+
+
+// Used For Admin Routes
+
+export const deleteTeams = async (teamIds) => {
+  try {
+    const response = await apiClient.delete('/teams/bulk-delete', {
+      data: { teamIds }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting teams:', error);
+    throw error;
+  }
+};
+
 export const getTeams = async () => {
   try {
     const response = await apiClient.get('/teams');
     return response.data;
   } catch (error) {
-    console.error('Error fetching teams:', error);
+    console.error("Failed to fetch teams")
     throw error;
   }
 };
 
+// Create new team 
 export const createTeam = async (teamData) => {
   try {
-    const response = await apiClient.post('/teams/create', {
-      name: teamData.name,
-      description: teamData.description,
-      max_members: teamData.maxMembers,
-    });
+    const response = await apiClient.post('/teams/create', teamData);
     return response.data;
   } catch (error) {
     console.error('Error creating team:', error);
@@ -24,87 +58,56 @@ export const createTeam = async (teamData) => {
   }
 };
 
-export const joinTeam = async (teamId) => {
+// Update team
+export const updateTeam = async (teamId, teamData) => {
   try {
-    const response = await apiClient.post('/teams/join', {
-      team_id: teamId,
-    });
+    const formattedData = {
+      name: teamData.name,
+      email: teamData.email,
+      is_hidden: teamData.is_hidden, 
+      is_banned: teamData.is_banned, 
+      ...(teamData.password && { password: teamData.password })
+    };
+
+    const response = await apiClient.patch(
+      `/api/admin/teams/${teamId}/update`,
+      formattedData
+    );
     return response.data;
   } catch (error) {
-    console.error('Error joining team:', error);
+    console.error('Error updating team:', error);
     throw error;
   }
 };
 
-export const leaveTeam = async () => {
+
+// Delete team
+export const deleteTeam = async (teamId) => {
   try {
-    const response = await apiClient.post('/teams/leave');
-    return response.data;
+    await apiClient.delete(`api/admin/teams/${teamId}/delete`);
+    return true;
   } catch (error) {
-    console.error('Error leaving team:', error);
+    console.error('Error deleting team:', error);
     throw error;
   }
 };
 
-const mockTeamProfile = {
-  name: 'Team Alpha',
-  email: 'alpha@ctf.com',
-  members: [
-    { name: 'Member One', email: 'member1@ctf.com' },
-    { name: 'Member Two', email: 'member2@ctf.com' },
-    { name: 'Member Three', email: 'member3@ctf.com' }
-  ],
-  submissions: [
-    { challengeName: 'Challenge 1', points: 100, solvedAt: '2024-03-15' },
-    { challengeName: 'Challenge 2', points: 200, solvedAt: '2024-03-16' },
-    { challengeName: 'Challenge 3', points: 150, solvedAt: '2024-03-17' }
-  ],
-  totalPoints: 450
+export const getTeamProfile_Admin = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/api/admin/teams/${teamId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching team profile:', error);
+    throw error;
+  }
 };
 
-export const getTeamProfile = async () => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return mockTeamProfile;
-};
-
-export const addTeamMember = async (name, email) => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  mockTeamProfile.members.push({ name, email });
-  return mockTeamProfile;
-};
-
-// export const getTeamProfile = async () => {
-//   try {
-//     const response = await apiClient.get('/teams/profile');
-//     return response.data;
-//   } catch (error) {
-//     console.error('Error fetching team profile:', error);
-//     throw error;
-//   }
-// };
-
-
-export const updateTeamInfo = async (userInfo, token) => {
-  // Mocked response
-return {
-  ...userInfo,
-  id: 1,
-  isAdmin: false,
-  isVerified: true,
-  teamId: 1,
-};
-};
-
-export const getTeamHistory = async (token) => {
-// Mocked response
-return {
-  teamName: 'Team Alpha',
-  teamScore: 1000,
-  submissions: [
-    { id: 1, challengeName: 'Challenge 1', points: 100, solvedAt: '2024-03-15' },
-    { id: 2, challengeName: 'Challenge 2', points: 200, solvedAt: '2024-03-16' },
-  ],
-};
+export const getTeamSubmissions_Admin = async (teamId) => {
+  try {
+    const response = await apiClient.get(`/api/admin/teams/${teamId}/submissions`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching team submissions:', error);
+    throw error;
+  }
 };

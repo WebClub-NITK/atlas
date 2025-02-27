@@ -1,155 +1,139 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { getTeamProfile, addTeamMember } from '../../api/teams';
+import { getTeamProfile, getTeamSubmissions } from '../../api/teams';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 function TeamProfile() {
   const { user } = useAuth();
-  const [teamProfile, setTeamProfile] = useState(null);
-  const [newMemberName, setNewMemberName] = useState('');
-  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [teamProfile, setTeamProfile] = useState({
+    name: '',
+    team_email: '', 
+    total_score: 0,
+    members: []
+  });
+  const [submissions, setSubmissions] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
 
   useEffect(() => {
-    const fetchTeamProfile = async () => {
+    const fetchData = async () => {
       try {
-        const profile = await getTeamProfile();
+        setLoading(true);
+        // Fetch team profile and submissions in parallel
+        const [profile, submissionData] = await Promise.all([
+          getTeamProfile(),
+          getTeamSubmissions()
+        ]);
+
         setTeamProfile(profile);
-      } catch (error) {
-        setError('Failed to fetch team profile');
+        
+        // Transform submission data to match expected format
+        const formattedSubmissions = Object.values(submissionData).map(sub => ({
+          challenge_name: sub.challenge_name,
+          points: sub.max_points,
+          is_correct: sub.is_solved,
+          submitted_at: sub.attempts[0]?.timestamp || null,
+          attempts: sub.attempts
+        }));
+
+        setSubmissions(formattedSubmissions);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Failed to fetch team data');
+        setSubmissions([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTeamProfile();
+    fetchData();
   }, []);
 
-  const handleAddMember = async () => {
-    try {
-      const updatedProfile = await addTeamMember(newMemberName, newMemberEmail);
-      setTeamProfile(updatedProfile);
-      setNewMemberName('');
-      setNewMemberEmail('');
-      setShowAddMemberModal(false);
-    } catch (error) {
-      setError('Failed to add team member');
-    }
-  };
-
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-red-500 text-xl font-semibold">{error}</div>
-      </div>
-    );
+  if (loading) return <LoadingSpinner />;
+  if (error) return <div className="text-red-500 text-center p-4">{error}</div>;
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
       <h1 className="text-4xl font-bold mb-8 text-red-500">Team Profile</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Team Information */}
         <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6">
           <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Team Information</h2>
-          <p className="text-lg mb-2">
-            <strong>Team Name:</strong> {teamProfile.name} <strong>Points:</strong> {teamProfile.totalPoints}
-          </p>
-          <p className="text-lg mb-2">
-            <strong>Team Email:</strong> {teamProfile.email}
-          </p>
-          <p className="text-lg mb-4">
-            <strong>Members:</strong>
-          </p>
-          <table className="w-full bg-white">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="px-4 py-2 text-left">Name</th>
-                <th className="px-4 py-2 text-left">Email</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teamProfile.members.map((member, index) => (
-                <tr key={index} className="border-t">
-                  <td className="px-4 py-2">{member.name}</td>
-                  <td className="px-4 py-2">{member.email}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <button
-            onClick={() => setShowAddMemberModal(true)}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-          >
-            Add Member
-          </button>
-        </div>
+          <div className="space-y-4">
+            <p className="text-lg">
+              <strong>Team Name:</strong> {teamProfile.name}
+            </p>
+            <p className="text-lg">
+              <strong>Team Email:</strong> {teamProfile.team_email}
+            </p>
+            <p className="text-lg">
+              <strong>Total Score:</strong> {teamProfile.total_score}
+            </p>
+          </div>
 
-        <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Team History of Submissions</h2>
-          <table className="w-full bg-white">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="px-4 py-2 text-left">Challenge</th>
-                <th className="px-4 py-2 text-left">Points</th>
-                <th className="px-4 py-2 text-left">Solved At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teamProfile.submissions.map((submission, index) => (
-                <tr key={index} className="border-t">
-                  <td className="px-4 py-2">{submission.challengeName}</td>
-                  <td className="px-4 py-2">{submission.points}</td>
-                  <td className="px-4 py-2">{submission.solvedAt}</td>
+          <h3 className="text-xl font-semibold mt-6 mb-4">Team Members</h3>
+          <div className="bg-white rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Name</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Email</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {showAddMemberModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4 text-neutral-900">Add Team Member</h2>
-            <input
-              type="text"
-              value={newMemberName}
-              onChange={(e) => setNewMemberName(e.target.value)}
-              placeholder="Enter member name"
-              className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="email"
-              value={newMemberEmail}
-              onChange={(e) => setNewMemberEmail(e.target.value)}
-              placeholder="Enter member email"
-              className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowAddMemberModal(false)}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-100 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddMember}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-              >
-                Add Member
-              </button>
-            </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {teamProfile.members?.map((member, index) => (
+                  <tr key={index}>
+                    <td className="px-4 py-2 text-sm text-gray-900">{member.username}</td>
+                    <td className="px-4 py-2 text-sm text-gray-500">{member.email}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      )}
+
+        {/* Submissions History */}
+        <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6 overflow-x-auto"> {/* Added overflow-x-auto */}
+          <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Submission History</h2>
+          <div className="bg-white rounded-lg overflow-x-auto"> {/* Added overflow-x-auto */}
+            <table className="w-full whitespace-nowrap"> {/* Added whitespace-nowrap */}
+              <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Challenge</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Points</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Submitted At</th>
+                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Attempts</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {submissions.map((submission, index) => (
+                <tr key={index}>
+                  <td className="px-4 py-2 text-sm text-gray-900">{submission.challenge_name}</td>
+                  <td className="px-4 py-2 text-sm text-gray-500">{submission.points}</td>
+                  <td className="px-4 py-2 text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      submission.is_correct 
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {submission.is_correct ? 'Correct' : 'Incorrect'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-sm text-gray-500">
+                    {submission.submitted_at ? new Date(submission.submitted_at).toLocaleString() : 'N/A'}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-gray-500">
+                    {submission.attempts?.length || 0}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </div>
     </div>
   );
 }

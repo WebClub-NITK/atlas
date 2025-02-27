@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { getScoreboard } from '../api/scoreboard';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../context/ThemeContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function Scoreboard() {
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     const fetchScoreboard = async () => {
       try {
         setLoading(true);
-        const data = await getScoreboard(user.token);
+        const data = await getScoreboard();
         setTeams(data);
       } catch (err) {
         console.error('Error fetching scoreboard:', err);
@@ -23,33 +25,47 @@ function Scoreboard() {
     };
 
     fetchScoreboard();
-  }, [user.token]);
+  }, []);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <LoadingSpinner/>;
   if (error) return <div className="text-red-500">{error}</div>;
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold text-red-500 mb-8">Scoreboard</h1>
-      <div className="bg-[#FFF7ED] rounded-lg shadow-sm">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-neutral-200">
-              <th className="px-6 py-3 text-left">Rank</th>
-              <th className="px-6 py-3 text-left">Team</th>
-              <th className="px-6 py-3 text-right">Score</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teams.map((team, index) => (
-              <tr key={team.id} className="border-b border-neutral-200">
-                <td className="px-6 py-4">{index + 1}</td>
-                <td className="px-6 py-4">{team.name}</td>
-                <td className="px-6 py-4 text-right">{team.score}</td>
+    <div className={`min-h-screen p-6`}>
+      <div className="max-w-6xl mx-auto">
+        <h1 className={`text-2xl font-bold mb-8 ${isDarkMode ? 'text-red-400' : 'text-red-500'}`}>
+          Scoreboard
+        </h1>
+        
+        <div className="overflow-x-auto bg-[#FFF7ED] rounded-lg shadow">
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-b border-neutral-200">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Rank</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Team</th>
+                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-900">Score</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-neutral-200">
+              {teams.map((team, index) => (
+                <tr 
+                  key={team.id} 
+                  className="hover:bg-neutral-50 transition-colors"
+                >
+                  <td className="px-4 py-3 text-gray-900">
+                    {index + 1}
+                  </td>
+                  <td className="px-4 py-3 text-gray-900">
+                    {team.team_name}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium text-gray-900">
+                    {team.total_score}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

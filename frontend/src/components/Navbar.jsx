@@ -1,7 +1,8 @@
 import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { IconLogin2, IconUserPlus } from '@tabler/icons-react';
+import { useTheme } from "../context/ThemeContext";
+import { IconLogin2, IconUserPlus, IconSun, IconMoon } from '@tabler/icons-react';
 import { motion } from "framer-motion";
 
 function NavLink({ to, children }) {
@@ -30,7 +31,8 @@ function NavLink({ to, children }) {
 }
 
 function Navbar() {
-  const { isAuthenticated, user, logout ,isAdmin} = useAuth();
+  const { isAuthenticated, user, logout, isAdmin } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -44,6 +46,15 @@ function Navbar() {
 
   const navList = (
     <ul className="mb-4 mt-2 flex flex-col gap-2 lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
+      <li className="p-1 font-normal">
+        <button
+          onClick={toggleTheme}
+          className="flex items-center px-3 py-2 text-gray-300 hover:text-white transition-colors"
+          aria-label="Toggle theme"
+        >
+          {isDarkMode ? <IconSun size={20} /> : <IconMoon size={20} />}
+        </button>
+      </li>
       {isAuthenticated && (
         <>
           {isAdmin ? (

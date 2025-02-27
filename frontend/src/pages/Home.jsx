@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../context/ThemeContext';
 import { ColourfulText } from '../components/ColourfulText';
 import { Modal, ModalTrigger, ModalBody, ModalContent } from '../components/Modal';
 import { IconSpider, IconLogin2, IconUserPlus } from '@tabler/icons-react';
@@ -22,14 +23,15 @@ function AnimatedButton({ icon: Icon, text, className, onClick }) {
 
 function Home() {
   const { isAuthenticated, user } = useAuth();
+  const { isDarkMode } = useTheme();
   console.log(user);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
+    <div className={`flex flex-col items-center justify-center min-h-screen text-center p-4 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
       {!isAuthenticated ? (
         <>
-          <h1 className="text-6xl mb-8">Welcome to <ColourfulText text="Atlas"/></h1>
-          <p className="text-4xl mb-12">
+          <h1 className={`text-6xl mb-8 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Welcome to <ColourfulText text="Atlas"/></h1>
+          <p className={`text-4xl mb-12 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
             Test your <ColourfulText text="skills" /> and <ColourfulText text="compete" /> with others!
           </p>
         </>
@@ -37,8 +39,8 @@ function Home() {
         <>
           {user?.isAdmin ? (
             <>
-              <h1 className="text-6xl mb-8">Welcome to <ColourfulText text="Atlas Admin"/></h1>
-              <p className="text-4xl mb-12">
+              <h1 className={`text-6xl mb-8 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Welcome to <ColourfulText text="Atlas Admin"/></h1>
+              <p className={`text-4xl mb-12 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                 Manage and monitor your <ColourfulText text="CTF" /> platform
               </p>
               <Link to="/admin/dashboard">
@@ -51,8 +53,8 @@ function Home() {
             </>
           ) : (
             <>
-              <h1 className="text-6xl mb-8">Welcome to <ColourfulText text="Atlas"/></h1>
-              <p className="text-4xl mb-12">
+              <h1 className={`text-6xl mb-8 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Welcome to <ColourfulText text="Atlas"/></h1>
+              <p className={`text-4xl mb-12 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                 Test your <ColourfulText text="skills" /> and <ColourfulText text="compete" /> with others!
               </p>
               <Link to="/challenges">
@@ -71,4 +73,3 @@ function Home() {
 }
 
 export default Home;
-
