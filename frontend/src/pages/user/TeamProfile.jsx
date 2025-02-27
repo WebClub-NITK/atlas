@@ -30,7 +30,7 @@ function TeamProfile() {
         // Transform submission data to match expected format
         const formattedSubmissions = Object.values(submissionData).map(sub => ({
           challenge_name: sub.challenge_name,
-          points: sub.max_points,
+          points: sub.points_awarded,
           is_correct: sub.is_solved,
           submitted_at: sub.attempts[0]?.timestamp || null,
           attempts: sub.attempts

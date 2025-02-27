@@ -215,7 +215,6 @@ def get_challenges(request):
         'description',
         'category',
         'max_points',
-        'hints',
         'file_links',
         'docker_image'
     )
@@ -223,7 +222,7 @@ def get_challenges(request):
     # Convert QuerySet to list for JSON serialization
     challenges_list = list(challenges)
 
-    submissions = list (Submission.objects.filter(team=request.user.team).values('challenge_id', 'is_correct', 'id'))
+    submissions = list(Submission.objects.filter(team=request.user.team).values('challenge_id', 'is_correct', 'id'))
 
     for sub in submissions:
         for chal in challenges_list:
@@ -232,6 +231,11 @@ def get_challenges(request):
                 chal['tries'] = chal.get('tries',0) + 1
                 break
             
+    # Add hint count information without revealing content
+    for chal in challenges_list:
+        challenge = Challenge.objects.get(id=chal['id'])
+        hints = challenge.hints if isinstance(challenge.hints, list) else json.loads(challenge.hints)
+        chal['hint_count'] = len(hints)
 
     logger.info(f"Challenges: {challenges_list}")
 
@@ -243,26 +247,44 @@ def get_challenges(request):
 def get_challenge_by_id(request, challenge_id):
     try:
         challenge = Challenge.objects.get(id=challenge_id)
-        if (challenge.is_hidden):
+        if challenge.is_hidden:
             return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
         if challenge.is_hidden and not request.user.is_superuser:
             return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
         
         # Get purchased hints for the team
         purchased_hints = []
+        total_points_deducted = 0
+        
         if request.user.team:
-            purchased_hints = HintPurchase.objects.filter(
+            hint_purchases = HintPurchase.objects.filter(
                 team=request.user.team,
                 challenge=challenge
-            ).values_list('hint_index', flat=True)
+            )
+            purchased_hints = hint_purchases.values_list('hint_index', flat=True)
+            total_points_deducted = sum(ph.points_deducted for ph in hint_purchases)
 
-        # Prepare hints with purchase status
+        # Prepare hints with purchase status but hide content for unpurchased hints
         hints = challenge.hints
         if isinstance(hints, str):
             hints = json.loads(hints)
         
+        hint_data = []
         for i, hint in enumerate(hints):
-            hint['purchased'] = i in purchased_hints
+            hint_info = {
+                'index': i,
+                'cost': hint['cost'],
+                'purchased': i in purchased_hints
+            }
+            
+            # Only include content for purchased hints
+            if i in purchased_hints:
+                hint_info['content'] = hint['content']
+                
+            hint_data.append(hint_info)
+
+        # Calculate remaining points after hint deductions
+        remaining_points = max(0, challenge.max_points - total_points_deducted)
 
         return Response({
             "challenge": {
@@ -271,7 +293,9 @@ def get_challenge_by_id(request, challenge_id):
                 "description": challenge.description,
                 "category": challenge.category,
                 "max_points": challenge.max_points,
-                "hints": hints,
+                "remaining_points": remaining_points,
+                "total_points_deducted": total_points_deducted,
+                "hints": hint_data,
                 "file_links": challenge.file_links,
                 "docker_image": challenge.docker_image
             }
@@ -342,15 +366,17 @@ def submit_flag(request, challenge_id):
                     challenge=challenge
                 )
                 
-                # Calculate total percentage to deduct
-                total_deduction_percentage = sum(
-                    purchase.hint_cost_percentage 
-                    for purchase in hint_purchases
-                )
+                # Calculate total points to deduct (direct deduction)
+                total_points_deducted = sum(purchase.points_deducted for purchase in hint_purchases)
                 
                 # Calculate final points
-                deduction = (points_awarded * total_deduction_percentage) // 100
-                points_awarded = max(0, points_awarded - deduction)
+                points_awarded = max(0, challenge.max_points - total_points_deducted)
+                
+                # Log the point calculation for debugging
+                logger.info(f"Flag submission: challenge={challenge_id}, " +
+                           f"max_points={challenge.max_points}, " +
+                           f"total_deducted={total_points_deducted}, " +
+                           f"awarded={points_awarded}")
 
             submission = Submission.objects.create(
                 team=request.user.team,
@@ -378,6 +404,7 @@ def submit_flag(request, challenge_id):
         })
 
     except Exception as e:
+        logger.error(f"Error in submit_flag: {str(e)}")
         return Response(
             {'error': 'Submission error occurred'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -419,7 +446,6 @@ def start_challenge(request, challenge_id):
     try:
         client = DockerPlugin()
 
-        # container name constraints [a-zA-Z0-9][a-zA-Z0-9_.-]
         container_id, password = client.run_container(
             challenge.docker_image,
             port=22,
@@ -593,6 +619,7 @@ def get_submission_history(request):
                     'challenge_name': submission.challenge.title,
                     'category': submission.challenge.category,
                     'max_points': submission.challenge.max_points,
+                    'points_awarded': submission.points_awarded,
                     'attempts': [],
                     'is_solved': False,
                     'attempts_used': 0
@@ -1404,45 +1431,70 @@ def purchase_hint(request, challenge_id):
         
         # Check if hint already purchased
         hint_key = f"hint_{request.user.team.id}_{challenge.id}_{hint_index}"
-        if cache.get(hint_key):
+        hint_purchase = HintPurchase.objects.filter(
+            team=request.user.team,
+            challenge=challenge,
+            hint_index=hint_index
+        ).first()
+        
+        if hint_purchase or cache.get(hint_key):
+            # Get all purchased hints
+            purchased_hints = HintPurchase.objects.filter(
+                team=request.user.team,
+                challenge=challenge
+            )
+            # Calculate total points deducted directly
+            total_points_deducted = sum(ph.points_deducted for ph in purchased_hints)
+            remaining_points = max(0, challenge.max_points - total_points_deducted)
+            
             return Response({
                 "hint": hint,
                 "alreadyPurchased": True,
-                "maxPoints": challenge.max_points
+                "maxPoints": challenge.max_points,
+                "remainingPoints": remaining_points,
+                "pointsDeducted": total_points_deducted
             })
 
         with transaction.atomic():
-            # Calculate points to be deducted
-            points_deducted = (challenge.max_points * hint['cost']) // 100
+            # Direct point deduction - hint cost is the number of points to deduct
+            points_deducted = hint['cost']
 
             HintPurchase.objects.create(
                 team=request.user.team,
                 challenge=challenge, 
                 hint_index=hint_index,
-                hint_cost_percentage=hint['cost'],
+                hint_cost_percentage=hint['cost'],  # Keep for backward compatibility
                 points_deducted=points_deducted
             )
             
             cache.set(hint_key, True)
 
-            # Calculate remaining possible points
+            # Calculate total points deducted
             purchased_hints = HintPurchase.objects.filter(
                 team=request.user.team,
                 challenge=challenge
             )
-            total_deduction = sum(ph.hint_cost_percentage for ph in purchased_hints)
-            remaining_points = max(0, challenge.max_points * (100 - total_deduction) // 100)
+            total_points_deducted = sum(ph.points_deducted for ph in purchased_hints)
+            remaining_points = max(0, challenge.max_points - total_points_deducted)
+
+        # Log the hint purchase details for debugging
+        logger.info(f"Hint purchased: challenge={challenge_id}, hint_index={hint_index}, " +
+                   f"cost={hint['cost']} points, points_deducted={points_deducted}, " +
+                   f"remaining_points={remaining_points}")
 
         return Response({
             "hint": hint,
             "alreadyPurchased": False,
             "remainingPoints": remaining_points,
-            "deductionPercentage": total_deduction
+            "maxPoints": challenge.max_points,
+            "pointsDeducted": points_deducted,
+            "totalPointsDeducted": total_points_deducted
         })
 
     except Challenge.DoesNotExist:
         return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
+        logger.error(f"Error purchasing hint: {str(e)}")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     
