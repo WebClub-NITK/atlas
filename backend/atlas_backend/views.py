@@ -216,7 +216,8 @@ def get_challenges(request):
         'category',
         'max_points',
         'file_links',
-        'docker_image'
+        'docker_image',
+        'max_attempts'
     )
     
     # Convert QuerySet to list for JSON serialization
@@ -293,6 +294,7 @@ def get_challenge_by_id(request, challenge_id):
                 "description": challenge.description,
                 "category": challenge.category,
                 "max_points": challenge.max_points,
+                "max_attempts": challenge.max_attempts,
                 "remaining_points": remaining_points,
                 "total_points_deducted": total_points_deducted,
                 "hints": hint_data,
@@ -337,9 +339,9 @@ def submit_flag(request, challenge_id):
             challenge=challenge
         ).count()
 
-        if submission_count >= request.user.team.max_attempts_per_challenge:
+        if submission_count >= challenge.max_attempts:
             return Response(
-                {'error': f'Maximum {request.user.team.max_attempts_per_challenge} attempts allowed for this challenge'},
+                {'error': f'Maximum {challenge.max_attempts} attempts allowed for this challenge'},
                 status=status.HTTP_429_TOO_MANY_REQUESTS
             )
 
@@ -398,7 +400,7 @@ def submit_flag(request, challenge_id):
             'points_awarded': submission.points_awarded,
             'is_correct': is_correct,
             'attempt_number': attempt_number,
-            'attempts_remaining': request.user.team.max_attempts_per_challenge - attempt_number,
+            'attempts_remaining': challenge.max_attempts - attempt_number,
             'timestamp': submission.timestamp.isoformat(),
             'new_team_score': request.user.team.team_score if is_correct else None
         })
@@ -805,6 +807,7 @@ def create_challenge(request):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
+        max_attempts = data.get('max_attempts')
         # Create challenge
         challenge = Challenge.objects.create(
             title=title,
@@ -814,6 +817,7 @@ def create_challenge(request):
             flag=data['flag'],
             max_points=int(data['max_points']),
             max_team_size=3,
+            max_attempts=max_attempts,
             is_hidden=is_hidden,  # Use converted boolean
             hints=data.get('hints', []),
             file_links=data.get('file_links', []),
@@ -895,6 +899,12 @@ def update_challenge(request, challenge_id):
                 data['port'] = int(data['port'])
             except Exception as e:
                 raise Exception("Failed to upload port :" + str(e))
+            
+        if 'max_attempts' in data:
+            try:
+                data['max_attempts'] = int(data['max_attempts'])
+            except Exception as e:
+                raise Exception("Failed to upload max attempts :" + str(e))
         
 
         # Update fields
@@ -1092,6 +1102,7 @@ def admin_get_challenges(request):
                 'description': challenge.description,
                 'category': challenge.category,
                 'docker_image': challenge.docker_image,
+                'max_attempts': challenge.max_attempts,
                 'flag': challenge.flag,
                 'max_points': challenge.max_points,
                 'max_team_size': challenge.max_team_size,
@@ -1123,6 +1134,7 @@ def get_challenge_detail(request, challenge_id):
             'flag': challenge.flag,
             'max_points': challenge.max_points,
             'max_team_size': challenge.max_team_size,
+            'max_attempts': challenge.max_attempts,
             'created_at': challenge.created_at,
             'updated_at': challenge.updated_at,
             'is_hidden': challenge.is_hidden,

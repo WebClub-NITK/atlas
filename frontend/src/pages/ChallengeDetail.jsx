@@ -4,10 +4,12 @@ import { useAuth } from '../hooks/useAuth';
 import { getChallengeById_Team, startChallenge, submitFlag, purchaseHint } from '../api/challenges';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme } from '../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 
 function ChallengeDetail() {
   const { challengeId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const {isDarkMode}=useTheme();
   const [challenge, setChallenge] = useState(null);
   const [sshDetails, setSshDetails] = useState(null);
@@ -79,7 +81,13 @@ function ChallengeDetail() {
       // Send flag directly in the request body
       const response = await submitFlag(challengeId, flag.trim());
       console.log('Flag submission response:', response);
-      alert(response.message || 'Flag submitted successfully!');
+      alert(response.is_correct ? "Flag is correct!" : `Flag is incorrect! ${response.attempts_remaining == 0 ? "You have used all your attempts!" : `Only ${response.attempts_remaining} attempts left!`}`);
+      if(response.is_correct){
+        navigate(`/challenges`);
+      }
+      if(response.attempts_remaining === 0){
+        navigate(`/challenges`);
+      }
       setFlag('');
       setError(null);
     } catch (error) {
@@ -141,12 +149,17 @@ function ChallengeDetail() {
         <h1 className="text-3xl font-bold mb-6 text-red-500">{challenge.title}</h1>
         
         <div className="mb-6 flex justify-between items-center">
-          <span className="text-sm bg-[#F1EFEF] px-3 py-1.5 rounded text-neutral-700">
-            {challenge.category}
-          </span>
+        <div className="flex items-center space-x-3">
+            <span className="text-sm bg-[#F1EFEF] px-3 py-1.5 rounded text-neutral-700">
+              {challenge.category}
+            </span>
+              <span className="text-sm bg-[#F1EFEF] px-3 py-1.5 rounded text-neutral-700">
+                Maximum Attempts: {challenge.max_attempts}
+              </span>
+          </div>
           <div className="text-right">
             <span className="text-2xl font-bold text-neutral-900">
-              {challenge.max_points} points
+              {remainingPoints} points
             </span>
             {remainingPoints !== null && remainingPoints !== challenge.max_points && (
               <div className="text-sm text-red-500">

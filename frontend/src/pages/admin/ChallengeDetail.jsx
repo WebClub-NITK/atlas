@@ -436,6 +436,7 @@ function ChallengeDetail() {
           }
         }
         setChallenge(challengeData);
+        console.log(challengeData);
 
         const submissionsData = await getChallengeSubmissions(challengeId);
         setSubmissions(submissionsData);
@@ -568,9 +569,14 @@ function ChallengeDetail() {
               <span className="text-gray-900 font-bold">Is Hidden:</span>
               <span className="text-gray-900 ml-1">{challenge.is_hidden ? "Yes" : "No"}</span>
             </div>
+            <div>
+              <span className="text-gray-900 font-bold">Max Attempts:</span>
+              <span className="text-gray-900 ml-1">{challenge.max_attempts}</span>
+            </div>
           </div>
         </section>
 
+        {challenge.docker_image ? (
         <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Docker Image Details</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -583,15 +589,17 @@ function ChallengeDetail() {
               <span className="text-gray-900 ml-1">{challenge.docker_image ? challenge.port : "N/A"}</span>
             </div>
             <div>
-              <span className="text-gray-900 font-bold">Max Attempts:</span>
-              <span className="text-gray-900 ml-1">{challenge.max_attempts}</span>
-            </div>
-            <div>
               <span className="text-gray-900 font-bold">SSH User:</span>
               <span className="text-gray-900 ml-1">{challenge.docker_image ? challenge.ssh_user : "N/A"}</span>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : (
+          <section className="mb-6 bg-gray-100 rounded-xl shadow-sm p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Docker Image Details</h2>
+            <p className="text-gray-900">No docker image available for this challenge.</p>
+          </section>
+        )}
 
         {/* Hints Section */}
         {challenge.hints && Array.isArray(challenge.hints) && challenge.hints.length > 0 ? (
