@@ -41,7 +41,7 @@ services:
       dockerfile: Dockerfile
     container_name: atlas_frontend
     ports:
-      - "80:4173"
+      - "3000:3000"
     # volumes:
     #   - ./frontend:/app
     #   - /app/node_modules
@@ -68,6 +68,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=db
       - DB_PORT=5432
+      - DEBUG=1
     networks:
       - app-network
     restart: always
