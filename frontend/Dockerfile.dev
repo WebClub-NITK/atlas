@@ -16,10 +16,8 @@ RUN pnpm install
 # Copy rest of the application
 COPY . .
 
-RUN pnpm run build
-
 #  Expose port for frontend
-EXPOSE 4173
+EXPOSE 3000
 
 # Start frontend
-CMD ["pnpm","run","preview","--host"]
+CMD ["pnpm","run","dev","--host"]
