@@ -611,7 +611,7 @@ def start_challenge(request, challenge_id):
 
         container_id, password = client.run_container(
             challenge.docker_image,
-            port=22,
+            port=challenge.port,
             container_name=f"{request.user.team.name.replace(' ', '_')}-{challenge.title.replace(' ', '_')}"
         )
 
