@@ -5,6 +5,8 @@ import { getChallengeById_Team, startChallenge, submitFlag, purchaseHint } from 
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 function ChallengeDetail() {
   const { challengeId } = useParams();
@@ -170,7 +172,11 @@ function ChallengeDetail() {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <p className="text-neutral-700 mb-6">{challenge.description}</p>
+          <div className="text-neutral-700 mb-6 markdown-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {challenge.description}
+            </ReactMarkdown>
+          </div>
 
           {/* Docker Challenge Section */}
           {challenge.docker_image && (
