@@ -12,6 +12,21 @@ export const getTeamProfile = async () => {
   }
 };
 
+export const addTeamMember = async (memberData) => {
+  try {
+    const response = await apiClient.post('/teams/add-member', {
+      name: memberData.name.trim(),
+      email: memberData.email.trim()
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    throw new Error('Failed to add team member');
+  }
+};
+
 export const getTeamSubmissions = async () => {
   try {
     const response = await apiClient.get('/teams/submissions');

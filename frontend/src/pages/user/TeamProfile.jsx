@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { getTeamProfile, getTeamSubmissions } from '../../api/teams';
+import { getTeamProfile, getTeamSubmissions, addTeamMember } from '../../api/teams';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { useTheme } from '../../context/ThemeContext';
 
 function TeamProfile() {
   const { user } = useAuth();
+  const { isDarkMode } = useTheme();
   const [teamProfile, setTeamProfile] = useState({
     name: '',
     team_email: '', 
@@ -13,7 +15,10 @@ function TeamProfile() {
   });
   const [submissions, setSubmissions] = useState([]);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [newMember, setNewMember] = useState({ name: '', email: '' });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,9 +41,7 @@ function TeamProfile() {
 
         setSubmissions(formattedSubmissions);
       } catch (err) {
-        console.error('Error fetching data:', err);
         setError('Failed to fetch team data');
-        setSubmissions([]);
       } finally {
         setLoading(false);
       }
@@ -47,15 +50,42 @@ function TeamProfile() {
     fetchData();
   }, []);
 
+  const handleAddMember = async (e) => {
+    e.preventDefault();
+    try {
+      await addTeamMember(newMember);
+      setSuccess('Member added successfully');
+      setNewMember({ name: '', email: '' });
+      setShowAddMember(false);
+      
+      // Refresh team data
+      const profile = await getTeamProfile();
+      setTeamProfile(profile);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to add member');
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
-  if (error) return <div className="text-red-500 text-center p-4">{error}</div>;
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
       <h1 className="text-4xl font-bold mb-8 text-red-500">Team Profile</h1>
 
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">
+          {success}
+        </div>
+      )}
+
       {/* Team Information */}
-      <div className="bg-[#FFF7ED] rounded-lg  shadow-lg p-6 mb-8">
+      <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6 mb-8">
         <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Team Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-neutral-900">
           <div className="text-lg">
@@ -69,7 +99,68 @@ function TeamProfile() {
           </div>
         </div>
 
-        <h3 className="text-xl font-semibold mb-4">Team Members</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold">Team Members</h3>
+          {teamProfile.members?.length < 3 && !showAddMember && (
+            <button
+              onClick={() => setShowAddMember(true)}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Add Member
+            </button>
+          )}
+        </div>
+
+        {showAddMember && (
+          <form onSubmit={handleAddMember} className="mb-6 bg-white p-4 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={newMember.name}
+                  onChange={(e) => setNewMember({...newMember, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={newMember.email}
+                  onChange={(e) => setNewMember({...newMember, email: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="submit"
+                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+              >
+                Add Member
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddMember(false);
+                  setNewMember({ name: '', email: '' });
+                  setError('');
+                }}
+                className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
         <div className="bg-white rounded-lg overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50">
@@ -80,7 +171,7 @@ function TeamProfile() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {teamProfile.members?.map((member, index) => (
-                <tr key={index}>
+                <tr key={member.id || index}>
                   <td className="px-4 py-2 text-sm text-gray-900">{member.username}</td>
                   <td className="px-4 py-2 text-sm text-gray-500">{member.email}</td>
                 </tr>

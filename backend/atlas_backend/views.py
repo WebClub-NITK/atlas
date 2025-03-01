@@ -242,6 +242,60 @@ def get_challenges(request):
 
     return Response(challenges_list)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_team_member(request):
+    team = request.user.team
+    
+    # Check if team exists and has less than 3 members
+    if not team:
+        return Response({"error": "User not associated with a team"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if team.members.count() >= 3:
+        return Response({"error": "Team already has maximum members (3)"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Validate request data
+    name = request.data.get('name')
+    email = request.data.get('email')
+    
+    if not name or not email:
+        return Response({"error": "Name and email are required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Generate unique username from name
+    base_username = name.lower().replace(' ', '')
+    username = base_username
+    counter = 1
+    
+    while User.objects.filter(username=username).exists():
+        username = f"{base_username}{counter}"
+        counter += 1
+    
+    # Check if email already exists
+    if User.objects.filter(email=email).exists():
+        return Response({"error": "Email already registered"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Create new user/member
+        member = User.objects.create(
+            username=username,
+            email=email,
+            team=team
+        )
+        
+        return Response({
+            "message": "Member added successfully",
+            "member": {
+                "id": member.id,
+                "username": member.username,
+                "email": member.email
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response(
+            {"error": "Failed to add member. Please try again."}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
