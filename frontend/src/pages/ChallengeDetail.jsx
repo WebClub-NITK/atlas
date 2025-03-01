@@ -30,7 +30,7 @@ function ChallengeDetail() {
 
       try {
         const response = await getChallengeById_Team(challengeId);
-        console.log('Challenge data received:', response);
+        // console.log('Challenge data received:', response);
         
         if (!response?.challenge) {
           throw new Error('Challenge not found');
@@ -48,7 +48,7 @@ function ChallengeDetail() {
         }
 
         setChallenge(challengeData);
-        console.log(challengeData.hints)
+        // console.log(challengeData.hints)
         // Set remaining points if available, otherwise use max points
         setRemainingPoints(challengeData.remaining_points || challengeData.max_points);
         setError(null);
@@ -80,7 +80,7 @@ function ChallengeDetail() {
     try {
       // Send flag directly in the request body
       const response = await submitFlag(challengeId, flag.trim());
-      console.log('Flag submission response:', response);
+      // console.log('Flag submission response:', response);
       alert(response.is_correct ? "Flag is correct!" : `Flag is incorrect! ${response.attempts_remaining == 0 ? "You have used all your attempts!" : `Only ${response.attempts_remaining} attempts left!`}`);
       if(response.is_correct){
         navigate(`/challenges`);
@@ -102,7 +102,7 @@ function ChallengeDetail() {
     try {
       setPurchaseInProgress(true);
       const response = await purchaseHint(challengeId, hintIndex);
-      console.log('Hint purchase response:', response);
+      // console.log('Hint purchase response:', response);
       
       // Update the challenge with the new hint information
       setChallenge(prev => {

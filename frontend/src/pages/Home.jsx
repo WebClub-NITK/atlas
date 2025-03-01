@@ -24,7 +24,7 @@ function AnimatedButton({ icon: Icon, text, className, onClick }) {
 function Home() {
   const { isAuthenticated, user } = useAuth();
   const { isDarkMode } = useTheme();
-  console.log(user);
+  // console.log(user);
 
   return (
     <div className={`flex flex-col items-center justify-center min-h-screen text-center p-4 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>

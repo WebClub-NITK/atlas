@@ -436,7 +436,7 @@ function ChallengeDetail() {
           }
         }
         setChallenge(challengeData);
-        console.log(challengeData);
+        // console.log(challengeData);
 
         const submissionsData = await getChallengeSubmissions(challengeId);
         setSubmissions(submissionsData);

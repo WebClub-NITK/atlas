@@ -5,8 +5,8 @@ import { jwtDecode } from 'jwt-decode';
 
 
 export const getChallenges = async () => {
-  console.log('Token before request:', localStorage.getItem('token'));
-  console.log('Sending the request with token:', jwtDecode(localStorage.getItem('token')));
+  // console.log('Token before request:', localStorage.getItem('token'));
+  // console.log('Sending the request with token:', jwtDecode(localStorage.getItem('token')));
   try {
     const response = await apiClient.get('/challenges');
     return response.data;

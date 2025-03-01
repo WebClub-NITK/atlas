@@ -35,7 +35,7 @@ function Registration() {
     const memberCount = [formData.member1Email, formData.member2Email, formData.member3Email].filter(Boolean).length
 
     try {
-      console.log(formData)
+      // console.log(formData)
       const data = await register({
         ...formData,
         teamSize: memberCount, // Add team size to registration data

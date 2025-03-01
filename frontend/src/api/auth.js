@@ -29,9 +29,9 @@ export const resetPassword = async (token, newPassword) => {
 };
 
 export const adminLogin = async (email, password) => {
-  console.log('Admin login');
-  console.log(email)
-  console.log(password)
+  // console.log('Admin login');
+  // console.log(email)
+  // console.log(password)
   try {
     const response = await apiClient.post('/auth/admin/login', {
       email,

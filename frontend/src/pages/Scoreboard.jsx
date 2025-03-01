@@ -6,7 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 function Scoreboard() {
   const [teams, setTeams] = useState([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const { isDarkMode } = useTheme();
 
@@ -49,7 +49,7 @@ function Scoreboard() {
             <tbody className="divide-y divide-neutral-200">
               {teams.map((team, index) => (
                 <tr 
-                  key={team.id} 
+                  key={team.id || `team-${index}`}
                   className="hover:bg-neutral-50 transition-colors"
                 >
                   <td className="px-4 py-3 text-gray-900">

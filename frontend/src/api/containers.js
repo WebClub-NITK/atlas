@@ -5,7 +5,7 @@ export const getContainers = async () => {
   try {
     
     const response = await apiClient.get('/api/admin/containers');
-    console.log(response.data);
+    // console.log(response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching containers:', error);
