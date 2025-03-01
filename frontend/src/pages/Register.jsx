@@ -43,7 +43,7 @@ function Registration() {
       login(data)
       navigate("/")
     } catch (err) {
-      setError("Registration failed. Please try again.")
+      setError(err.response?.data?.error || "Registration failed. Please try again.")
     }
   }
 
