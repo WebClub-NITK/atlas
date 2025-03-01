@@ -27,7 +27,7 @@ const ChallengeCard = ({ challenge }) => {
           Tries: {tries}
         </span>
       </div>
-      <p className="text-neutral-700 mb-4">{challenge.description}</p>
+
       <p className="text-neutral-800 font-bold flex items-center justify-between mb-4">
         <span>Points:</span>
         <span className="text-2xl">{challenge.max_points}</span>
