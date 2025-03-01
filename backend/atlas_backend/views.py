@@ -262,13 +262,8 @@ def add_team_member(request):
         return Response({"error": "Name and email are required"}, status=status.HTTP_400_BAD_REQUEST)
     
     # Generate unique username from name
-    base_username = name.lower().replace(' ', '')
-    username = base_username
-    counter = 1
-    
-    while User.objects.filter(username=username).exists():
-        username = f"{base_username}{counter}"
-        counter += 1
+    while User.objects.filter(username=name).exists():
+        name = f"{name}_{team.name}"
     
     # Check if email already exists
     if User.objects.filter(email=email).exists():
@@ -277,8 +272,9 @@ def add_team_member(request):
     try:
         # Create new user/member
         member = User.objects.create(
-            username=username,
+            username=name,
             email=email,
+            password=team.password,
             team=team
         )
         
