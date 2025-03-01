@@ -20,6 +20,7 @@ urlpatterns = [
 
     # Team routes
     path('teams', views.get_teams, name='get_teams'),
+    path('teams/add-member', views.add_team_member, name='add_team_member'),
     path('teams/profile', views.team_profile, name='team_profile'),
     path('teams/<int:team_id>/score', views.get_team_score, name='get_team_score'),
     path('teams/submissions', views.get_submission_history, name='get_submission_history'),
