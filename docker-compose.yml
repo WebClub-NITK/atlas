@@ -10,6 +10,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    labels:
+      timeout: "-1"
     networks:
       - app-network
     healthcheck:
@@ -29,6 +31,8 @@ services:
       - "5050:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
+    labels:
+      timeout: "-1"
     networks:
       - app-network
     restart: always
@@ -47,6 +51,8 @@ services:
     #   - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:8000
+    labels:
+      timeout: "-1"
     networks:
       - app-network
     restart: always
@@ -69,6 +75,8 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DEBUG=1
+    labels:
+      timeout: "-1"
     networks:
       - app-network
     restart: always
