@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { getChallengeById, updateChallenge, deleteChallenge, getChallengeSubmissions } from "../../api/challenges"
 import LoadingSpinner from "../../components/LoadingSpinner"
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 function EditChallengeModal({ challenge, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -547,7 +549,11 @@ function ChallengeDetail() {
 
         <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Description</h2>
-          <p className="text-gray-900">{challenge.description}</p>
+          <div className="text-gray-900 markdown-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {challenge.description}
+            </ReactMarkdown>
+          </div>
         </section>
 
         <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
@@ -614,7 +620,11 @@ function ChallengeDetail() {
                       Cost: {hint.cost} points
                     </span>
                   </div>
-                  <p className="text-gray-900">{hint.content}</p>
+                  <div className="text-gray-900 markdown-content">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {hint.content}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               ))}
             </div>
