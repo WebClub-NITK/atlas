@@ -4,7 +4,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     # Auth routes
-    path('auth/signup', views.signup, name='signup'),
+    path('auth/signup', views.register, name='register'),
     path('auth/login', views.signin, name='signin'),
     path('auth/refresh', views.token_refresh, name='token_refresh'),
     path('auth/forgot-password', views.request_password_reset, name='request_password_reset'),  
@@ -20,10 +20,14 @@ urlpatterns = [
 
     # Team routes
     path('teams', views.get_teams, name='get_teams'),
-    path('teams/add-member', views.add_team_member, name='add_team_member'),
     path('teams/profile', views.team_profile, name='team_profile'),
     path('teams/<int:team_id>/score', views.get_team_score, name='get_team_score'),
     path('teams/submissions', views.get_submission_history, name='get_submission_history'),
+    path('teams/create', views.create_team_api, name='create_team'),
+    path('teams/join', views.join_team_api, name='join_team'),
+    path('teams/leave', views.leave_team_api, name='leave_team'),
+    path('teams/status', views.team_status_api, name='team_status'),
+    path('teams/update', views.update_team_api, name='update_team_api'),
 
     # Scoreboard route
     path('scoreboard', views.get_scoreboard, name='get_scoreboard'),

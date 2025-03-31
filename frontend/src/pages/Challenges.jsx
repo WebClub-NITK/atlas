@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { getChallenges } from "../api/challenges"
 import ChallengeCard from "../components/ChallengeCard"
+import { useNavigate } from "react-router-dom"
 
 export default function Challenges() {
   const [challenges, setChallenges] = useState([])
@@ -8,6 +9,7 @@ export default function Challenges() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchChallenges = async () => {
@@ -27,15 +29,22 @@ export default function Challenges() {
           is_correct: ch.is_correct,
         }))
         setChallenges(updatedData)
-      } catch (err) {
-        console.error("Error fetching challenges:", err)
-        setError("Failed to fetch challenges. Please try again later.")
+      } catch (error) {
+        console.error('Error fetching challenges:', error)
+        
+        // Handle team requirement error
+        if (error.response?.status === 403 && error.response?.data?.error?.includes('team')) {
+          setError('You must join or create a team to access challenges')
+          navigate('/team-setup')
+        } else {
+          setError('Failed to load challenges')
+        }
       } finally {
         setLoading(false)
       }
     }
     fetchChallenges()
-  }, [])
+  }, [navigate])
 
   const categories = ["all", ...new Set(challenges.map((ch) => ch.category))]
 

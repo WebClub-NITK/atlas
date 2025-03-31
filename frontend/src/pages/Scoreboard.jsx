@@ -3,12 +3,14 @@ import { getScoreboard } from '../api/scoreboard';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../context/ThemeContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useNavigate } from "react-router-dom"
 
 function Scoreboard() {
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const { isDarkMode } = useTheme();
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchScoreboard = async () => {
@@ -18,14 +20,21 @@ function Scoreboard() {
         setTeams(data);
       } catch (err) {
         console.error('Error fetching scoreboard:', err);
-        setError('Failed to fetch scoreboard');
+        
+        // Handle team requirement error
+        if (err.response?.status === 403 && err.response?.data?.error?.includes('team')) {
+          setError("You must join or create a team to view the scoreboard")
+          navigate('/team-setup')
+        } else {
+          setError("Failed to load scoreboard")
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchScoreboard();
-  }, []);
+  }, [navigate]);
 
   if (loading) return <LoadingSpinner/>;
   if (error) return <div className="text-red-500">{error}</div>;

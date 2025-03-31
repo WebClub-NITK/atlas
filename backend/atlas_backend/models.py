@@ -5,8 +5,9 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.db.models import CharField, TextField, IntegerField, BooleanField, DateTimeField
 from django.core.validators import RegexValidator
 import re
+import uuid
 
-def validate_atlas_name(value):
+def validate_team_name(value):
     pattern = r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$'
     if not re.match(pattern, value):
         raise ValidationError(
@@ -14,50 +15,19 @@ def validate_atlas_name(value):
             'dots, underscores, or hyphens'
         )
 
-class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password=None, **extra_fields):
-        if not email:
-            raise ValueError("The Email field must be set")
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-
-        if extra_fields.get("is_staff") is not True:
-            raise ValueError("Superuser must have is_staff=True.")
-        if extra_fields.get("is_superuser") is not True:
-            raise ValueError("Superuser must have is_superuser=True.")
-
-        return self.create_user(email, password, **extra_fields)
-
-    def get_by_natural_key(self, email):
-        """
-        Enable authentication with email instead of username
-        """
-        return self.get(email=email)
-
 class Team(models.Model):
     name = models.CharField(
         max_length=100,
         unique=True
     )
-    
-    def save(self, *args, **kwargs):
-        self.name = self.name.lower()
-        super().save(*args, **kwargs)
 
-    description = models.TextField(blank=True)
-    team_size = models.IntegerField(default=1)
+    access_code = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    team_email = models.EmailField(blank=True)
+    team_owner = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='owned_teams')
     challenges = models.ManyToManyField("Challenge", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     password = models.CharField(max_length=128, default=make_password('default_password'))
-    team_email = models.EmailField(unique=True, default='team@example.com')
     team_score = models.IntegerField(default=0)
     is_banned = models.BooleanField(default=False)
     is_hidden = models.BooleanField(default=False)
@@ -70,22 +40,80 @@ class Team(models.Model):
 
     def check_password(self, raw_password):
         return check_password(raw_password, self.password)
+    
+    def generate_access_code(self):
+        """Generate a unique access code for team joining"""
+        return str(uuid.uuid4())[:8].upper()
+        
+    def add_member(self, user):
+        """Add a user to the team"""
+        if user.team:
+            return False, "User already belongs to a team"
+        if self.members.count() >= self.team_size:
+            return False, "Team is already at maximum capacity"
+        user.team = self
+        user.save()
+        return True, "Successfully added to team"
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.lower()
+        if not self.access_code:
+            self.access_code = self.generate_access_code()
+        super().save(*args, **kwargs)
 
 class User(AbstractUser):
+    username = models.CharField(max_length=100, unique=True)
     email = models.EmailField(unique=True)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True, related_name="members")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    objects = CustomUserManager()
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []
-
+    
     def __str__(self):
         return f"{self.email} - {self.team.name if self.team else 'No Team'}"
 
     def has_role(self, role_name):
         return self.groups.filter(name=role_name).exists()
+    
+    
+    def join_team(self, access_code):
+        """Join a team using access code"""
+        if self.team:
+            return False, "You are already in a team"
+            
+        try:
+            team = Team.objects.get(access_code=access_code)
+            # if team.members.count() >= team.team_size:
+            #     return False, "Team is already at maximum capacity"
+                
+            self.team = team
+            self.save()
+            return True, f"Successfully joined team {team.name}"
+        except Team.DoesNotExist:
+            return False, "Invalid team access code"
+    
+    def leave_team(self):
+        """Leave current team"""
+        if not self.team:
+            return False, "You are not in a team"
+        
+        # Handle team ownership transfer if user is the team owner
+        if hasattr(self.team, 'team_owner') and self.team.team_owner == self:
+            other_members = self.team.members.exclude(id=self.id)
+            if other_members.exists():
+                # Transfer ownership to another team member
+                self.team.team_owner = other_members.first()
+                self.team.save()
+            else:
+                # Delete team if no other members
+                team_to_delete = self.team
+                self.team = None
+                self.save()
+                team_to_delete.delete()
+                return True, "You left the team and it was deleted (no members left)"
+        
+        self.team = None
+        self.save()
+        return True, "You have left the team"
 
 class Challenge(models.Model):
     CATEGORY_CHOICES = [

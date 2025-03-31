@@ -1,11 +1,16 @@
 import apiClient from './config';
 
-export const login = async (teamName, password) => {
-  const response = await apiClient.post('/auth/login', {
-    teamName,
-    password
-  });
-  return response.data;
+export const login = async (username, password) => {
+  try {
+    const response = await apiClient.post('/auth/login', {
+      username,
+      password
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
 };
 
 export const register = async (formData) => {

@@ -6,8 +6,10 @@ export const AuthContext = createContext();
 
 const decodeToken = (token) => {
   try {
+    if (!token) return null;
     return jwtDecode(token);
   } catch (error) {
+    console.error('AuthContext: Error decoding token:', error);
     return null;
   }
 };
@@ -16,97 +18,113 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [token, setToken] = useState({ access: null });
+  const [token, setToken] = useState({ access: null, refresh: null });
 
   useEffect(() => {
+    console.log("AuthContext: Initializing AuthProvider...");
     const tokenString = localStorage.getItem('token');
     if (tokenString) {
+      console.log("AuthContext: Found token in localStorage:", tokenString);
       try {
         const parsedToken = JSON.parse(tokenString);
-        const decoded = jwtDecode(parsedToken.access);
-        setToken(parsedToken);
-        
-        if (decoded.is_admin) {
-          setUser({
-            id: decoded.user_id,
-            email: decoded.email,
-            isAdmin: true
-          });
-          setIsAdmin(true);
+        if (parsedToken && parsedToken.access) {
+           console.log("AuthContext: Parsed token:", parsedToken);
+           login(parsedToken, true);
         } else {
-          setUser({
-            teamId: decoded.team_id,
-            teamName: decoded.team_name,
-            teamEmail: decoded.team_email,
-            memberCount: decoded.member_count,
-            memberEmails: decoded.member_emails
-          });
-          setIsAdmin(false);
+           console.warn("AuthContext: Parsed token is invalid or missing access token.");
+           logout();
         }
-        setIsAuthenticated(true);
       } catch (error) {
-        console.error('Error loading user:', error);
-        localStorage.removeItem('token');
-        setToken({ access: null });
-        setUser(null);
-        setIsAuthenticated(false);
-        setIsAdmin(false);
+        console.error('AuthContext: Error parsing token from localStorage:', error);
+        logout();
       }
+    } else {
+       console.log("AuthContext: No token found in localStorage.");
     }
   }, []);
 
   const adminLogin = async (email, password) => {
+     console.log("AuthContext: Attempting admin login for email:", email);
     try {
       const response = await apiAdminLogin(email, password);
-      localStorage.setItem('token', JSON.stringify(response));
-      setToken(response);
-      const decoded = decodeToken(response.access);
-      
-      setUser({
-        id: decoded.user_id,
-        email: decoded.email,
-        isAdmin: true
-      });
-      
-      setIsAuthenticated(true);
-      setIsAdmin(true);
-      return response;
+      console.log("AuthContext: Admin login API response:", response);
+      if (response.access && response.refresh) {
+        login(response);
+        return response;
+      } else {
+         throw new Error("Admin login response missing tokens");
+      }
     } catch (error) {
+      console.error('AuthContext: Admin login failed:', error);
+      logout();
       throw error;
     }
   };
 
-  const login = (tokenData) => {
-    localStorage.setItem('token', JSON.stringify(tokenData));
-    setToken(tokenData);
-    const decoded = decodeToken(tokenData.access);
-    
-    if (decoded.is_admin) {
-      setUser({
-        id: decoded.user_id,
-        email: decoded.email,
-        isAdmin: true
-      });
-      setIsAdmin(true);
-    } else {
-      setUser({
-        teamId: decoded.team_id,
-        teamName: decoded.team_name,
-        teamEmail: decoded.team_email,
-        memberCount: decoded.member_count,
-        memberEmails: decoded.member_emails
-      });
-      setIsAdmin(false);
+  const login = (tokenData, isInitialLoad = false) => {
+    console.log(`AuthContext: login function called. Initial load: ${isInitialLoad}. Token data received:`, tokenData);
+
+    if (!tokenData || !tokenData.access) {
+       console.error("AuthContext: login function called with invalid tokenData.");
+       logout();
+       return;
     }
-    setIsAuthenticated(true);
+
+    const decoded = decodeToken(tokenData.access);
+    console.log('AuthContext: Decoded access token:', decoded);
+
+    if (decoded) {
+      if (!isInitialLoad) {
+         console.log("AuthContext: Storing new token in localStorage.");
+         localStorage.setItem('token', JSON.stringify(tokenData));
+      }
+
+      setToken({ access: tokenData.access, refresh: tokenData.refresh });
+
+      if (decoded.is_admin) {
+        console.log("AuthContext: Setting user as ADMIN.");
+        setUser({
+          id: decoded.user_id,
+          username: decoded.username,
+          email: decoded.email,
+          isAdmin: true,
+        });
+        setIsAdmin(true);
+      } else {
+        console.log("AuthContext: Setting user as REGULAR USER.");
+        setUser({
+          id: decoded.user_id,
+          username: decoded.username,
+          email: decoded.email,
+          isAdmin: false,
+          teamId: decoded.team_id || null,
+          team_id: decoded.team_id || null,
+          teamName: decoded.team_name || null,
+          teamEmail: decoded.team_email || null,
+          isTeamOwner: decoded.is_team_owner || false,
+          memberCount: decoded.member_count || 0,
+          teamAccessCode: decoded.team_access_code || null,
+        });
+        setIsAdmin(false);
+      }
+      setIsAuthenticated(true);
+      console.log("AuthContext: User state updated:", user);
+      console.log("AuthContext: isAuthenticated set to true.");
+
+    } else {
+      console.error("AuthContext: Failed to decode token. Logging out.");
+      logout();
+    }
   };
 
   const logout = () => {
+    console.log("AuthContext: Logging out user.");
     localStorage.removeItem('token');
-    setToken({ access: null });
+    setToken({ access: null, refresh: null });
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);
+     console.log("AuthContext: User logged out, state cleared.");
   };
 
   return (
