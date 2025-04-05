@@ -4,26 +4,12 @@ import apiClient from './config';
 
 export const getTeamProfile = async () => {
   try{
-    const response = await apiClient.get('/teams/profile');
-    return response.data;
+    const response = await apiClient.get('/teams/status');
+    console.log(response.data);
+    return response.data['team'];
   }catch (error){
     console.error('Error fetching team profile:', error);
     throw error;
-  }
-};
-
-export const addTeamMember = async (memberData) => {
-  try {
-    const response = await apiClient.post('/teams/add-member', {
-      name: memberData.name.trim(),
-      email: memberData.email.trim()
-    });
-    return response.data;
-  } catch (error) {
-    if (error.response?.data?.error) {
-      throw new Error(error.response.data.error);
-    }
-    throw new Error('Failed to add team member');
   }
 };
 
@@ -37,6 +23,57 @@ export const getTeamSubmissions = async () => {
   }
 };
 
+export const createTeam = async (teamData) => {
+  console.log('Creating team:', teamData);
+  try {
+    const response = await apiClient.post('/teams/create', teamData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating team:', error);
+    throw error;
+  }
+};
+
+export const joinTeam = async (accessCode) => {
+  console.log('Joining team with access code:', accessCode);
+  try {
+    const response = await apiClient.post('/teams/join', { access_code: accessCode });
+    return response.data;
+  } catch (error) {
+    console.error('Error joining team:', error);
+    throw error;
+  }
+};
+
+export const leaveTeam = async () => {
+  try {
+    const response = await apiClient.post('/teams/leave');
+    return response.data;
+  } catch (error) {
+    console.error('Error leaving team:', error);
+    throw error;
+  }
+};
+
+export const getTeamStatus = async () => {
+  try {
+    const response = await apiClient.get('/teams/status');
+    return response.data;
+  } catch (error) {
+    console.error('Error getting team status:', error);
+    throw error;
+  }
+};
+
+export const updateTeamInfo = async (teamData) => {
+  try {
+    const response = await apiClient.post('/teams/update', teamData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating team:', error);
+    throw error;
+  }
+};
 
 // Used For Admin Routes
 
@@ -63,17 +100,6 @@ export const getTeams = async () => {
 };
 
 // Create new team 
-export const createTeam = async (teamData) => {
-  try {
-    const response = await apiClient.post('/teams/create', teamData);
-    return response.data;
-  } catch (error) {
-    console.error('Error creating team:', error);
-    throw error;
-  }
-};
-
-// Update team
 export const updateTeam = async (teamId, teamData) => {
   try {
     const formattedData = {
@@ -94,7 +120,6 @@ export const updateTeam = async (teamId, teamData) => {
     throw error;
   }
 };
-
 
 // Delete team
 export const deleteTeam = async (teamId) => {

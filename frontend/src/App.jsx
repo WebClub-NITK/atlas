@@ -25,6 +25,7 @@ import CreateChallenge from './pages/admin/CreateChallenge';
 import AdminLogin from './pages/admin/AdminLogin';
 import TeamProfile from './pages/user/TeamProfile';
 import AdminContainers from './pages/admin/Containers';
+import TeamSetup from './pages/TeamSetup';
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/team-setup" element={<ProtectedRoute><TeamSetup /></ProtectedRoute>} />
 
             {/* Protected User Routes */}
             <Route path="/team/profile" element={<ProtectedRoute><TeamProfile /></ProtectedRoute>} />

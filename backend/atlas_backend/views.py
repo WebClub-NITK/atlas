@@ -16,7 +16,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.core.cache import cache
 from django.db import transaction
 from django.http import QueryDict
-from .models import User, Challenge, Submission, Team, Container, HintPurchase, validate_atlas_name
+from .models import User, Challenge, Submission, Team, Container, HintPurchase, validate_team_name
 from .serializers import SignupSerializer, ChallengeSerializer, TeamSerializer, SubmissionSerializer, UserSerializer
 import re
 from docker_plugin import DockerPlugin
@@ -24,190 +24,349 @@ import logging
 
 logger = logging.getLogger('atlas_backend')
 
-
+# User Registration (Individual, without team)
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def signup(request):
-    data = request.data
-    # Required fields validation
-    required_fields = ['teamName', 'teamEmail',
-                       'password', 'member1Name', 'member1Email']
-    for field in required_fields:
-        if not data.get(field):
-            return Response(
-                {'error': f'{field} is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-    # Email format validation
-    email_fields = ['teamEmail', 'member1Email']
-    for field in email_fields:
-        email = data.get(field)
-        if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
-            return Response(
-                {'error': f'Invalid email format for {field}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-    # Check if team name already exists
-    if Team.objects.filter(name__iexact=data['teamName']).exists():
-        return Response(
-            {'error': 'Team name already exists'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # Check if team email already exists
-    if Team.objects.filter(team_email=data['teamEmail']).exists():
-        return Response(
-            {'error': 'Team email already exists'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
+def register(request):
+    """User registration endpoint"""
     try:
-        # Create team
+        # Get user data
+        username = request.data.get('username')
+        email = request.data.get('email')
+        password = request.data.get('password')
+        
+        # Validate required fields
+        if not username or not email or not password:
+            return Response(
+                {'error': 'Username, email, and password are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check for duplicate username
+        if User.objects.filter(username__iexact=username).exists():
+            return Response(
+                {'error': 'Username already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Check for duplicate email
+        if User.objects.filter(email__iexact=email).exists():
+            return Response(
+                {'error': 'Email already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create user
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password
+        )
+        
+        # Generate tokens for automatic login
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            },
+            'refresh': str(refresh),
+            'access': str(refresh.access_token)
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Registration failed: {str(e)}'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_team_api(request):
+    """API endpoint to create a new team"""
+    try:
+        # Get and validate team data
+        team_name = request.data.get('name')
+        team_email = request.data.get('email')
+        team_password = request.data.get('password')
+        
+        if not team_name:
+            return Response(
+                {'error': 'Team name is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate team name
+        try:
+            validate_team_name(team_name)
+        except ValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Check if team name already exists
+        if Team.objects.filter(name__iexact=team_name).exists():
+            return Response(
+                {'error': 'Team name already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Create the team with proper owner field
         team = Team.objects.create(
-            name=data['teamName'],
-            team_email=data['teamEmail'],
-            team_score=0
+            name=team_name,
+            team_email=team_email if team_email else '',
+            team_owner=request.user  # Use team_owner field from model
         )
-        team.set_password(data['password'])
-        team.save()
-
-        # Create users for all team members
-        users = []
-
-        # Create required first member
-        member1 = User.objects.create_user(
-            username=data['member1Name'],
-            email=data['member1Email'],
-            password=data['password'],
-            team=team
-        )
-        users.append(member1)
-
-        # Create optional members if provided
-        if data.get('member2Email'):
-            member2 = User.objects.create_user(
-                username=data['member2Name'],
-                email=data['member2Email'],
-                password=data['password'],
-                team=team
-            )
-            users.append(member2)
-
-        if data.get('member3Email'):
-            member3 = User.objects.create_user(
-                username=data['member3Name'],
-                email=data['member3Email'],
-                password=data['password'],
-                team=team
-            )
-            users.append(member3)
-
-        # Generate token based on first team member
-        refresh = RefreshToken.for_user(member1)
+        
+        # Set team password if provided
+        if team_password:
+            team.set_password(team_password)
+            team.save()
+        
+        # Add user to the team
+        user = request.user
+        user.team = team
+        user.save()
+        
+        # Generate new token with team information
+        refresh = RefreshToken.for_user(user)
+        refresh['user_id'] = user.id
+        refresh['username'] = user.username
+        refresh['email'] = user.email
+        
+        # Add team information to token
         refresh['team_id'] = team.id
         refresh['team_name'] = team.name
         refresh['team_email'] = team.team_email
-        refresh['member_count'] = len(users)
-        refresh['member_emails'] = [user.email for user in users]
-
+        refresh['is_team_owner'] = True  # User is definitely the owner as they created it
+        refresh['member_count'] = 1  # Initially only the creator
+        refresh['team_access_code'] = team.access_code
+        
+        # Return success response with access code and updated tokens
         return Response({
+            'team': {
+                'id': team.id,
+                'name': team.name,
+                'access_code': team.access_code,
+                'member_count': 1
+            },
             'refresh': str(refresh),
-            'access': str(refresh.access_token),
+            'access': str(refresh.access_token)
         }, status=status.HTTP_201_CREATED)
-
-    except ValidationError as e: 
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
     except Exception as e:
         return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def signin(request):
-    team_name = request.data.get('teamName', '').lower()
-    password = request.data.get('password')
-
-    if not team_name or not password:
-        return Response(
-            {'error': 'Team name and password are required'},
+            {'error': f'Team creation failed: {str(e)}'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def join_team_api(request):
+    """API endpoint to join a team using access code"""
+    user = request.user
+    
+    if user.team:
+        return Response(
+            {'error': 'You are already in a team'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    access_code = request.data.get('access_code')
+    
+    if not access_code:
+        return Response(
+            {'error': 'Access code is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
     try:
-        team = Team.objects.filter(name__iexact=team_name).first()
-        if not team or not check_password(password, team.password):
-            raise Team.DoesNotExist
-
+        team = Team.objects.get(access_code=access_code)
+        
+        # Check if team is banned
         if team.is_banned:
             return Response(
                 {'error': 'This team has been banned'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-            
-        # Get the first team member as the "main" user for authentication
-        team_member = User.objects.filter(team=team).first()
-        if not team_member:
-            return Response(
-                {'error': 'No team members found'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-        team_members = User.objects.filter(team=team)
-
-        refresh = RefreshToken.for_user(team_member)
-
-        # Add required claims
-        refresh['user_id'] = team_member.id
-        refresh['username'] = team_member.username
-        refresh['email'] = team_member.email
-
-        # Add custom team claims
+        
+        # Add user to team
+        user.team = team
+        user.save()
+        
+        # Generate new token with team information
+        refresh = RefreshToken.for_user(user)
+        refresh['user_id'] = user.id
+        refresh['username'] = user.username
+        refresh['email'] = user.email
+        
+        # Add team information to token
         refresh['team_id'] = team.id
         refresh['team_name'] = team.name
         refresh['team_email'] = team.team_email
-        refresh['member_count'] = team_members.count()
-        refresh['member_emails'] = [member.email for member in team_members]
-
-        logger.info('Generated token with payload: %s', {
-            'user_id': team_member.id,
-            'username': team_member.username,
-            'email': team_member.email,
-            'team_id': team.id,
-            'team_name': team.name,
-            'team_email': team.team_email,
-            'member_count': team_members.count(),
-        })
-
+        refresh['is_team_owner'] = team.team_owner_id == user.id
+        refresh['member_count'] = team.members.count()
+        refresh['team_access_code'] = team.access_code
+        
         return Response({
-            'access': str(refresh.access_token),
+            'team': {
+                'id': team.id,
+                'name': team.name,
+                'access_code': team.access_code,
+                'member_count': team.members.count()
+            },
             'refresh': str(refresh),
+            'access': str(refresh.access_token)
         })
+        
     except Team.DoesNotExist:
         return Response(
-            {'error': 'Invalid credentials'},
-            status=status.HTTP_401_UNAUTHORIZED
+            {'error': 'Invalid team access code'},
+            status=status.HTTP_400_BAD_REQUEST
         )
     except Exception as e:
-        logger.error(f"Error during signin: {str(e)}")
         return Response(
-            {'error': 'Signin failed'},
+            {'error': f'Failed to join team: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def leave_team_api(request):
+    """API endpoint to leave current team"""
+    user = request.user
+    
+    if not user.team:
+        return Response(
+            {'error': 'You are not in a team'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        success, message = user.leave_team()
+        
+        if success:
+            # Create a new token without team information
+            refresh = RefreshToken.for_user(user)
+            refresh['user_id'] = user.id
+            refresh['username'] = user.username
+            refresh['email'] = user.email
+            
+            return Response({
+                'message': message,
+                'refresh': str(refresh),
+                'access': str(refresh.access_token)
+            })
+        else:
+            return Response(
+                {'error': message},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except Exception as e:
+        return Response(
+            {'error': f'Failed to leave team: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def team_status_api(request):
+    """Check if user has a team and get team details"""
+    user = request.user
+    
+    if not user.team:
+        return Response({
+            'has_team': False,
+            'message': 'You are not in a team. Please create or join a team.'
+        })
+    
+    team = user.team
+    team_members = team.members.all()
+    
+    return Response({
+        'has_team': True,
+        'team': {
+            'id': team.id,
+            'name': team.name,
+            'team_email': team.team_email,
+            'access_code': team.access_code,
+            'is_owner': team.team_owner_id == user.id,
+            'total_score': team.team_score,
+            'current_members': team_members.count(),
+            'members': [{
+                'id': member.id,
+                'username': member.username,
+                'email': member.email,
+                'is_owner': team.team_owner_id == member.id
+            } for member in team_members]
+        }
+    })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_team_api(request):
+    """API endpoint to update team information"""
+    user = request.user
+    
+    if not user.team:
+        return Response(
+            {'error': 'You are not in a team'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    team = user.team
+    
+    data = request.data
+    
+    # Update fields if provided
+    if 'name' in data and data['name']:
+        # Check if new name is available
+        if Team.objects.filter(name__iexact=data['name']).exclude(id=team.id).exists():
+            return Response(
+                {'error': 'Team name already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        team.name = data['name']
+        
+
+    
+    try:
+        team.save()
+        return Response({
+            'message': 'Team information updated successfully',
+            'team': {
+                'id': team.id,
+                'name': team.name,
+                'team_email': team.team_email,
+                'access_code': team.access_code,
+                'is_owner': team.team_owner_id == user.id,
+                'total_score': team.team_score,
+                'current_members': team.members.count()
+            }
+        })
+    except Exception as e:
+        return Response(
+            {'error': f'Failed to update team: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_challenges(request):
+    """Get all challenges available to the user"""
     logger.info("=== GET /challenges ===")
-    logger.info(f"Auth header: {request.headers.get('Authorization')}")
-    logger.info(f"User: {request.user}")
-    logger.info(f"Is authenticated: {request.user.is_authenticated}")
-
+    
+    # Check if user has a team
+    if not request.user.team:
+        return Response(
+            {'error': 'You must be in a team to access challenges'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
     # Fetch only non-hidden challenges
     challenges = Challenge.objects.filter(is_hidden=False).values(
         'id',
@@ -242,61 +401,13 @@ def get_challenges(request):
 
     return Response(challenges_list)
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def add_team_member(request):
-    team = request.user.team
-    
-    # Check if team exists and has less than 3 members
-    if not team:
-        return Response({"error": "User not associated with a team"}, status=status.HTTP_400_BAD_REQUEST)
-    
-    if team.members.count() >= 3:
-        return Response({"error": "Team already has maximum members (3)"}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Validate request data
-    name = request.data.get('name')
-    email = request.data.get('email')
-    
-    if not name or not email:
-        return Response({"error": "Name and email are required"}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Generate unique username from name
-    while User.objects.filter(username=name).exists():
-        name = f"{name}_{team.name}"
-    
-    # Check if email already exists
-    if User.objects.filter(email=email).exists():
-        return Response({"error": "Email already registered"}, status=status.HTTP_400_BAD_REQUEST)
-    
-    try:
-        # Create new user/member
-        member = User.objects.create(
-            username=name,
-            email=email,
-            password=team.password,
-            team=team
-        )
-        
-        return Response({
-            "message": "Member added successfully",
-            "member": {
-                "id": member.id,
-                "username": member.username,
-                "email": member.email
-            }
-        }, status=status.HTTP_201_CREATED)
-        
-    except Exception as e:
-        return Response(
-            {"error": "Failed to add member. Please try again."}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_challenge_by_id(request, challenge_id):
     try:
+        if not request.user.team:
+            return Response({"error": "You must be in a team to access challenges"}, status=status.HTTP_400_BAD_REQUEST)
+        
         challenge = Challenge.objects.get(id=challenge_id)
         if challenge.is_hidden:
             return Response({"error": "Challenge not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -365,7 +476,7 @@ def submit_flag(request, challenge_id):
         if not request.user.team:
             return Response(
                 {'error': 'You must be in a team to submit flags'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_403_FORBIDDEN
             )
 
         challenge = get_object_or_404(Challenge, id=challenge_id)
@@ -469,7 +580,7 @@ def start_challenge(request, challenge_id):
     if not request.user.team:
         return Response(
             {'error': 'You must be in a team to start challenges'},
-            status=status.HTTP_400_BAD_REQUEST
+            status=status.HTTP_403_FORBIDDEN
         )
 
     if request.user.team.is_banned:
@@ -556,7 +667,7 @@ def stop_challenge(request, challenge_id):
         if not request.user.team:
             return Response(
                 {'error': 'You must be in a team to start challenges'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_403_FORBIDDEN
             )
 
         challenge = get_object_or_404(Challenge, id=challenge_id)
@@ -616,6 +727,11 @@ def get_team_score(request, team_id=None):
     Otherwise, get the logged-in user's team score.
     """
     try:
+        if not request.user.team:
+            return Response({
+                'error': 'You must be in a team to get your score',
+                'status': status.HTTP_403_FORBIDDEN
+            })
         # Determine which team to get score for
         if team_id:
             team = get_object_or_404(Team, id=team_id)
@@ -656,7 +772,7 @@ def get_submission_history(request):
         if not team:
             return Response(
                 {'error': 'User not associated with any team'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_403_FORBIDDEN
             )
 
         submissions = Submission.objects.filter(team=team).order_by(
@@ -701,7 +817,15 @@ def get_submission_history(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_scoreboard(request):
+    """Get scoreboard data"""
     try:
+        # Check if user has a team
+        if not request.user.team:
+            return Response(
+                {'error': 'You must be in a team to view the scoreboard'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         teams = Team.objects.annotate(
             member_count=Count('members', distinct=True),
             solved_count=Count('submissions', filter=Q(
@@ -1002,132 +1126,108 @@ def delete_challenge(request, challenge_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def team_profile(request):
+    """Get current user's team profile"""
     try:
-        # Get token from authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
+        user = request.user
+        
+        # Check if user has a team
+        if not user.team:
             return Response(
-                {'error': 'No token provided'},
-                status=status.HTTP_401_UNAUTHORIZED
+                {'error': 'You must be in a team to view team profile', 'has_team': False},
+                status=status.HTTP_403_FORBIDDEN
             )
-
-        # Extract token and decode it
-        token = auth_header.split(' ')[1]
-        decoded_token = AccessToken(token)
-
-        # Get team info from token
-        team_id = decoded_token['team_id']
-
-        # Get team from database
-        team = Team.objects.get(id=team_id)
-
-        # Get team members
-        team_members = User.objects.filter(team_id=team_id)
-
-        # Get team statistics
-        solved_challenges = Challenge.objects.filter(
-            submissions__team=team,
-            submissions__is_correct=True,
-        ).distinct().count()
-
-        # Get total score
-        total_score = team.team_score
-
-        team_rank = Team.objects.filter(
-            team_score__gt=team.team_score
-        ).count() + 1
-
-        # Get recent activity (last 5 correct submissions)
-        recent_submissions = team.submissions.filter(
-            is_correct=True
-        ).order_by('-timestamp')[:5]
-
-        recent_activity = [{
-            'id': sub.id,
-            'challenge_name': sub.challenge.title,
-            'points': sub.points_awarded,
-            'solved_at': sub.timestamp.isoformat()
-        } for sub in recent_submissions]
-
-        response_data = {
-            'id': team_id,
+            
+        team = user.team
+        members = team.members.all()
+        
+        # Format response with correct field names
+        response = {
+            'id': team.id,
             'name': team.name,
             'team_email': team.team_email,
+            'access_code': team.access_code,
+            'total_score': team.team_score,
+            'team_owner': {
+                'id': team.team_owner.id,
+                'username': team.team_owner.username,
+                'email': team.team_owner.email
+            } if team.team_owner else None,
+            'is_owner': team.team_owner_id == user.id,
             'members': [{
                 'id': member.id,
                 'username': member.username,
-                'email': member.email
-            } for member in team_members],
-            'total_score': total_score,
-            'solved_challenges': solved_challenges,
-            'rank': team_rank,
-            'recent_activity': recent_activity
+                'email': member.email,
+                'is_owner': team.team_owner_id == member.id
+            } for member in members]
         }
-
-        return Response(response_data)
-
+        
+        return Response(response)
+        
     except Exception as e:
         return Response(
-            {'error': str(e)},
+            {'error': f'Failed to retrieve team profile: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def token_refresh(request):
+def signin(request):
+    """Authenticate user and return JWT tokens"""
     try:
-        refresh_token = request.data.get('refresh')
-        if not refresh_token:
+        # Validate required fields
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username or not password:
             return Response(
-                {'error': 'Refresh token required'},
+                {'error': 'Username and password are required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-        refresh = RefreshToken(refresh_token)
-        return Response({
-            'access': str(refresh.access_token),
-        })
-    except Exception as e:
-        return Response(
-            {'error': str(e)},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def admin_login(request):
-    try:
-        email = request.data.get('email')
-        password = request.data.get('password')
-
-        # Get superuser by email
-        user = User.objects.get(email=email, is_superuser=True)
-
-        if not user.check_password(password):
-            raise User.DoesNotExist
-
+        
+        # Authenticate user
+        from django.contrib.auth import authenticate
+        user = authenticate(username=username, password=password)
+        
+        if not user:
+            return Response(
+                {'error': 'Invalid credentials'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Generate JWT tokens with team information
         refresh = RefreshToken.for_user(user)
-
-        # Add admin claims to token
-        refresh['is_admin'] = True
-        refresh['email'] = user.email
         refresh['user_id'] = user.id
-
+        refresh['username'] = user.username
+        refresh['email'] = user.email
+        
+        # Add team information if user has a team
+        if user.team:
+            refresh['team_id'] = user.team.id
+            refresh['team_name'] = user.team.name
+            # Use team_owner_id field from model
+            refresh['is_team_owner'] = user.team.team_owner_id == user.id
+            refresh['team_email'] = user.team.team_email
+            refresh['member_count'] = user.team.members.count()
+            refresh['team_access_code'] = user.team.access_code
+            
+            # Optional: include team member emails
+            member_emails = [member.email for member in user.team.members.all()]
+            refresh['member_emails'] = member_emails
+        
         return Response({
-            'access': str(refresh.access_token),
             'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'has_team': user.team is not None
+            }
         })
-
-    except User.DoesNotExist:
-        return Response(
-            {'error': 'Invalid admin credentials'},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
     except Exception as e:
         return Response(
-            {'error': 'Login failed'},
+            {'error': f'Login failed: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -1678,5 +1778,104 @@ def get_team_profile_admin(request, team_id):
         logger.error(f"Error fetching team profile: {str(e)}")
         return Response(
             {"error": "Failed to fetch team profile"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def token_refresh(request):
+    """Refresh JWT token"""
+    try:
+        refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return Response(
+                {'error': 'Refresh token is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken(refresh_token)
+        
+        # Get user from the refresh token
+        user_id = refresh.get('user_id')
+        user = User.objects.get(id=user_id)
+        
+        # Generate a new refresh token
+        new_refresh = RefreshToken.for_user(user)
+        new_refresh['user_id'] = user.id
+        new_refresh['username'] = user.username
+        new_refresh['email'] = user.email
+        
+        # Copy over the is_admin flag if it exists
+        if 'is_admin' in refresh:
+            new_refresh['is_admin'] = refresh['is_admin']
+        
+        # Add team information if user has a team
+        if user.team:
+            new_refresh['team_id'] = user.team.id
+            new_refresh['team_name'] = user.team.name
+        
+        return Response({
+            'refresh': str(new_refresh),
+            'access': str(new_refresh.access_token)
+        })
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def admin_login(request):
+    """
+    Admin login endpoint that only authenticates superusers
+    """
+    try:
+        data = request.data
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return Response(
+                {'error': 'Email and password are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Attempt to find a superuser with the provided email
+            user = User.objects.get(email=email, is_superuser=True)
+            
+            # Verify the password
+            if not user.check_password(password):
+                raise User.DoesNotExist
+                
+            # Generate tokens for admin
+            refresh = RefreshToken.for_user(user)
+            refresh['user_id'] = user.id
+            refresh['username'] = user.username
+            refresh['email'] = user.email
+            refresh['is_admin'] = True
+            
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'is_admin': True
+                }
+            })
+            
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Invalid admin credentials'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            
+    except Exception as e:
+        return Response(
+            {'error': f'Admin login failed: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

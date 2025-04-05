@@ -8,4 +8,17 @@ export const getDashboardStats = async () => {
     console.error('Error fetching dashboard stats:', error);
     throw error;
   }
+};
+
+export const adminLogin = async (email, password) => {
+  try {
+    const response = await apiClient.post('/auth/admin/login', {
+      email,
+      password
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Admin login error:', error);
+    throw error;
+  }
 };  
