@@ -1,86 +1,89 @@
-
 # Atlas
 
-Atlas is an open-source platform for hosting CTF competitions, utilizing dynamic Docker orchestration to manage challenge environments. It offers an intuitive frontend, customizable admin panel, and a robust backend for seamless deployment and container management, ensuring a scalable and flexible CTF event experience.
+Atlas is an open-source platform for hosting Capture The Flag (CTF) competitions, utilizing dynamic Docker orchestration to manage challenge environments. It offers an intuitive frontend, customizable admin panel, and a robust backend for seamless deployment and container management, ensuring a scalable and flexible CTF event experience.
 
-## DB Diagram
+## Table of Contents
+- [Features](#features)
+- [Getting Started](#getting-started)
+- [Contributing](#contributing)
+- [Architecture](#architecture)
+- [License](#license)
 
-![dbdiagram](https://github.com/user-attachments/assets/b3c64a20-2153-41dd-911f-242a70e5692b)
+## Features
+- Dynamic Docker orchestration for challenge environments
+- Intuitive and user-friendly frontend
+- Customizable admin panel
+- Scalable and flexible deployment
 
-## Setup
+## Getting Started
 
-1. Clone the repository
+### Prerequisites
+- Docker
+- Docker Compose
+- Node.js (for frontend)
+- Python (for backend)
 
-   ```bash
+### Installation
+
+1. Clone the repository:
+   ```sh
    git clone https://github.com/WebClub-NITK/atlas.git
+   cd atlas
    ```
 
-3. Environment Variables
-- Copy the example `.env.example` to a new `.env` file in the root directory
-- Fill in the required environment variables.
+2. Configure environment variables:
+   Create a `.env` file in both `backend` and `frontend` directories and set the necessary environment variables as described in the `.env.example` files.
 
-- Example `.env` file:
-   ```bash
-   DB_USER=postgres
-   DB_PASSWORD=postgres
-   DB_NAME=postgres_db
+3. Run the services:
+   ```sh
+   docker-compose up --build
    ```
 
-3. Build and run the docker containers
-   
-   ```bash
-   docker compose up --build
-   ```
+## Contributing
 
-4. For admin panel
-    ```bash
-    docker exec -it atlas_backend python manage.py createsuperuser
-    ```
-    The corresponding email and the password would be used for logging in to admin panel and use its functionality. 
+We welcome contributions from the community! To get started, please read our [CONTRIBUTING.md](CONTRIBUTING.md) file for detailed guidelines on how to contribute to the project.
 
-## Coding Guidelines
+### Contribution Guidelines
 
-### Comments
-- Use clear and concise comments to explain the purpose of complex code blocks. For example, `# Calculate the total price including tax`.
-- Avoid redundant comments that state the obvious, such as `# Increment i by 1`.
-- Use docstrings for functions and classes to describe their purpose, parameters, and return values. Example:
-  ```python
-  def fetch_user_data(user_id):
-      """
-      Fetches user data from the API.
-      
-      Args:
-          user_id (str): The ID of the user.
-      
-      Returns:
-          dict: The user data.
-      """
-  ```
+- Ensure your code follows the existing code style.
+- Write tests for new features or bug fixes.
+- Update documentation as needed.
+- Be respectful in your communications.
 
-### Code Style
-- Use 4 spaces for indentation.
-- Prefer `import` statements at the top of the file.
-- Use meaningful and descriptive names for variables and functions, such as `calculate_total_price`.
-- Ensure consistent use of single quotes for strings, like `'Hello, World!'`.
-- Place opening braces on the same line as the statement, e.g., `if True:`.
+## Architecture
 
-### Variable Style
-- Use snake_case for variable and function names, e.g., `user_name`.
-- Use PascalCase for class names, e.g., `UserProfile`.
-- Use UPPER_SNAKE_CASE for constants, e.g., `API_URL`.
-- Choose meaningful and descriptive names for variables and functions, such as `calculate_total_price`.
+### Overview
+The architecture of Atlas is designed to be modular and scalable, consisting of the following main components:
 
-### Commit Style
-- Write clear and concise commit messages.
-- Use the present tense, e.g., `Add feature` not `Added feature`.
-- Capitalize the first letter of the commit message.
-- Use imperative mood, e.g., `Fix bug` not `Fixed bug`.
-- Include a brief description of the changes made.
-- Reference relevant issue numbers in the commit message.
-- Use prefixes like `fix:`, `feat:`, `frontend:`, `backend:`, `misc:` to categorize commits.
+- **Frontend**: A JavaScript-based web application built with React.js, providing an intuitive interface for participants and administrators.
+- **Backend**: A Python-based application using Flask, responsible for handling API requests, managing challenge states, and orchestrating Docker containers.
+- **Database**: PostgreSQL is used for persistent storage of user data, scores, and challenge states.
+- **Docker Orchestration**: Docker and Docker Compose are used to manage challenge environments, ensuring isolation and scalability.
 
-### Development Style
-- Use feature branches for new features and bug fixes. For example, `feature/add-user-authentication`.
-- Keep the `main` branch in a deployable state.
-- Regularly pull changes from the `main` branch to keep your branch up to date.
-- Perform code reviews and seek feedback from team members.
+### Detailed Explanation
+
+#### Frontend
+The frontend is built using React.js and communicates with the backend via REST APIs. It includes:
+- Participant Dashboard: Allows participants to view and solve challenges, track their progress, and view the leaderboard.
+- Admin Panel: Provides administrators with tools to create and manage challenges, view participant activity, and monitor system health.
+
+#### Backend
+The backend is a Flask application that handles:
+- User Authentication: Manages user registration, login, and session management.
+- Challenge Management: Handles the creation, updating, and deletion of challenges.
+- Scoring System: Computes and updates participant scores based on challenge completions.
+- Docker Management: Orchestrates Docker containers to provide isolated challenge environments.
+
+#### Database
+PostgreSQL is used as the primary database. It stores:
+- User Data: Information about participants and administrators.
+- Challenge Data: Details of each challenge, including metadata and solution hints.
+- Scores: Participant scores and progress data.
+- EDR for reference: [here](assets/db-diagram.png)
+
+#### Docker Orchestration
+Docker and Docker Compose are used to manage the lifecycle of challenge environments. Each challenge is run in its own Docker container, ensuring isolation and reproducibility. Docker Compose is used to define and run multi-container Docker applications.
+
+## License
+
+See the [LICENSE](LICENSE) file for details.
