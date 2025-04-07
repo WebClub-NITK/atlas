@@ -483,7 +483,7 @@ def start_challenge(request, challenge_id):
     existing_container = Container.objects.filter(
         team=request.user.team,
         challenge=challenge,
-        created_at__gte=datetime.now() - timedelta(minutes=10)
+        created_at__gte=datetime.now() - timedelta(seconds=challenge.timeout)   
     ).first()
 
     if existing_container:
@@ -565,7 +565,7 @@ def stop_challenge(request, challenge_id):
         existing_container = Container.objects.filter(
             team=request.user.team,
             challenge=challenge,
-            created_at__gte=datetime.now() - timedelta(minutes=10)
+            created_at__gte=datetime.now() - timedelta(seconds=challenge.timeout)
         ).first()
 
         if existing_container:
@@ -1388,7 +1388,7 @@ def get_dashboard_stats(request):
             },
             'containers': {
                 'total': Container.objects.count(),
-                'running': Container.objects.filter(created_at__gte=datetime.now() - timedelta(minutes=10)).count()
+                'running': Container.objects.count()
             },
             'submissions': {
                 'total': Submission.objects.count(),
