@@ -42,7 +42,7 @@ class DockerPlugin:
             logging.error(error)
         return None
 
-    def run_container(self, image: str, port: int, container_name: str = None):
+    def run_container(self, image: str, port: int, timeout: int, container_name: str = None):
         try:
             password = "".join(
                 secrets.choice(ALLOWED_CHARACTERS) for _ in range(16)
@@ -62,6 +62,7 @@ class DockerPlugin:
                 name=container_name,
                 environment={"PASS": password},
                 ports={f"{port}/tcp": None},
+                labels={"timeout": str(timeout)},
                 cpu_quota=resources["cpu_quota"],
                 cpu_period=resources["cpu_period"],
                 mem_limit=resources["memory"],

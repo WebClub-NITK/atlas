@@ -151,6 +151,7 @@ class Challenge(models.Model):
     file_links = models.JSONField(default=list, blank=True)
     port = models.IntegerField(blank=True, null=True)
     ssh_user = models.CharField(max_length=100, blank=True, null=True)
+    timeout = models.IntegerField(default=-1, help_text="Timeout in seconds for the challenge", blank=False, null=False)
 
     def __str__(self):
         return self.title
