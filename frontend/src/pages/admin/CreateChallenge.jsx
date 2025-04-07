@@ -50,6 +50,7 @@ function CreateChallenge() {
     setError('');
     setFormData({...formData, docker_image: file});
     setDockerFileName(file.name);
+    console.log(file)
   };
 
   const handleSubmit = async (e) => {
@@ -85,6 +86,8 @@ function CreateChallenge() {
 
       // Only append docker_image if one is selected
       if (formData.docker_image) {
+        console.log("docker image test")
+        console.log(formData.docker_image)
         formDataToSend.append('docker_image', formData.docker_image);
       }
 
@@ -96,8 +99,8 @@ function CreateChallenge() {
       formDataToSend.append('file_links', JSON.stringify(
         formData.file_links.filter(link => link.trim() !== '')
       ));
-
-      const response = await createChallenge(formDataToSend);
+      console.log(formData)
+      const response = await createChallenge(formData);
       navigate(`/admin/challenges/${response.challenge_id}`);
     } catch (error) {
       console.error('Error creating challenge:', error);

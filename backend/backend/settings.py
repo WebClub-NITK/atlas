@@ -34,7 +34,7 @@ DOCKER_HOST_URL = os.getenv('DOCKER_HOST_URL', "unix://var/run/docker.sock")
 SSH_HOST_URL = os.getenv('DOCKER_HOST_URL', HOST_URL)
 KEY_FILE_PATH = os.getenv('KEY_FILE_PATH', None)
 
-ALLOWED_HOSTS = [HOST_URL]
+ALLOWED_HOSTS = [HOST_URL.removeprefix('http://')]
 
 # Application definition
 

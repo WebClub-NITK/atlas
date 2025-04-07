@@ -70,6 +70,8 @@ export const getAdminChallenges = async () => {
 
 export const createChallenge = async (challengeData) => {
   try {
+    console.log('Creating challenge with data:');
+    console.log(challengeData);
     const response = await apiClient.post('api/admin/challenges/create', challengeData);
     return response.data;
   } catch (error) {

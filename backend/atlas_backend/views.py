@@ -971,6 +971,9 @@ def create_challenge(request):
 
         # Handle docker image optionally
         image_id = None
+        print("Testing")
+        print(request.data)
+        print(request.FILES)
         if request.FILES.get('docker_image'):
             try:
                 client = DockerPlugin(base_url=settings.DOCKER_HOST,key_file=settings.SSH_KEY_FILE)

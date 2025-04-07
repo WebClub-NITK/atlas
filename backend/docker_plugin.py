@@ -33,6 +33,9 @@ class DockerPlugin:
             ssh_client = MySSHHTTPAdapter(base_url)
             api_client.mount("http+docker://ssh", ssh_client)
             self.docker_client.api = api_client
+        
+        print("Docker")
+        print(self.docker_client)
 
     def add_image(self, data: bytes):
         try:
