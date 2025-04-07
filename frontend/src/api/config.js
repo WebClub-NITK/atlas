@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = 'http://ec2-13-233-255-203.ap-south-1.compute.amazonaws.com:8000';
+export const API_URL = `${process.env.HOST_URL}:8000`;
 
 const apiClient = axios.create({
   baseURL: API_URL,
