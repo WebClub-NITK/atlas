@@ -15,3 +15,5 @@ for container in $(docker ps -q); do
         docker rm -f "$container"
     fi
 done
+
+psql -h localhost -U postgres -d atlas_db -c '\x' -c "DELETE FROM atlas_backend_container where (created_at < now() - interval '10 minutes');"
