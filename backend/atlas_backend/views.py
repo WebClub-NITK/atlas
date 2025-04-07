@@ -607,11 +607,11 @@ def start_challenge(request, challenge_id):
         })
 
     try:
-        client = DockerPlugin()
+        client = DockerPlugin(base_url=settings.DOCKER_HOST,key_file=settings.SSH_KEY_FILE)
 
         container_id, password = client.run_container(
             challenge.docker_image,
-            port=22,
+            port=challenge.port,
             container_name=f"{request.user.team.name.replace(' ', '_')}-{challenge.title.replace(' ', '_')}"
         )
 
@@ -632,7 +632,7 @@ def start_challenge(request, challenge_id):
             team=request.user.team,
             challenge=challenge,
             container_id=container_id,
-            ssh_host=settings.DOCKER_HOST_IP,
+            ssh_host=settings.SSH_HOST_URL,
             ssh_port=ports[f'{challenge.port}/tcp'][0]['HostPort'],
             ssh_user=challenge.ssh_user,
             ssh_password=password,
@@ -679,7 +679,7 @@ def stop_challenge(request, challenge_id):
         ).first()
 
         if existing_container:
-            client = DockerPlugin()
+            client = DockerPlugin(base_url=settings.DOCKER_HOST,key_file=settings.SSH_KEY_FILE)
             client.stop_container(existing_container.container_id)
             existing_container.delete()
             return Response({'message': 'Container stopped'}, status=status.HTTP_200_OK)
@@ -973,7 +973,7 @@ def create_challenge(request):
         image_id = None
         if request.FILES.get('docker_image'):
             try:
-                client = DockerPlugin()
+                client = DockerPlugin(base_url=settings.DOCKER_HOST,key_file=settings.SSH_KEY_FILE)
                 image_id = client.add_image(request.FILES['docker_image'].read())
             except Exception as e:
                 return Response(
@@ -1055,7 +1055,7 @@ def update_challenge(request, challenge_id):
         # Handle docker image file if present
         if request.FILES.get('docker_image'):
             try:
-                client = DockerPlugin()
+                client = DockerPlugin(base_url=settings.DOCKER_HOST,key_file=settings.SSH_KEY_FILE)
                 image_id = client.add_image(request.FILES['docker_image'].read())
                 data['docker_image'] = image_id
             except Exception as e:
@@ -1449,7 +1449,7 @@ def admin_stop_container(request, container_id):
             )
 
         container = Container.objects.get(container_id=container_id)
-        client = DockerPlugin()
+        client = DockerPlugin(base_url=settings.DOCKER_HOST,key_file=settings.SSH_KEY_FILE)
         client.stop_container(container.container_id)
         container.delete()
         return Response({"message": "Container stopped successfully"}, status=status.HTTP_200_OK)

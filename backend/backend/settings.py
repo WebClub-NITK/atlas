@@ -27,11 +27,14 @@ SECRET_KEY = (
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+HOST_URL = os.getenv("HOST_URL", "http://localhost")
+DOCKER_HOST_URL = os.getenv('DOCKER_HOST_URL', "unix://var/run/docker.sock")
+SSH_HOST_URL = os.getenv('DOCKER_HOST_URL', HOST_URL)
+KEY_FILE_PATH = os.getenv('KEY_FILE_PATH', None)
 
-DOCKER_HOST_IP="localhost"
+ALLOWED_HOSTS = [HOST_URL]
 
 # Application definition
 
@@ -59,14 +62,14 @@ MIDDLEWARE = [
 ]
 
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React development server
+    HOST_URL,
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",  # React development server
+    HOST_URL,
 ]
 
 ROOT_URLCONF = "backend.urls"

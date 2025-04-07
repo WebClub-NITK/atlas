@@ -41,9 +41,12 @@ services:
       dockerfile: Dockerfile
     container_name: atlas_frontend
     ports:
-      - "80:4173"
-    env_file:
-      - .env
+      - "3000:3000"
+    # volumes:
+    #   - ./frontend:/app
+    #   - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
     networks:
       - app-network
     restart: always
@@ -57,8 +60,15 @@ services:
     container_name: atlas_backend
     ports:
       - "8000:8000"
-    env_file:
-      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DEBUG=1
     networks:
       - app-network
     restart: always
