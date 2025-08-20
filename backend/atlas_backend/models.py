@@ -124,6 +124,12 @@ class Challenge(models.Model):
         ('forensics', 'Forensics'),
         ('misc', 'Miscellaneous'),
     ]
+    DIFFICULTY_CHOICES = [
+        (0, 'Easy'),
+        (1, 'Medium'),
+        (2, 'Hard'),
+        (3, 'Impossible'),
+    ]
 
     title = models.CharField(
         max_length=200,
@@ -131,6 +137,7 @@ class Challenge(models.Model):
     )
     description = models.TextField()
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    difficulty = models.IntegerField(choices=DIFFICULTY_CHOICES, default=0)
     docker_image = models.CharField(max_length=200)
     flag = models.CharField(max_length=200)
     max_points = models.IntegerField(validators=[MinValueValidator(0)])

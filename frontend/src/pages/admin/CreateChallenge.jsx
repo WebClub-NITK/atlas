@@ -7,6 +7,7 @@ function CreateChallenge() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    difficulty: 0,
     category: "web",
     docker_image: null,
     flag: "",
@@ -25,6 +26,12 @@ function CreateChallenge() {
   const [dockerFileName, setDockerFileName] = useState("");
 
   const categoryOptions = ["web", "crypto", "pwn", "reverse", "forensics", "misc"];
+  const difficultyOptions = [
+    [0, "Easy"],
+    [1, "Medium"],
+    [2, "Hard"],
+    [3, "Impossible"],
+  ];
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -63,6 +70,7 @@ function CreateChallenge() {
       // Append form fields
       formDataToSend.append("title", formData.title.trim());
       formDataToSend.append("description", formData.description.trim());
+      formDataToSend.append("difficulty", formData.difficulty);
       formDataToSend.append("category", formData.category);
       formDataToSend.append("flag", formData.flag.trim());
       formDataToSend.append("max_points", formData.max_points);
@@ -164,6 +172,22 @@ function CreateChallenge() {
               maxLength={200}
               required
             />
+          </div>
+
+          <div>
+            <label className="block mb-2 font-medium text-gray-900">Difficulty</label>
+            <select
+              value={formData.difficulty}
+              onChange={(e) => setFormData({ ...formData, difficulty: Number(e.target.value) })}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+              required
+            >
+              {difficultyOptions.map((dif) => (
+                <option key={dif[0]} value={dif[0]}>
+                  {dif[1]}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

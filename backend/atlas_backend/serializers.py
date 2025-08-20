@@ -76,6 +76,7 @@ class AdminChallengeSerializer(serializers.ModelSerializer):
     category = serializers.CharField(required=True)
     flag = serializers.CharField(required=True)
     max_points = serializers.IntegerField(required=True)
+    difficulty = serializers.IntegerField(required=True)
 
     docker_image = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     is_hidden = serializers.BooleanField(required=False, default=False)
@@ -147,6 +148,7 @@ class AdminChallengeSerializer(serializers.ModelSerializer):
             "title": rep["title"],
             "description": rep["description"],
             "category": rep["category"],
+            "difficulty": rep["difficulty"],
             "docker_image": rep["docker_image"],
             "flag": rep["flag"],
             "max_points": rep["max_points"],

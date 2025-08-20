@@ -375,37 +375,6 @@ def get_team_profile_admin(request, team_id):
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
-def get_challenge_detail(request, challenge_id):
-    try:
-        challenge = Challenge.objects.get(id=challenge_id)
-        data = {
-            'id': challenge.id,
-            'title': challenge.title,
-            'description': challenge.description,
-            'category': challenge.category,
-            'docker_image': challenge.docker_image,
-            'flag': challenge.flag,
-            'max_points': challenge.max_points,
-            'max_team_size': challenge.max_team_size,
-            'max_attempts': challenge.max_attempts,
-            'created_at': challenge.created_at,
-            'updated_at': challenge.updated_at,
-            'is_hidden': challenge.is_hidden,
-            'hints': challenge.hints,
-            'file_links': challenge.file_links,
-            'ssh_user' : challenge.ssh_user,
-            'port' : challenge.port,
-        }
-        return Response(data)
-    except Challenge.DoesNotExist:
-        return Response(
-            {"error": "Challenge not found"},
-            status=status.HTTP_404_NOT_FOUND
-        )
-
-
-@api_view(['GET'])
-@permission_classes([IsAdminUser])
 def get_challenge_submissions(request, challenge_id):
     """
     Get submissions for a challenge
