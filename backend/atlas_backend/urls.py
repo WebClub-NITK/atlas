@@ -1,6 +1,12 @@
 from django.urls import path
 from .views import admin_views, auth_views, challenge_views, team_views, analytics_views
+from .views.admin_views import AdminChallengeViewSet
 from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'api/admin/challenges', AdminChallengeViewSet, basename='admin-challenges')
+
 
 urlpatterns = [
     # Auth routes
@@ -36,11 +42,6 @@ urlpatterns = [
 
     # Admin routes
     path('auth/admin/login/', admin_views.admin_login, name='admin_login'),
-    path('api/admin/challenges/', admin_views.admin_get_challenges, name='admin_get_challenges'),
-    path('api/admin/challenges/create/', admin_views.create_challenge, name='create_challenge'),
-    path('api/admin/challenges/<int:challenge_id>/update/', admin_views.update_challenge, name='update_challenge'),
-    path('api/admin/challenges/<int:challenge_id>/delete/', admin_views.delete_challenge, name='delete_challenge'),
-    path('api/admin/challenges/<int:challenge_id>/', admin_views.get_challenge_detail, name='get_challenge_detail'),
     path('api/admin/challenges/<int:challenge_id>/submissions/', admin_views.get_challenge_submissions, name='get_challenge_submissions'),
     path('api/admin/submissions/', admin_views.get_all_submissions, name='get_all_submissions'),
     path('api/admin/dashboard/stats/', admin_views.get_dashboard_stats, name='dashboard-stats'),
@@ -51,3 +52,5 @@ urlpatterns = [
     path('api/admin/teams/<int:team_id>/', admin_views.get_team_profile_admin, name='get_team_profile_admin'),
     path('api/admin/teams/<int:team_id>/submissions/', admin_views.get_team_submissions_admin, name='get_team_submissions_admin'),
 ]
+
+urlpatterns += router.urls

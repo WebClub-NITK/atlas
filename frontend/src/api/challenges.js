@@ -63,7 +63,7 @@ export const getAdminChallenges = async () => {
 
 export const createChallenge = async (challengeData) => {
   try {
-    const response = await apiClient.post("api/admin/challenges/create", challengeData);
+    const response = await apiClient.post("api/admin/challenges/", challengeData);
     return response.data;
   } catch (error) {
     console.error("Error creating challenge:", error.response?.data || error);
@@ -73,7 +73,7 @@ export const createChallenge = async (challengeData) => {
 
 export const updateChallenge = async (challengeId, challengeData) => {
   try {
-    const response = await apiClient.patch(`api/admin/challenges/${challengeId}/update`, challengeData);
+    const response = await apiClient.patch(`api/admin/challenges/${challengeId}/`, challengeData);
     return response.data;
   } catch (error) {
     console.error("Error updating challenge:", error.response?.data || error);
@@ -83,7 +83,7 @@ export const updateChallenge = async (challengeId, challengeData) => {
 
 export const deleteChallenge = async (challengeId) => {
   try {
-    const response = await apiClient.delete(`api/admin/challenges/${challengeId}/delete`);
+    const response = await apiClient.delete(`api/admin/challenges/${challengeId}/`);
     return response.data;
   } catch (error) {
     console.error("Error deleting challenge:", error);
