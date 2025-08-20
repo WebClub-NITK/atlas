@@ -1,11 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser, BaseUserManager, Group
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.contrib.auth.models import AbstractUser
+from django.core.validators import MinValueValidator
 from django.contrib.auth.hashers import make_password, check_password
-from django.db.models import CharField, TextField, IntegerField, BooleanField, DateTimeField
-from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 import re
 import uuid
+
 
 def validate_team_name(value):
     pattern = r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$'
