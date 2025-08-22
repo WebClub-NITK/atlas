@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAdminChallenges, deleteChallenge } from '../../api/challenges';
+import { useTheme } from '../../context/ThemeContext';
 
 function Challenges() {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ function Challenges() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     const fetchChallenges = async () => {
@@ -49,7 +51,7 @@ function Challenges() {
     <div className="p-6">
       <div className="mb-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-red-500">Challenges</h1>
+          <h1 className="text-2xl font-bold text-accent">Challenges</h1>
           <Link
             to="/admin/challenges/create"
             className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
@@ -69,7 +71,7 @@ function Challenges() {
             placeholder="Search challenges by title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 pl-10 pr-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-4 py-2 pl-10 pr-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-neutral-800 border-neutral-700 text-gray-100' : 'bg-white'}`}
           />
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg 
@@ -89,23 +91,23 @@ function Challenges() {
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-white rounded-lg shadow">
-        <table className="min-w-full bg-[#FFF7ED] rounded-lg overflow-hidden">
+      <div className={`overflow-x-auto rounded-lg shadow ${isDarkMode ? 'bg-neutral-800' : 'bg-white'}`}>
+        <table className="min-w-full">
           <thead>
-            <tr className="bg-[#FFF7ED]">
-              <th className="px-4 py-2 text-left text-gray-900">ID</th>
-              <th className="px-4 py-2 text-left text-gray-900">Title</th>
-              <th className="px-4 py-2 text-left text-gray-900">Category</th>
-              <th className="px-4 py-2 text-center text-gray-900">Points</th>
-              <th className="w-24 px-4 py-2 text-center text-gray-900">Hidden</th>
-              <th className="w-24 px-4 py-2 text-center text-gray-900">Actions</th>
+            <tr className={isDarkMode ? 'bg-neutral-700' : 'bg-gray-50'}>
+              <th className="px-4 py-2 text-left">ID</th>
+              <th className="px-4 py-2 text-left">Title</th>
+              <th className="px-4 py-2 text-left">Category</th>
+              <th className="px-4 py-2 text-center">Points</th>
+              <th className="w-24 px-4 py-2 text-center">Hidden</th>
+              <th className="w-24 px-4 py-2 text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredChallenges.map((challenge) => (
-              <tr key={challenge.id} className="border-t border-gray-200">
-                <td className="px-4 py-2 text-gray-900">{challenge.id}</td>
-                <td className="px-4 py-2 text-gray-900">
+              <tr key={challenge.id} className={`border-t ${isDarkMode ? 'border-neutral-700' : 'border-gray-200'}`}>
+                <td className="px-4 py-2">{challenge.id}</td>
+                <td className="px-4 py-2">
                   <Link 
                     to={`/admin/challenges/${challenge.id}`}
                     className="text-blue-500 hover:underline"
@@ -113,9 +115,9 @@ function Challenges() {
                     {challenge.title}
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-gray-900">{challenge.category}</td>
-                <td className="px-4 py-2 text-center text-gray-900">{challenge.max_points}</td>
-                <td className="px-4 py-2 text-center text-gray-900">
+                <td className="px-4 py-2">{challenge.category}</td>
+                <td className="px-4 py-2 text-center">{challenge.max_points}</td>
+                <td className="px-4 py-2 text-center">
                   {challenge.is_hidden && (
                     <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                       Hidden
@@ -147,4 +149,4 @@ function Challenges() {
   );
 }
 
-export default Challenges; 
+export default Challenges;

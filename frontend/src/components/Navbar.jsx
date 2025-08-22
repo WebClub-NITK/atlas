@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "../hooks/useAuth"
 import { useTheme } from "../context/ThemeContext"
 import { IconLogin2, IconUserPlus, IconSun, IconMoon, IconMenu2, IconX } from "@tabler/icons-react"
+import { API_URL } from "../api/config"
 
 function NavLink({ to, children }) {
   const location = useLocation()
@@ -32,7 +33,7 @@ function NavLink({ to, children }) {
 
 function Navbar() {
   const { isAuthenticated, user, logout, isAdmin } = useAuth()
-  const { isDarkMode, toggleTheme } = useTheme()
+  const { isDarkMode, toggleTheme, themeConfig } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -58,6 +59,11 @@ function Navbar() {
     logout()
     setIsMobileMenuOpen(false)
     navigate(isAdminRoute ? "/admin/login" : "/")
+  }
+
+  const resolveLogoSrc = (logo) => {
+    if (!logo) return null
+    return logo.startsWith('/media/') ? `${API_URL}${logo}` : logo
   }
 
   const navList = (
@@ -137,8 +143,15 @@ function Navbar() {
       }`}
     >
       <div className="flex items-center justify-between max-w-7xl mx-auto">
-        <Link to={user?.isAdmin ? "/admin/dashboard" : "/"} className="font-mario text-xl text-white">
-          Atlas
+        <Link to={user?.isAdmin ? "/admin/dashboard" : "/"} className="flex items-center gap-2">
+          {themeConfig?.logo && (
+            <img
+              src={resolveLogoSrc(themeConfig.logo)}
+              alt="logo"
+              className="h-8 w-auto"
+            />
+          )}
+          <span className="font-mario text-xl text-white">{themeConfig?.site_name || 'Atlas'}</span>
         </Link>
 
         {/* Desktop Navigation */}

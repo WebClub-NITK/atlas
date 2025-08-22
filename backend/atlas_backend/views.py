@@ -9,15 +9,15 @@ import time
 from django.core.mail import send_mail
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.core.cache import cache
 from django.db import transaction
 from django.http import QueryDict
-from .models import User, Challenge, Submission, Team, Container, HintPurchase, validate_team_name
-from .serializers import SignupSerializer, ChallengeSerializer, TeamSerializer, SubmissionSerializer, UserSerializer
+from .models import User, Challenge, Submission, Team, Container, HintPurchase, validate_team_name, ThemeConfig
+from .serializers import SignupSerializer, ChallengeSerializer, TeamSerializer, SubmissionSerializer, UserSerializer, ThemeConfigSerializer
 import re
 from docker_plugin import DockerPlugin
 import logging
@@ -1879,3 +1879,33 @@ def admin_login(request):
             {'error': f'Admin login failed: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+THEME_CACHE_KEY = "theme_config_key"
+
+@api_view(["GET", "PUT", "PATCH"])
+@permission_classes([IsAdminUser])
+def theme_config_view(request):
+    if request.method == 'GET':
+        return get_theme_config(request)
+    return update_theme_config(request)
+
+def get_theme_config(request):
+    cached = cache.get(THEME_CACHE_KEY)
+    if cached:
+        return Response(cached)
+    obj, _ = ThemeConfig.objects.get_or_create(id=1)
+    data = ThemeConfigSerializer(obj, context={"request": request}).data
+    cache.set(THEME_CACHE_KEY, data, 300)
+    return Response(data)
+
+def update_theme_config(request):
+    if request.method not in ["PUT", "PATCH"]:
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    obj, _ = ThemeConfig.objects.get_or_create(id=1)
+    serializer = ThemeConfigSerializer(obj, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        data = ThemeConfigSerializer(obj, context={"request": request}).data
+        cache.set(THEME_CACHE_KEY, data, 0)
+        return Response(data)
+    return Response(serializer.errors, status=400)

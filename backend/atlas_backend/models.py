@@ -4,8 +4,10 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.hashers import make_password, check_password
 from django.db.models import CharField, TextField, IntegerField, BooleanField, DateTimeField
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 import re
 import uuid
+from django.utils import timezone
 
 def validate_team_name(value):
     pattern = r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$'
@@ -199,3 +201,27 @@ class HintPurchase(models.Model):
 
     class Meta:
         unique_together = ('team', 'challenge', 'hint_index')
+
+
+class ThemeConfig(models.Model):
+    site_name = models.CharField(max_length=50, default="Atlas")
+    logo = models.ImageField(upload_to="logos/", blank=True, null=True)
+    primary_color = models.CharField(max_length=10, default="#000000")
+    secondary_color = models.CharField(max_length=10, default="#1f2937")
+    accent_color = models.CharField(max_length=10, default="#FB3E3C")
+    font_family = models.CharField(max_length=100, default="ui-sans-serif, system-ui")
+    timer_start = models.DateTimeField(blank=True, null=True)
+    timer_end = models.DateTimeField(blank=True, null=True)
+    custom_css = models.TextField(blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def is_timer_active(self):
+        now = timezone.now()
+        if self.timer_start and self.timer_end:
+            return self.timer_start <= now <= self.timer_end
+        return False
+    
+    def __str__(self):
+        return self.site_name
+    

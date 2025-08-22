@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { getTeamProfile_Admin, updateTeam, deleteTeam, getTeamSubmissions_Admin } from '../../api/teams';
+import { getTeamProfile_Admin, getTeamPerformance, updateTeam, deleteTeam, getTeamSubmissions_Admin } from '../../api/teams';
+import PerformanceChart from '../../components/PerformanceChart';
 
 function EditTeamModal({ team, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -129,6 +130,7 @@ function TeamDetail() {
   const navigate = useNavigate();
   const [team, setTeam] = useState(null);
   const [submissions, setSubmissions] = useState([]);
+  const [performanceData, setPerformanceData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -137,12 +139,14 @@ function TeamDetail() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [teamData, submissionsData] = await Promise.all([
+        const [teamData, submissionsData, perfData] = await Promise.all([
           getTeamProfile_Admin(id),
-          getTeamSubmissions_Admin(id)
+          getTeamSubmissions_Admin(id),
+          getTeamPerformance(id)
         ]);
         setTeam(teamData);
         setSubmissions(submissionsData);
+        setPerformanceData(perfData);
         setError(null);
       } catch (err) {
         console.error('Error fetching team data:', err);
@@ -221,6 +225,12 @@ function TeamDetail() {
               Delete Team
             </button>
           </div>
+        </div>
+
+        {/* Performance Over Time */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-4">Performance Over Time</h2>
+          <PerformanceChart data={performanceData} />
         </div>
 
         {/* Submissions History */}

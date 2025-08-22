@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { getChallengeById_Team, startChallenge, submitFlag, purchaseHint } from '../api/challenges';
+import { getChallengeById_Team, startChallenge, submitFlag, purchaseHint, getTeamSubmissionsForChallenge } from '../api/challenges';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,8 @@ function ChallengeDetail() {
   const [challengeStarted, setChallengeStarted] = useState(false);
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [remainingPoints, setRemainingPoints] = useState(null);
+  const [solveRate, setSolveRate] = useState(0);
+  const [submissions, setSubmissions] = useState([]);
 
   useEffect(() => {
     const fetchChallenge = async () => {
@@ -31,8 +33,10 @@ function ChallengeDetail() {
       }
 
       try {
-        const response = await getChallengeById_Team(challengeId);
-        // console.log('Challenge data received:', response);
+        const [response, submissionsData] = await Promise.all([
+          getChallengeById_Team(challengeId),
+          getTeamSubmissionsForChallenge(challengeId)
+        ]);
         
         if (!response?.challenge) {
           throw new Error('Challenge not found');
@@ -50,9 +54,11 @@ function ChallengeDetail() {
         }
 
         setChallenge(challengeData);
+        setSubmissions(submissionsData);
         // console.log(challengeData.hints)
         // Set remaining points if available, otherwise use max points
         setRemainingPoints(challengeData.remaining_points || challengeData.max_points);
+        setSolveRate(challengeData.solve_rate || 0);
         setError(null);
       } catch (err) {
         console.error('Error fetching challenge:', err);
@@ -157,6 +163,9 @@ function ChallengeDetail() {
             </span>
               <span className="text-sm bg-[#F1EFEF] px-3 py-1.5 rounded text-neutral-700">
                 Maximum Attempts: {challenge.max_attempts}
+              </span>
+              <span className="text-sm bg-[#F1EFEF] px-3 py-1.5 rounded text-neutral-700">
+                Solve Rate: {solveRate.toFixed(2)}%
               </span>
           </div>
           <div className="text-right">
@@ -274,6 +283,43 @@ function ChallengeDetail() {
               Submit Flag
             </button>
           </form>
+        </div>
+
+        {/* Submission History Section */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h3 className="text-lg font-semibold mb-4">Submission History Timeline</h3>
+          {submissions && submissions.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-left">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 font-medium text-gray-700">Time</th>
+                    <th className="px-4 py-2 font-medium text-gray-700">Flag Submitted</th>
+                    <th className="px-4 py-2 font-medium text-gray-700">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {submissions.map((sub, index) => (
+                    <tr key={index}>
+                      <td className="px-4 py-2 text-gray-500">{new Date(sub.timestamp).toLocaleString()}</td>
+                      <td className="px-4 py-2 text-gray-900 font-mono">{sub.flag_submitted}</td>
+                      <td className="px-4 py-2">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          sub.is_correct 
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}>
+                          {sub.is_correct ? "Correct" : "Incorrect"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500">No submissions from your team for this challenge yet.</p>
+          )}
         </div>
       </div>
     </div>
