@@ -3,6 +3,7 @@ from .models import User, Challenge, Team, Submission
 from docker_plugin import DockerPlugin
 from django.core.exceptions import ValidationError
 from django.conf import settings
+import json
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -162,3 +163,83 @@ class AdminChallengeSerializer(serializers.ModelSerializer):
             "ssh_user": rep["ssh_user"],
             "port": rep["port"],
         }
+
+
+class TeamProgressSerializer(serializers.ModelSerializer):
+    solved_challenges = serializers.IntegerField(read_only=True)
+    total_points = serializers.IntegerField(read_only=True)
+    member_count = serializers.IntegerField(read_only=True)
+    
+    class Meta:
+        model = Team
+        fields = ['id', 'name', 'solved_challenges', 'total_points', 'member_count', 'created_at']
+
+
+class ChallengeSolveRateSerializer(serializers.ModelSerializer):
+    solve_count = serializers.IntegerField(read_only=True)
+    solve_rate = serializers.FloatField(read_only=True)
+    avg_attempts = serializers.FloatField(read_only=True)
+    
+    class Meta:
+        model = Challenge
+        fields = ['id', 'title', 'category', 'difficulty', 'max_points', 
+                 'solve_count', 'solve_rate', 'avg_attempts']
+
+
+class SubmissionTimelineSerializer(serializers.ModelSerializer):
+    team_name = serializers.CharField(source='team.name', read_only=True)
+    challenge_title = serializers.CharField(source='challenge.title', read_only=True)
+    challenge_category = serializers.CharField(source='challenge.category', read_only=True)
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    
+    class Meta:
+        model = Submission
+        fields = ['id', 'team_name', 'challenge_title', 'challenge_category', 
+                 'user_username', 'is_correct', 'points_awarded', 'timestamp']
+
+
+class UserContributionSerializer(serializers.ModelSerializer):
+    submission_count = serializers.IntegerField(read_only=True)
+    correct_submissions = serializers.IntegerField(read_only=True)
+    total_points = serializers.IntegerField(read_only=True)
+    team_name = serializers.CharField(source='team.name', read_only=True)
+    
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'team_name', 'submission_count', 
+                 'correct_submissions', 'total_points', 'created_at']
+
+
+class CategoryAnalyticsSerializer(serializers.Serializer):
+    category = serializers.CharField()
+    challenge_count = serializers.IntegerField()
+    total_submissions = serializers.IntegerField()
+    solved_count = serializers.IntegerField()
+    avg_difficulty = serializers.FloatField()
+
+
+class TimeBasedAnalyticsSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    submissions = serializers.IntegerField()
+    correct_submissions = serializers.IntegerField()
+    unique_teams = serializers.IntegerField()
+    unique_users = serializers.IntegerField()
+
+
+class ChallengeListSerializer(serializers.ModelSerializer):
+    hint_count = serializers.SerializerMethodField()
+    is_correct = serializers.BooleanField(default=False, read_only=True)
+    tries = serializers.IntegerField(default=0, read_only=True)
+
+    class Meta:
+        model = Challenge
+        fields = [
+            'id', 'title', 'description', 'category', 'max_points',
+            'file_links', 'docker_image', 'max_attempts', 'hint_count',
+            'is_correct', 'tries'
+        ]
+
+    def get_hint_count(self, obj):
+        hints = obj.hints if isinstance(obj.hints, list) else json.loads(obj.hints)
+        return len(hints)
+

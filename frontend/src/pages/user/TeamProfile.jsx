@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../hooks/useAuth';
-import { getTeamProfile, getTeamSubmissions, leaveTeam } from '../../api/teams';
-import LoadingSpinner from '../../components/LoadingSpinner';
-import { useTheme } from '../../context/ThemeContext';
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../../hooks/useAuth";
+import { getTeamProfile, getTeamSubmissions, leaveTeam } from "../../api/teams";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import { useTheme } from "../../context/ThemeContext";
 import { useNavigate, Link } from "react-router-dom";
+import TeamProgressCard from "../../components/TeamProgressCard";
+import MemberContributionsCard from "../../components/MemberContributionsCard";
 
 function TeamProfile() {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
   const [teamProfile, setTeamProfile] = useState(null);
   const [submissions, setSubmissions] = useState([]);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
   const [showAccessCode, setShowAccessCode] = useState(false);
   const navigate = useNavigate();
@@ -26,10 +28,10 @@ function TeamProfile() {
       console.log("TeamProfile: fetchData effect triggered. Current user:", user);
       setLoading(true);
       setNeedsTeam(false);
-      setError('');
+      setError("");
 
       if (!user || (!user.teamId && !user.team_id)) {
-        console.warn('TeamProfile: User object missing or no team ID found. Setting needsTeam state.');
+        console.warn("TeamProfile: User object missing or no team ID found. Setting needsTeam state.");
         setNeedsTeam(true);
         setLoading(false);
         return;
@@ -37,33 +39,32 @@ function TeamProfile() {
 
       console.log("TeamProfile: User has team info, proceeding to fetch profile and submissions.");
       try {
-        const [profile, submissionData] = await Promise.all([
-          getTeamProfile(),
-          getTeamSubmissions()
-        ]);
+        const [profile, submissionData] = await Promise.all([getTeamProfile(), getTeamSubmissions()]);
         console.log("TeamProfile: Fetched profile:", profile);
         console.log("TeamProfile: Fetched submissions:", submissionData);
 
         setTeamProfile(profile);
 
-        const formattedSubmissions = Object.values(submissionData || {}).map(sub => ({
+        const formattedSubmissions = Object.values(submissionData || {}).map((sub) => ({
           challenge_name: sub.challenge_name,
           points: sub.points_awarded,
           is_correct: sub.is_solved,
           submitted_at: sub.attempts?.[0]?.timestamp || null,
-          attempts: sub.attempts
+          attempts: sub.attempts,
         }));
         console.log("TeamProfile: Formatted submissions:", formattedSubmissions);
         setSubmissions(formattedSubmissions);
-
       } catch (err) {
-        console.error("TeamProfile: Error fetching team data (profile/submissions):", err.response?.data || err.message);
+        console.error(
+          "TeamProfile: Error fetching team data (profile/submissions):",
+          err.response?.data || err.message
+        );
         if (err.response?.status === 403 || err.response?.status === 401) {
-           console.warn("TeamProfile: Received 403/401 error, potentially invalid token or permissions issue.");
-           setError("Could not fetch team data. Please try logging in again.");
+          console.warn("TeamProfile: Received 403/401 error, potentially invalid token or permissions issue.");
+          setError("Could not fetch team data. Please try logging in again.");
         } else {
-           console.error("TeamProfile: Non-auth related error fetching data.");
-           setError(`Failed to load team data: ${err.response?.data?.error || err.message}`);
+          console.error("TeamProfile: Non-auth related error fetching data.");
+          setError(`Failed to load team data: ${err.response?.data?.error || err.message}`);
         }
         setTeamProfile(null);
       } finally {
@@ -145,11 +146,7 @@ function TeamProfile() {
     <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
       <h1 className="text-4xl font-bold mb-8 text-red-500">Team Profile</h1>
 
-      {success && (
-        <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">
-          {success}
-        </div>
-      )}
+      {success && <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">{success}</div>}
 
       <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6 mb-8">
         <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Team Information</h2>
@@ -169,8 +166,8 @@ function TeamProfile() {
           <h3 className="text-lg font-medium mb-2 text-gray-800">Team Access Code</h3>
           <div className="flex items-center">
             <div className="relative flex-1">
-              <input 
-                type={showAccessCode ? "text" : "password"} 
+              <input
+                type={showAccessCode ? "text" : "password"}
                 value={teamProfile.access_code || ""}
                 readOnly
                 className="w-full p-2 border border-gray-300 rounded pr-20"
@@ -181,17 +178,14 @@ function TeamProfile() {
               >
                 {showAccessCode ? "Hide" : "Show"}
               </button>
-              <button
-                onClick={copyAccessCode}
-                className="absolute right-2 top-2 text-blue-500 hover:text-blue-700"
-              >
+              <button onClick={copyAccessCode} className="absolute right-2 top-2 text-blue-500 hover:text-blue-700">
                 Copy
               </button>
             </div>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            {isTeamOwner 
-              ? "Share this code with others to invite them to your team." 
+            {isTeamOwner
+              ? "Share this code with others to invite them to your team."
               : "This is your team's access code."}
           </p>
         </div>
@@ -216,13 +210,9 @@ function TeamProfile() {
                   <td className="px-4 py-2 text-sm text-gray-500">{member.email}</td>
                   <td className="px-4 py-2 text-sm">
                     {member.is_owner ? (
-                      <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                        Owner
-                      </span>
+                      <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">Owner</span>
                     ) : (
-                      <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
-                        Member
-                      </span>
+                      <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">Member</span>
                     )}
                   </td>
                 </tr>
@@ -232,63 +222,8 @@ function TeamProfile() {
         </div>
       </div>
 
-      <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6">
-        <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Submission History</h2>
-        <div className="bg-white rounded-lg overflow-x-auto">
-          <table className="w-full whitespace-nowrap">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Challenge</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Points</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Submitted At</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">All Attempts</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {submissions.length > 0 ? (
-                submissions.map((submission, index) => (
-                  <tr key={index}>
-                    <td className="px-4 py-2 text-sm text-gray-900">{submission.challenge_name}</td>
-                    <td className="px-4 py-2 text-sm text-gray-500">{submission.points}</td>
-                    <td className="px-4 py-2 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        submission.is_correct 
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}>
-                        {submission.is_correct ? "Correct" : "Incorrect"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-500">
-                      {submission.submitted_at ? new Date(submission.submitted_at).toLocaleString() : "N/A"}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-500">
-                      {submission.attempts && submission.attempts.length > 0 ? (
-                        <div className="max-h-24 overflow-y-auto text-xs">
-                          {submission.attempts.map((attempt, idx) => (
-                            <div key={idx} className="mb-1 px-1 py-0.5 hover:bg-gray-50 rounded">
-                              {new Date(attempt.timestamp).toLocaleString()}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        "No attempts recorded"
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="px-4 py-6 text-sm text-gray-500 text-center">
-                    No submissions yet
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <TeamProgressCard />
+      <MemberContributionsCard />
 
       <div className="mt-8 pt-4 border-t border-gray-200">
         <button

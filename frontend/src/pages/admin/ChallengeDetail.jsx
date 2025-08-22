@@ -17,7 +17,7 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
   const [formData, setFormData] = useState({
     title: challenge.title || "",
     description: challenge.description || "",
-    difficulty: challenge.difficulty || "",
+    difficulty: challenge.difficulty || 0,
     category: challenge.category || "",
     max_points: challenge.max_points || 0,
     docker_image: null, // Changed to null for file handling

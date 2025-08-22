@@ -4,7 +4,7 @@ export const getChallenges = async () => {
   // console.log('Token before request:', localStorage.getItem('token'));
   // console.log('Sending the request with token:', jwtDecode(localStorage.getItem('token')));
   try {
-    const response = await apiClient.get("/challenges");
+    const response = await apiClient.get("/challenges/");
     return response.data;
   } catch (error) {
     console.error("Challenge request error:", {
@@ -18,7 +18,7 @@ export const getChallenges = async () => {
 
 export const getChallengeById_Team = async (challengeId) => {
   try {
-    const response = await apiClient.get(`/challenges/${challengeId}`);
+    const response = await apiClient.get(`/challenges/${challengeId}/`);
     return response.data;
   } catch (error) {
     console.error("Error fetching challenge:", error);
@@ -28,7 +28,7 @@ export const getChallengeById_Team = async (challengeId) => {
 
 export const submitFlag = async (challengeId, flag) => {
   try {
-    const response = await apiClient.post(`/challenges/${challengeId}/submit`, {
+    const response = await apiClient.post(`/challenges/${challengeId}/submit/`, {
       flag_submitted: flag, // Send flag in correct format
     });
     return response.data;
@@ -40,7 +40,7 @@ export const submitFlag = async (challengeId, flag) => {
 
 export const startChallenge = async (challengeId) => {
   try {
-    const response = await apiClient.post(`/challenges/${challengeId}/start`, {
+    const response = await apiClient.post(`/challenges/${challengeId}/start/`, {
       challengeId,
     });
     return response.data;
@@ -93,7 +93,7 @@ export const deleteChallenge = async (challengeId) => {
 
 export const getChallengeById = async (challengeId) => {
   try {
-    const response = await apiClient.get(`api/admin/challenges/${challengeId}`);
+    const response = await apiClient.get(`api/admin/challenges/${challengeId}/`);
     return response.data;
   } catch (error) {
     console.error("Error fetching challenge:", error);
@@ -103,7 +103,7 @@ export const getChallengeById = async (challengeId) => {
 
 export const getChallengeSubmissions = async (challengeId) => {
   try {
-    const response = await apiClient.get(`/api/admin/challenges/${challengeId}/submissions`);
+    const response = await apiClient.get(`/api/admin/challenges/${challengeId}/submissions/`);
     return response.data;
   } catch (error) {
     console.error("Error fetching challenge submissions:", error);
@@ -114,7 +114,7 @@ export const getChallengeSubmissions = async (challengeId) => {
 export const purchaseHint = async (challengeId, hintIndex) => {
   try {
     const response = await apiClient.post(
-      `challenges/${challengeId}/purchase-hint`,
+      `challenges/${challengeId}/purchase-hint/`,
       { hintIndex } // Add request body
     );
     return response.data;

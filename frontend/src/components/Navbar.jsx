@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react"
-import { Link, useNavigate, useLocation } from "react-router-dom"
-import { motion, AnimatePresence } from "framer-motion"
-import { useAuth } from "../hooks/useAuth"
-import { useTheme } from "../context/ThemeContext"
-import { IconLogin2, IconUserPlus, IconSun, IconMoon, IconMenu2, IconX } from "@tabler/icons-react"
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../hooks/useAuth";
+import { useTheme } from "../context/ThemeContext";
+import { IconLogin2, IconUserPlus, IconSun, IconMoon, IconMenu2, IconX } from "@tabler/icons-react";
 
 function NavLink({ to, children }) {
-  const location = useLocation()
-  const isActive = location.pathname === to
+  const location = useLocation();
+  const isActive = location.pathname === to;
 
   return (
     <Link
@@ -27,38 +27,38 @@ function NavLink({ to, children }) {
         />
       )}
     </Link>
-  )
+  );
 }
 
 function Navbar() {
-  const { isAuthenticated, user, logout, isAdmin } = useAuth()
-  const { isDarkMode, toggleTheme } = useTheme()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
+  const { isAuthenticated, user, logout, isAdmin } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  const isAdminRoute = location.pathname.startsWith("/admin")
+  const isAdminRoute = location.pathname.startsWith("/admin");
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 10)
-    }
+      setScrolled(window.scrollY > 10);
+    };
 
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Close mobile menu when route changes
   useEffect(() => {
-    setIsMobileMenuOpen(false)
-  }, [location.pathname])
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = () => {
-    logout()
-    setIsMobileMenuOpen(false)
-    navigate(isAdminRoute ? "/admin/login" : "/")
-  }
+    logout();
+    setIsMobileMenuOpen(false);
+    navigate(isAdminRoute ? "/admin/login" : "/");
+  };
 
   const navList = (
     <ul className="flex flex-col gap-4 w-full lg:flex-row lg:items-center lg:gap-6">
@@ -75,9 +75,14 @@ function Navbar() {
       {isAuthenticated && (
         <>
           {isAdmin ? (
-            <li>
-              <NavLink to="/admin/dashboard">Admin</NavLink>
-            </li>
+            <>
+              <li>
+                <NavLink to="/admin/dashboard">Admin</NavLink>
+              </li>
+              <li>
+                <NavLink to="/admin/analytics">Analytics</NavLink>
+              </li>
+            </>
           ) : (
             <>
               <li>
@@ -94,7 +99,7 @@ function Navbar() {
         </>
       )}
     </ul>
-  )
+  );
 
   const authButtons = (
     <div className="flex flex-col w-full gap-3 mt-4 lg:mt-0 lg:flex-row lg:w-auto">
@@ -128,7 +133,7 @@ function Navbar() {
         </button>
       )}
     </div>
-  )
+  );
 
   return (
     <nav
@@ -176,8 +181,7 @@ function Navbar() {
         </AnimatePresence>
       </div>
     </nav>
-  )
+  );
 }
 
-export default Navbar
-
+export default Navbar;

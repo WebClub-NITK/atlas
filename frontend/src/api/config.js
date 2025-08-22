@@ -23,9 +23,7 @@ apiClient.interceptors.request.use(
       const { access } = JSON.parse(tokenString);
       config.headers.Authorization = `Bearer ${access}`;
     }
-    if (config.url && !config.url.endsWith("/")) {
-      config.url += "/";
-    }
+
     // add CSRF token for unsafe methods
     if (["post", "patch", "put", "delete"].includes(config.method)) {
       config.headers["X-CSRFToken"] = getCSRFToken();

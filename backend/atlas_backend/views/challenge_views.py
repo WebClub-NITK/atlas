@@ -4,64 +4,17 @@ from datetime import datetime, timedelta
 import json
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from django.core.cache import cache
 from django.db import transaction
 from ..models import Challenge, Submission, Container, HintPurchase
-from rest_framework import status
+from rest_framework import status, generics
+from ..serializers import ChallengeListSerializer
 from docker_plugin import DockerPlugin
 import logging
 
 logger = logging.getLogger('atlas_backend')
 
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_challenges(request):
-    """Get all challenges available to the user"""
-    logger.info("=== GET /challenges ===")
-    
-    # Check if user has a team
-    if not request.user.team:
-        return Response(
-            {'error': 'You must be in a team to access challenges'},
-            status=status.HTTP_403_FORBIDDEN
-        )
-    
-    # Fetch only non-hidden challenges
-    challenges = Challenge.objects.filter(is_hidden=False).values(
-        'id',
-        'title',
-        'description',
-        'category',
-        'max_points',
-        'file_links',
-        'docker_image',
-        'max_attempts'
-    )
-    
-    # Convert QuerySet to list for JSON serialization
-    challenges_list = list(challenges)
-
-    submissions = list(Submission.objects.filter(team=request.user.team).values('challenge_id', 'is_correct', 'id'))
-
-    for sub in submissions:
-        for chal in challenges_list:
-            if sub['challenge_id'] == chal['id']:
-                chal['is_correct'] = sub['is_correct'] or chal.get('is_correct',False)
-                chal['tries'] = chal.get('tries',0) + 1
-                break
-            
-    # Add hint count information without revealing content
-    for chal in challenges_list:
-        challenge = Challenge.objects.get(id=chal['id'])
-        hints = challenge.hints if isinstance(challenge.hints, list) else json.loads(challenge.hints)
-        chal['hint_count'] = len(hints)
-
-    logger.info(f"Challenges: {challenges_list}")
-
-    return Response(challenges_list)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -434,3 +387,33 @@ def purchase_hint(request, challenge_id):
         logger.error(f"Error purchasing hint: {str(e)}")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class ChallengeListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ChallengeListSerializer
+
+    def get_queryset(self):
+        return Challenge.objects.filter(is_hidden=False)
+
+    def list(self, request, *args, **kwargs):
+        if not request.user.team:
+            return Response(
+                {'error': 'You must be in a team to access challenges'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+
+        # Add submission information
+        submissions = Submission.objects.filter(
+            team=request.user.team
+        ).values('challenge_id', 'is_correct', 'id')
+        
+        for chal in data:
+            chal_submissions = [s for s in submissions if s['challenge_id'] == chal['id']]
+            chal['is_correct'] = any(s['is_correct'] for s in chal_submissions)
+            chal['tries'] = len(chal_submissions)
+
+        return Response(data)
