@@ -2,7 +2,7 @@ from django.db.models import Count, Q, Avg, Sum
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from ..models import Submission, Challenge, Team, User
@@ -18,45 +18,46 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_scoreboard(request):
+class ScoreboardAPIView(APIView):
     """Get scoreboard data"""
-    try:
-        # Check if user has a team
-        if not request.user.team:
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Check if user has a team
+            if not request.user.team:
+                return Response(
+                    {'error': 'You must be in a team to view the scoreboard'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            teams = Team.objects.annotate(
+                member_count=Count('members', distinct=True),
+                solved_count=Count('submissions', filter=Q(
+                    submissions__is_correct=True))
+            ).order_by('-team_score')  # Use team_score field directly
+
+            scoreboard_data = []
+            for rank, team in enumerate(teams, 1):
+                team_data = {
+                    'rank': rank,
+                    'team_id': team.id,
+                    'team_name': team.name,
+                    'total_score': team.team_score, 
+                    'member_count': team.member_count,
+                    'solved_challenges': team.solved_count,
+                    'last_solve': team.submissions.filter(
+                        is_correct=True
+                    ).order_by('-timestamp').first().timestamp if team.solved_count > 0 else None
+                }
+                scoreboard_data.append(team_data)
+
+            return Response(scoreboard_data)
+        except Exception as e:
             return Response(
-                {'error': 'You must be in a team to view the scoreboard'},
-                status=status.HTTP_403_FORBIDDEN
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        
-        teams = Team.objects.annotate(
-            member_count=Count('members', distinct=True),
-            solved_count=Count('submissions', filter=Q(
-                submissions__is_correct=True))
-        ).order_by('-team_score')  # Use team_score field directly
-
-        scoreboard_data = []
-        for rank, team in enumerate(teams, 1):
-            team_data = {
-                'rank': rank,
-                'team_id': team.id,
-                'team_name': team.name,
-                'total_score': team.team_score, 
-                'member_count': team.member_count,
-                'solved_challenges': team.solved_count,
-                'last_solve': team.submissions.filter(
-                    is_correct=True
-                ).order_by('-timestamp').first().timestamp if team.solved_count > 0 else None
-            }
-            scoreboard_data.append(team_data)
-
-        return Response(scoreboard_data)
-    except Exception as e:
-        return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
 
 
 class AnalyticsViewSet(viewsets.ViewSet):
@@ -87,6 +88,9 @@ class AnalyticsViewSet(viewsets.ViewSet):
     def challenge_solve_rates(self, request):
         """Get challenge solve rate analytics"""
         total_teams = Team.objects.count()
+        
+        if total_teams == 0:
+            return Response([])
         
         challenges = Challenge.objects.annotate(
             solve_count=Count(
@@ -235,6 +239,9 @@ class ChallengeAnalyticsView(APIView):
     def get(self, request):
         total_teams = Team.objects.count()
         
+        if total_teams == 0:
+            return Response([])
+        
         challenges = Challenge.objects.annotate(
             solve_count=Count('submissions', filter=Q(submissions__is_correct=True), distinct=True),
             total_attempts=Count('submissions'),
@@ -269,21 +276,22 @@ class UserTeamProgressView(APIView):
         
         # Category performance
         category_stats = []
-        for category, category_name in Challenge.CATEGORY_CHOICES:
-            solved_in_category = Submission.objects.filter(
-                team=team,
-                challenge__category=category,
-                is_correct=True
-            ).values('challenge').distinct().count()
-            
-            total_in_category = Challenge.objects.filter(category=category, is_hidden=False).count()
-            
-            category_stats.append({
-                'category': category_name,
-                'solved': solved_in_category,
-                'total': total_in_category,
-                'percentage': (solved_in_category / total_in_category * 100) if total_in_category > 0 else 0
-            })
+        if hasattr(Challenge, 'CATEGORY_CHOICES'):
+            for category, category_name in Challenge.CATEGORY_CHOICES:
+                solved_in_category = Submission.objects.filter(
+                    team=team,
+                    challenge__category=category,
+                    is_correct=True
+                ).values('challenge').distinct().count()
+                
+                total_in_category = Challenge.objects.filter(category=category, is_hidden=False).count()
+                
+                category_stats.append({
+                    'category': category_name,
+                    'solved': solved_in_category,
+                    'total': total_in_category,
+                    'percentage': (solved_in_category / total_in_category * 100) if total_in_category > 0 else 0
+                })
         
         # Recent submissions timeline (last 30 days)
         twenty_four_hours_ago = timezone.now() - timedelta(hours=24)
@@ -387,18 +395,19 @@ class TeamMemberContributionsView(APIView):
         
         # User's category performance
         user_category_stats = []
-        for category, category_name in Challenge.CATEGORY_CHOICES:
-            user_solved_in_category = Submission.objects.filter(
-                user=user,
-                team=team,
-                challenge__category=category,
-                is_correct=True
-            ).values('challenge').distinct().count()
-            
-            user_category_stats.append({
-                'category': category_name,
-                'solved': user_solved_in_category
-            })
+        if hasattr(Challenge, 'CATEGORY_CHOICES'):
+            for category, category_name in Challenge.CATEGORY_CHOICES:
+                user_solved_in_category = Submission.objects.filter(
+                    user=user,
+                    team=team,
+                    challenge__category=category,
+                    is_correct=True
+                ).values('challenge').distinct().count()
+                
+                user_category_stats.append({
+                    'category': category_name,
+                    'solved': user_solved_in_category
+                })
         
         data = {
             'team_name': team.name,
