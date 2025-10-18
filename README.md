@@ -56,7 +56,7 @@ We welcome contributions from the community! To get started, please read our [CO
 The architecture of Atlas is designed to be modular and scalable, consisting of the following main components:
 
 - **Frontend**: A JavaScript-based web application built with React.js, providing an intuitive interface for participants and administrators.
-- **Backend**: A Python-based application using Flask, responsible for handling API requests, managing challenge states, and orchestrating Docker containers.
+- **Backend**: A Python-based application using Django (Django REST Framework for APIs), responsible for handling API requests, managing challenge states, and orchestrating Docker containers.
 - **Database**: PostgreSQL is used for persistent storage of user data, scores, and challenge states.
 - **Docker Orchestration**: Docker and Docker Compose are used to manage challenge environments, ensuring isolation and scalability.
 
@@ -68,7 +68,9 @@ The frontend is built using React.js and communicates with the backend via REST 
 - Admin Panel: Provides administrators with tools to create and manage challenges, view participant activity, and monitor system health.
 
 #### Backend
-The backend is a Flask application that handles:
+
+The backend is a Django application using Django REST Framework (DRF) that handles:
+
 - User Authentication: Manages user registration, login, and session management.
 - Challenge Management: Handles the creation, updating, and deletion of challenges.
 - Scoring System: Computes and updates participant scores based on challenge completions.
