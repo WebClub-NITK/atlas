@@ -18,6 +18,10 @@ function ProtectedRoute({ children, requireAdmin }) {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
+  if (!requireAdmin && isAdmin && !location.pathname.startsWith('/admin')) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
   return children;
 }
 

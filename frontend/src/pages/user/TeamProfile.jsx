@@ -1,21 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { getTeamProfile, getTeamSubmissions, leaveTeam } from '../../api/teams';
+import { getTeamProfile, getTeamSubmissions, leaveTeam, getTeamPerformance } from '../../api/teams';
+import { getTeamContributions } from '../../api/teams';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate, Link } from "react-router-dom";
+import PerformanceChart from '../../components/PerformanceChart';
 
 function TeamProfile() {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
   const [teamProfile, setTeamProfile] = useState(null);
   const [submissions, setSubmissions] = useState([]);
+  const [performanceData, setPerformanceData] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
   const [showAccessCode, setShowAccessCode] = useState(false);
   const navigate = useNavigate();
   const [needsTeam, setNeedsTeam] = useState(false);
+  const [contributions, setContributions] = useState([]);
 
   useEffect(() => {
     console.log("TeamProfile: Component mounted or user updated. User object from context:", user);
@@ -37,24 +41,28 @@ function TeamProfile() {
 
       console.log("TeamProfile: User has team info, proceeding to fetch profile and submissions.");
       try {
-        const [profile, submissionData] = await Promise.all([
+        const [profile, submissionData, perfData, contribData] = await Promise.all([
           getTeamProfile(),
-          getTeamSubmissions()
+          getTeamSubmissions(),
+          getTeamPerformance(),
+          getTeamContributions()
         ]);
         console.log("TeamProfile: Fetched profile:", profile);
         console.log("TeamProfile: Fetched submissions:", submissionData);
 
         setTeamProfile(profile);
+        setPerformanceData(perfData);
 
         const formattedSubmissions = Object.values(submissionData || {}).map(sub => ({
           challenge_name: sub.challenge_name,
           points: sub.points_awarded,
           is_correct: sub.is_solved,
           submitted_at: sub.attempts?.[0]?.timestamp || null,
-          attempts: sub.attempts
+          attempts: sub.attempts || []
         }));
         console.log("TeamProfile: Formatted submissions:", formattedSubmissions);
         setSubmissions(formattedSubmissions);
+        setContributions(contribData?.members || []);
 
       } catch (err) {
         console.error("TeamProfile: Error fetching team data (profile/submissions):", err.response?.data || err.message);
@@ -265,16 +273,14 @@ function TeamProfile() {
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-500">
                       {submission.attempts && submission.attempts.length > 0 ? (
-                        <div className="max-h-24 overflow-y-auto text-xs">
+                        <div className="max-h-28 overflow-y-auto text-xs space-y-1">
                           {submission.attempts.map((attempt, idx) => (
                             <div key={idx} className="mb-1 px-1 py-0.5 hover:bg-gray-50 rounded">
                               {new Date(attempt.timestamp).toLocaleString()}
                             </div>
                           ))}
                         </div>
-                      ) : (
-                        "No attempts recorded"
-                      )}
+                      ) : 'No attempts'}
                     </td>
                   </tr>
                 ))
@@ -288,6 +294,41 @@ function TeamProfile() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6 mt-8">
+        <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Individual Contributions</h2>
+        <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left font-medium text-gray-700">Member</th>
+                <th className="px-4 py-2 text-right font-medium text-gray-700">Solves</th>
+                <th className="px-4 py-2 text-right font-medium text-gray-700">Points</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {contributions.length ? contributions.map(m => (
+                <tr key={m.member_id}>
+                  <td className="px-4 py-2 text-gray-900">{m.username}</td>
+                  <td className="px-4 py-2 text-right text-gray-900">{m.solves}</td>
+                  <td className="px-4 py-2 text-right text-gray-900">{m.points}</td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="4" className="px-4 py-4 text-center text-gray-500">
+                    No contribution data yet
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-[#FFF7ED] rounded-lg shadow-lg p-6 mt-8">
+        <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Performance Over Time</h2>
+        <PerformanceChart data={performanceData} />
       </div>
 
       <div className="mt-8 pt-4 border-t border-gray-200">

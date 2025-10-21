@@ -35,6 +35,14 @@
   --dark-text-primary: #e0e0e0;
   --dark-text-secondary: #a0a0a0;
   --dark-border: #404040;
+  --color-primary: #000000;
+  --color-secondary: #1f2937;
+  --color-accent: #FB3E3C;
+  --font-family-custom: ui-sans-serif, system-ui;
+}
+
+body {
+  font-family: var(--font-family-custom);
 }
 
 /* Light mode styles */
@@ -141,6 +149,18 @@
   focus:outline-none focus:ring-2 focus:ring-offset-2;
 }
 
+.btn-primary {
+  background-color: var(--color-primary);
+}
+
 .btn-orange {
   @apply bg-orange-500 hover:bg-orange-600 focus:ring-orange-500;
+}
+
+.text-accent {
+  color: var(--color-accent);
+}
+
+a {
+  color: var(--color-accent);
 }

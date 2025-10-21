@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Challenge, Team, Submission, Container
+from .models import User, Challenge, Team, Submission, Container, ThemeConfig
 
 class UserSerializer(serializers.ModelSerializer):
     team_name = serializers.CharField(source='team.name',read_only=True)
@@ -53,7 +53,7 @@ class TeamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Team
-        fields = ['id', 'name', 'description', 'team_size', 'members', 
+        fields = ['id', 'name', 'members', 
                 'total_score', 'member_count', 'solved_count', 'challenges',
                 'is_banned', 'is_hidden'] 
 
@@ -65,3 +65,13 @@ class SubmissionSerializer(serializers.ModelSerializer):
         model = Submission
         fields = ['id', 'challenge_name', 'submitted_by', 'flag_submitted', 
                  'is_correct', 'points_awarded', 'attempt_number', 'timestamp']
+    
+
+class ThemeConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ThemeConfig
+        fields = [
+            "id","site_name","logo","primary_color","secondary_color","accent_color",
+            "font_family","timer_start","timer_end","custom_css","updated_at","is_timer_active"
+        ]
+        read_only_fields = ("updated_at","is_timer_active")

@@ -1,25 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { getScoreboard } from '../api/scoreboard';
+import { getScoreboard, getScoreboardGraph } from '../api/scoreboard';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../context/ThemeContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useNavigate } from "react-router-dom"
+import ScoreboardChart from '../components/ScoreboardChart';
 
 function Scoreboard() {
   const [teams, setTeams] = useState([]);
+  const [graphData, setGraphData] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const { isDarkMode } = useTheme();
   const navigate = useNavigate()
 
   useEffect(() => {
-    const fetchScoreboard = async () => {
+    const fetchScoreboardData = async () => {
       try {
         setLoading(true);
-        const data = await getScoreboard();
-        setTeams(data);
+        const [scoreboard, chartData] = await Promise.all([
+          getScoreboard(),
+          getScoreboardGraph()
+        ]);
+        setTeams(scoreboard);
+        setGraphData(chartData);
       } catch (err) {
-        console.error('Error fetching scoreboard:', err);
+        console.error('Error fetching scoreboard data:', err);
         
         // Handle team requirement error
         if (err.response?.status === 403 && err.response?.data?.error?.includes('team')) {
@@ -33,7 +39,7 @@ function Scoreboard() {
       }
     };
 
-    fetchScoreboard();
+    fetchScoreboardData();
   }, [navigate]);
 
   if (loading) return <LoadingSpinner/>;
@@ -46,7 +52,9 @@ function Scoreboard() {
           Scoreboard
         </h1>
         
-        <div className="overflow-x-auto bg-[#FFF7ED] rounded-lg shadow">
+        {graphData && graphData.length > 0 && <ScoreboardChart data={graphData} />}
+
+        <div className="overflow-x-auto bg-[#FFF7ED] rounded-lg shadow mt-8">
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-neutral-200">

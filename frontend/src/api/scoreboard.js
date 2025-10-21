@@ -10,4 +10,12 @@ export const getScoreboard = async () => {
   }
 };
 
-
+export const getScoreboardGraph = async () => {
+  try {
+    const response = await apiClient.get('/scoreboard/graph');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching scoreboard graph:', error);
+    throw error;
+  }
+};

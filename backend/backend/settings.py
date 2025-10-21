@@ -27,14 +27,14 @@ SECRET_KEY = (
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 HOST_URL = os.getenv("HOST_URL", "http://localhost")
 DOCKER_HOST_URL = os.getenv('DOCKER_HOST_URL', "unix://var/run/docker.sock")
 SSH_HOST_URL = os.getenv('DOCKER_HOST_URL', HOST_URL)
 KEY_FILE_PATH = os.getenv('KEY_FILE_PATH', None)
 
-ALLOWED_HOSTS = [HOST_URL]
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -92,16 +92,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "backend.wsgi.application"
 
-DATABASES = {
-    "default": {
+DATABASES = {}
+if os.getenv("DB_NAME"):
+    DATABASES["default"] = {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
         "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
+        "USER": os.getenv("DB_USER", ""),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": os.getenv("DB_PORT", "5432"),
     }
-}
+else:
+    # Fallback for local when env not set
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
 AUTH_USER_MODEL = "atlas_backend.User"
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",

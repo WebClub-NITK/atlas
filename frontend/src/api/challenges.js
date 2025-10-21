@@ -20,6 +20,16 @@ export const getChallenges = async () => {
   }
 };
 
+export const getChallengeSolveRate = async (challengeId) => {
+  try{
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error){
+    console.log('Error fetching challenge solve rate: ', error);
+    throw error;
+  }
+}
+
 export const getChallengeById_Team = async (challengeId) => {
   try {
     const response = await apiClient.get(`/challenges/${challengeId}`);
@@ -30,6 +40,15 @@ export const getChallengeById_Team = async (challengeId) => {
   }
 }
 
+export const getTeamSubmissionsForChallenge = async (challengeId) => {
+  try {
+    const response = await apiClient.get(`/challenges/${challengeId}/submissions`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching submissions for challenge:', error);
+    throw error;
+  }
+};
 
 export const submitFlag = async (challengeId, flag) => {
   try {
@@ -82,7 +101,7 @@ export const createChallenge = async (challengeData) => {
 export const updateChallenge = async (challengeId, challengeData) => {
   try {
     const response = await apiClient.patch(
-      `api/admin/challenges/${challengeId}/update`,
+      `api/admin/challenges/${challengeId}`,
       challengeData
     );
     return response.data;
@@ -94,7 +113,7 @@ export const updateChallenge = async (challengeId, challengeData) => {
 
 export const deleteChallenge = async (challengeId) => {
   try {
-    const response = await apiClient.delete(`api/admin/challenges/${challengeId}/delete`);
+    const response = await apiClient.delete(`api/admin/challenges/${challengeId}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting challenge:', error);

@@ -26,6 +26,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import TeamProfile from './pages/user/TeamProfile';
 import AdminContainers from './pages/admin/Containers';
 import TeamSetup from './pages/TeamSetup';
+import AdminTheme from './pages/admin/AdminTheme';
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
             <Route path="challenges/:challengeId" element={<AdminChallengeDetail />} />
             <Route path="challenges/create" element={<CreateChallenge />} />
             <Route path="containers" element={<AdminContainers />} />
+            <Route path="theme" element={<AdminTheme />} />
           </Route>
 
           {/* Main App Routes */}

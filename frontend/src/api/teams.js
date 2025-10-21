@@ -23,6 +23,23 @@ export const getTeamSubmissions = async () => {
   }
 };
 
+export const getTeamContributions = async () => {
+  const res = await apiClient.get('/teams/contributions');
+  return res.data;
+};
+
+export const getTeamPerformance = async (teamId) => {
+  try {
+    const response = await apiClient.get('/teams/performance', {
+      params: teamId ? { team_id: teamId } : {}
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching team performance data:', error);
+    throw error;
+  }
+};
+
 export const createTeam = async (teamData) => {
   console.log('Creating team:', teamData);
   try {
@@ -111,7 +128,7 @@ export const updateTeam = async (teamId, teamData) => {
     };
 
     const response = await apiClient.patch(
-      `/api/admin/teams/${teamId}/update`,
+      `/api/admin/teams/${teamId}/`,
       formattedData
     );
     return response.data;
@@ -124,7 +141,7 @@ export const updateTeam = async (teamId, teamData) => {
 // Delete team
 export const deleteTeam = async (teamId) => {
   try {
-    await apiClient.delete(`api/admin/teams/${teamId}/delete`);
+    await apiClient.delete(`/api/admin/teams/${teamId}/`);
     return true;
   } catch (error) {
     console.error('Error deleting team:', error);
@@ -134,7 +151,7 @@ export const deleteTeam = async (teamId) => {
 
 export const getTeamProfile_Admin = async (teamId) => {
   try {
-    const response = await apiClient.get(`/api/admin/teams/${teamId}`);
+    const response = await apiClient.get(`/api/admin/teams/${teamId}/`);
     return response.data;
   } catch (error) {
     console.error('Error fetching team profile:', error);
