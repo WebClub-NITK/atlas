@@ -1,32 +1,32 @@
-import apiClient from './config';
+import apiClient from "./config";
 
 export const login = async (username, password) => {
   try {
-    const response = await apiClient.post('/auth/login', {
+    const response = await apiClient.post("/auth/login/", {
       username,
-      password
+      password,
     });
     return response.data;
   } catch (error) {
-    console.error('Login error:', error);
+    console.error("Login error:", error);
     throw error;
   }
 };
 
 export const register = async (formData) => {
-  const response = await apiClient.post('/auth/signup', formData);
+  const response = await apiClient.post("/auth/signup/", formData);
   return response.data;
 };
 
 export const requestPasswordReset = async (email) => {
-  const response = await apiClient.post('/auth/forgot-password', {
+  const response = await apiClient.post("/auth/forgot-password/", {
     email,
   });
   return response.data;
 };
 
 export const resetPassword = async (token, newPassword) => {
-  const response = await apiClient.post('/auth/reset-password', {
+  const response = await apiClient.post("/auth/reset-password/", {
     token,
     newPassword,
   });
@@ -38,13 +38,13 @@ export const adminLogin = async (email, password) => {
   // console.log(email)
   // console.log(password)
   try {
-    const response = await apiClient.post('/auth/admin/login', {
+    const response = await apiClient.post("/auth/admin/login/", {
       email,
-      password
+      password,
     });
     return response.data;
   } catch (error) {
-    console.error('Admin login error:', error);
+    console.error("Admin login error:", error);
     throw error;
   }
 };

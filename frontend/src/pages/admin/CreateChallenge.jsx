@@ -1,107 +1,112 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createChallenge } from '../../api/challenges';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { createChallenge } from "../../api/challenges";
 
 function CreateChallenge() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: 'web',
+    title: "",
+    description: "",
+    difficulty: 0,
+    category: "web",
     docker_image: null,
-    flag: '',
-    max_points: '',
+    flag: "",
+    max_points: "",
     max_team_size: 3,
     is_hidden: false,
     hints: [],
     file_links: [],
-    ssh_user: '',
-    port: '22',
-    max_attempts:1
+    ssh_user: "",
+    port: "22",
+    max_attempts: 1,
   });
 
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [dockerFileName, setDockerFileName] = useState('');
-  
-  const categoryOptions = [
-    'web',
-    'crypto',
-    'pwn',
-    'reverse',
-    'forensics',
-    'misc'
+  const [dockerFileName, setDockerFileName] = useState("");
+
+  const categoryOptions = ["web", "crypto", "pwn", "reverse", "forensics", "misc"];
+  const difficultyOptions = [
+    [0, "Easy"],
+    [1, "Medium"],
+    [2, "Hard"],
+    [3, "Impossible"],
   ];
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) {
-      setFormData({...formData, docker_image: null});
-      setDockerFileName('');
+      setFormData({ ...formData, docker_image: null });
+      setDockerFileName("");
       return;
     }
 
-    if (!file.name.endsWith('.tar') && !file.name.endsWith('.tar.gz')) {
-      setError('Only .tar and .tar.gz files are allowed');
-      e.target.value = '';
+    if (!file.name.endsWith(".tar") && !file.name.endsWith(".tar.gz")) {
+      setError("Only .tar and .tar.gz files are allowed");
+      e.target.value = "";
       return;
     }
 
-    setError('');
-    setFormData({...formData, docker_image: file});
+    setError("");
+    setFormData({ ...formData, docker_image: file });
     setDockerFileName(file.name);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       const formDataToSend = new FormData();
-      
+
       // Validate required fields (removed docker_image validation)
-      if (!formData.title.trim()) throw new Error('Title is required');
-      if (!formData.description.trim()) throw new Error('Description is required');
-      if (!formData.flag.trim()) throw new Error('Flag is required');
-      if (!formData.max_points) throw new Error('Points are required');
-      if (!formData.port) throw new Error('Port is required');
+      if (!formData.title.trim()) throw new Error("Title is required");
+      if (!formData.description.trim()) throw new Error("Description is required");
+      if (!formData.flag.trim()) throw new Error("Flag is required");
+      if (!formData.max_points) throw new Error("Points are required");
+      if (!formData.port) throw new Error("Port is required");
 
       // Append form fields
-      formDataToSend.append('title', formData.title.trim());
-      formDataToSend.append('description', formData.description.trim());
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('flag', formData.flag.trim());
-      formDataToSend.append('max_points', formData.max_points);
-      formDataToSend.append('max_team_size', formData.max_team_size);
-      formDataToSend.append('is_hidden', formData.is_hidden);
-      formDataToSend.append('port', formData.port);
-      formDataToSend.append('max_attempts', formData.max_attempts);
-      
+      formDataToSend.append("title", formData.title.trim());
+      formDataToSend.append("description", formData.description.trim());
+      formDataToSend.append("difficulty", formData.difficulty);
+      formDataToSend.append("category", formData.category);
+      formDataToSend.append("flag", formData.flag.trim());
+      formDataToSend.append("max_points", formData.max_points);
+      formDataToSend.append("max_team_size", formData.max_team_size);
+      formDataToSend.append("is_hidden", formData.is_hidden);
+      formDataToSend.append("port", formData.port);
+      formDataToSend.append("max_attempts", formData.max_attempts);
+
       // Only append ssh_user if it's provided
       if (formData.ssh_user.trim()) {
-        formDataToSend.append('ssh_user', formData.ssh_user.trim());
+        formDataToSend.append("ssh_user", formData.ssh_user.trim());
       }
 
       // Only append docker_image if one is selected
       if (formData.docker_image) {
-        formDataToSend.append('docker_image', formData.docker_image);
+        formDataToSend.append("docker_image", formData.docker_image);
       }
 
-      formDataToSend.append('hints', JSON.stringify(formData.hints.map(hint => ({
-        content: hint.content.trim(),
-        cost: parseInt(hint.cost)
-      }))));
-      
-      formDataToSend.append('file_links', JSON.stringify(
-        formData.file_links.filter(link => link.trim() !== '')
-      ));
+      formDataToSend.append(
+        "hints",
+        JSON.stringify(
+          formData.hints.map((hint) => ({
+            content: hint.content.trim(),
+            cost: parseInt(hint.cost),
+          }))
+        )
+      );
+
+      formDataToSend.append("file_links", JSON.stringify(formData.file_links.filter((link) => link.trim() !== "")));
 
       const response = await createChallenge(formDataToSend);
-      navigate(`/admin/challenges/${response.challenge_id}`);
+      console.log(response);
+      navigate(`/admin/challenges/${response.id}`);
     } catch (error) {
-      console.error('Error creating challenge:', error);
-      setError(error.response?.data?.error || error.message || 'Failed to create challenge');
+      console.error("Error creating challenge:", error);
+      setError(error.response?.data?.error || error.message || "Failed to create challenge");
     } finally {
       setLoading(false);
     }
@@ -110,54 +115,50 @@ function CreateChallenge() {
   const addHint = () => {
     setFormData({
       ...formData,
-      hints: [...formData.hints, { content: '', cost: 0 }]
+      hints: [...formData.hints, { content: "", cost: 0 }],
     });
   };
 
   const removeHint = (index) => {
     const newHints = formData.hints.filter((_, i) => i !== index);
-    setFormData({...formData, hints: newHints});
+    setFormData({ ...formData, hints: newHints });
   };
 
   const updateHint = (index, field, value) => {
     const newHints = [...formData.hints];
     newHints[index] = { ...newHints[index], [field]: value };
-    setFormData({...formData, hints: newHints});
+    setFormData({ ...formData, hints: newHints });
   };
 
   const addFileLink = () => {
     setFormData({
       ...formData,
-      file_links: [...formData.file_links, '']
+      file_links: [...formData.file_links, ""],
     });
   };
 
   const removeFileLink = (index) => {
     const newLinks = formData.file_links.filter((_, i) => i !== index);
-    setFormData({...formData, file_links: newLinks});
+    setFormData({ ...formData, file_links: newLinks });
   };
 
   const updateFileLink = (index, value) => {
     const urlPattern = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
     if (!urlPattern.test(value)) {
-      setError('Invalid URL. Please include a scheme (http, https, ftp).');
+      setError("Invalid URL. Please include a scheme (http, https, ftp).");
       return;
     }
-    setError('');
+    setError("");
     const newLinks = [...formData.file_links];
     newLinks[index] = value;
-    setFormData({...formData, file_links: newLinks});
+    setFormData({ ...formData, file_links: newLinks });
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 text-red-500">Create Challenge</h1>
-      
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
+
+      {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-[#FFF7ED] p-8 rounded-lg shadow-sm space-y-6">
@@ -166,7 +167,7 @@ function CreateChallenge() {
             <input
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               maxLength={200}
               required
@@ -174,14 +175,30 @@ function CreateChallenge() {
           </div>
 
           <div>
-            <label className="block mb-2 font-medium text-gray-900">Category</label>
+            <label className="block mb-2 font-medium text-gray-900">Difficulty</label>
             <select
-              value={formData.category}
-              onChange={(e) => setFormData({...formData, category: e.target.value})}
+              value={formData.difficulty}
+              onChange={(e) => setFormData({ ...formData, difficulty: Number(e.target.value) })}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               required
             >
-              {categoryOptions.map(cat => (
+              {difficultyOptions.map((dif) => (
+                <option key={dif[0]} value={dif[0]}>
+                  {dif[1]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block mb-2 font-medium text-gray-900">Category</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+              required
+            >
+              {categoryOptions.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat.charAt(0).toUpperCase() + cat.slice(1)}
                 </option>
@@ -193,7 +210,7 @@ function CreateChallenge() {
             <label className="block mb-2 font-medium text-gray-900">Description</label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               rows={4}
               required
@@ -209,24 +226,20 @@ function CreateChallenge() {
                 onChange={handleFileChange}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               />
-              {dockerFileName && (
-                <span className="text-sm text-gray-900">
-                  Selected: {dockerFileName}
-                </span>
-              )}
+              {dockerFileName && <span className="text-sm text-gray-900">Selected: {dockerFileName}</span>}
             </div>
-            <p className="text-sm text-gray-900 mt-1">
-              Upload .tar or .tar.gz file (optional)
-            </p>
+            <p className="text-sm text-gray-900 mt-1">Upload .tar or .tar.gz file (optional)</p>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block mb-2 font-medium text-gray-900">Port <span className="text-red-500"></span></label>
+              <label className="block mb-2 font-medium text-gray-900">
+                Port <span className="text-red-500"></span>
+              </label>
               <input
                 type="number"
                 value={formData.port}
-                onChange={(e) => setFormData({...formData, port: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, port: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 placeholder="22"
               />
@@ -238,7 +251,7 @@ function CreateChallenge() {
               <input
                 type="text"
                 value={formData.ssh_user}
-                onChange={(e) => setFormData({...formData, ssh_user: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, ssh_user: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 placeholder="atlas"
               />
@@ -251,7 +264,7 @@ function CreateChallenge() {
             <input
               type="text"
               value={formData.flag}
-              onChange={(e) => setFormData({...formData, flag: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, flag: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               maxLength={200}
               required
@@ -263,7 +276,7 @@ function CreateChallenge() {
             <input
               type="number"
               value={formData.max_points}
-              onChange={(e) => setFormData({...formData, max_points: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, max_points: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               required
               min="0"
@@ -275,7 +288,7 @@ function CreateChallenge() {
             <input
               type="number"
               value={formData.max_attempts}
-              onChange={(e) => setFormData({...formData, max_attempts: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, max_attempts: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               required
               min="1"
@@ -288,7 +301,7 @@ function CreateChallenge() {
             <input
               type="number"
               value={formData.max_team_size}
-              onChange={(e) => setFormData({...formData, max_team_size: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, max_team_size: e.target.value })}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
               required
               min="1"
@@ -300,7 +313,7 @@ function CreateChallenge() {
               <input
                 type="checkbox"
                 checked={formData.is_hidden}
-                onChange={(e) => setFormData({...formData, is_hidden: e.target.checked})}
+                onChange={(e) => setFormData({ ...formData, is_hidden: e.target.checked })}
                 className="rounded border-gray-300 text-blue-500 focus:ring-blue-500"
               />
               <span className="font-medium">Hidden Challenge</span>
@@ -324,14 +337,14 @@ function CreateChallenge() {
                 <input
                   type="text"
                   value={hint.content}
-                  onChange={(e) => updateHint(index, 'content', e.target.value)}
+                  onChange={(e) => updateHint(index, "content", e.target.value)}
                   placeholder="Hint content"
                   className="flex-grow border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 />
                 <input
                   type="number"
                   value={hint.cost}
-                  onChange={(e) => updateHint(index, 'cost', e.target.value)}
+                  onChange={(e) => updateHint(index, "cost", e.target.value)}
                   placeholder="Cost"
                   className="w-24 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   min="0"
@@ -383,7 +396,7 @@ function CreateChallenge() {
         <div className="flex justify-end space-x-4">
           <button
             type="button"
-            onClick={() => navigate('/admin/challenges')}
+            onClick={() => navigate("/admin/challenges")}
             className="px-4 py-2 bg-red-400 border border-gray-300 rounded-lg hover:bg-red-500 transition-colors text-gray-900"
           >
             Cancel
@@ -393,7 +406,7 @@ function CreateChallenge() {
             disabled={loading}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {loading ? 'Creating...' : 'Create Challenge'}
+            {loading ? "Creating..." : "Create Challenge"}
           </button>
         </div>
       </form>

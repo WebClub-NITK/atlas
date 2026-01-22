@@ -1,11 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser, BaseUserManager, Group
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.contrib.auth.models import AbstractUser
+from django.core.validators import MinValueValidator
 from django.contrib.auth.hashers import make_password, check_password
-from django.db.models import CharField, TextField, IntegerField, BooleanField, DateTimeField
-from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 import re
 import uuid
+
 
 def validate_team_name(value):
     pattern = r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$'
@@ -124,6 +124,12 @@ class Challenge(models.Model):
         ('forensics', 'Forensics'),
         ('misc', 'Miscellaneous'),
     ]
+    DIFFICULTY_CHOICES = [
+        (0, 'Easy'),
+        (1, 'Medium'),
+        (2, 'Hard'),
+        (3, 'Impossible'),
+    ]
 
     title = models.CharField(
         max_length=200,
@@ -131,6 +137,7 @@ class Challenge(models.Model):
     )
     description = models.TextField()
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    difficulty = models.IntegerField(choices=DIFFICULTY_CHOICES, default=0)
     docker_image = models.CharField(max_length=200)
     flag = models.CharField(max_length=200)
     max_points = models.IntegerField(validators=[MinValueValidator(0)])

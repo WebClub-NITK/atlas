@@ -1,110 +1,126 @@
-import { useState, useEffect } from "react"
-import { useParams, useNavigate, Link } from "react-router-dom"
-import { getChallengeById, updateChallenge, deleteChallenge, getChallengeSubmissions } from "../../api/challenges"
-import LoadingSpinner from "../../components/LoadingSpinner"
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { getChallengeById, updateChallenge, deleteChallenge, getChallengeSubmissions } from "../../api/challenges";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+const categoryOptions = ["web", "crypto", "pwn", "reverse", "forensics", "misc"];
+const difficultyOptions = [
+  [0, "Easy"],
+  [1, "Medium"],
+  [2, "Hard"],
+  [3, "Impossible"],
+];
 
 function EditChallengeModal({ challenge, onClose, onSave }) {
   const [formData, setFormData] = useState({
-    title: challenge.title || '',
-    description: challenge.description || '',
-    category: challenge.category || '',
+    title: challenge.title || "",
+    description: challenge.description || "",
+    difficulty: challenge.difficulty || 0,
+    category: challenge.category || "",
     max_points: challenge.max_points || 0,
     docker_image: null, // Changed to null for file handling
-    flag: challenge.flag || '',
+    flag: challenge.flag || "",
     is_hidden: challenge.is_hidden || false,
-    hints: Array.isArray(challenge.hints) ? challenge.hints : 
-           (typeof challenge.hints === 'string' ? JSON.parse(challenge.hints) : []),
-    file_links: Array.isArray(challenge.file_links) ? challenge.file_links : 
-                (typeof challenge.file_links === 'string' ? JSON.parse(challenge.file_links) : []),
-    port: challenge.port || '22',
-    ssh_user: challenge.ssh_user || '',
-    max_attempts: challenge.max_attempts || 100
+    hints: Array.isArray(challenge.hints)
+      ? challenge.hints
+      : typeof challenge.hints === "string"
+      ? JSON.parse(challenge.hints)
+      : [],
+    file_links: Array.isArray(challenge.file_links)
+      ? challenge.file_links
+      : typeof challenge.file_links === "string"
+      ? JSON.parse(challenge.file_links)
+      : [],
+    port: challenge.port || "22",
+    ssh_user: challenge.ssh_user || "",
+    max_attempts: challenge.max_attempts || 100,
   });
 
-  const [newHint, setNewHint] = useState({ content: '', cost: 0 });
-  const [newFileLink, setNewFileLink] = useState('');
-  const [fileName, setFileName] = useState(challenge.docker_image || ''); // For displaying filename
+  const [newHint, setNewHint] = useState({ content: "", cost: 0 });
+  const [newFileLink, setNewFileLink] = useState("");
+  const [fileName, setFileName] = useState(challenge.docker_image || ""); // For displaying filename
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    if (name === 'docker_image' && files?.length > 0) {
-      setFormData(prev => ({
+    if (name === "docker_image" && files?.length > 0) {
+      setFormData((prev) => ({
         ...prev,
-        docker_image: files[0]
+        docker_image: files[0],
       }));
       setFileName(files[0].name);
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: type === "checkbox" ? checked : value
+        [name]: type === "checkbox" ? checked : value,
       }));
     }
   };
 
   const handleAddHint = () => {
     if (newHint.content && newHint.cost) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        hints: [...prev.hints, newHint]
+        hints: [...prev.hints, newHint],
       }));
-      setNewHint({ content: '', cost: 0 });
+      setNewHint({ content: "", cost: 0 });
     }
   };
 
   const handleRemoveHint = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      hints: prev.hints.filter((_, i) => i !== index)
+      hints: prev.hints.filter((_, i) => i !== index),
     }));
   };
 
   const handleAddFileLink = () => {
     if (newFileLink) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        file_links: [...prev.file_links, newFileLink]
+        file_links: [...prev.file_links, newFileLink],
       }));
-      setNewFileLink('');
+      setNewFileLink("");
     }
   };
 
   const handleRemoveFileLink = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      file_links: prev.file_links.filter((_, i) => i !== index)
+      file_links: prev.file_links.filter((_, i) => i !== index),
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const formDataToSend = new FormData();
-  
+
     // Add all fields to the form data
-    formDataToSend.append('title', formData.title);
-    formDataToSend.append('description', formData.description);
-    formDataToSend.append('category', formData.category);
-    formDataToSend.append('max_points', formData.max_points || 0);
-    formDataToSend.append('flag', formData.flag);
-    formDataToSend.append('is_hidden', formData.is_hidden);
-    formDataToSend.append('port', formData.port);
-    formDataToSend.append('max_attempts', formData.max_attempts);
-    
+    formDataToSend.append("title", formData.title);
+    formDataToSend.append("description", formData.description);
+    formDataToSend.append("difficulty", formData.difficulty);
+    formDataToSend.append("category", formData.category);
+    formDataToSend.append("max_points", formData.max_points || 0);
+    formDataToSend.append("flag", formData.flag);
+    formDataToSend.append("is_hidden", formData.is_hidden);
+    formDataToSend.append("port", formData.port);
+    formDataToSend.append("max_attempts", formData.max_attempts);
+
     // Only append ssh_user if it's provided
     if (formData.ssh_user.trim()) {
-      formDataToSend.append('ssh_user', formData.ssh_user);
+      formDataToSend.append("ssh_user", formData.ssh_user);
     }
-    
+
     // Always append hints and file_links arrays
-    formDataToSend.append('hints', JSON.stringify(formData.hints || []));
-    formDataToSend.append('file_links', JSON.stringify(formData.file_links || []));
-  
+    formDataToSend.append("hints", JSON.stringify(formData.hints || []));
+    formDataToSend.append("file_links", JSON.stringify(formData.file_links || []));
+
     // Only append docker_image if it's a new file
     if (formData.docker_image instanceof File) {
-      formDataToSend.append('docker_image', formData.docker_image);
+      formDataToSend.append("docker_image", formData.docker_image);
     }
-  
+
     onSave(formDataToSend);
   };
 
@@ -137,15 +153,35 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-gray-900 text-sm font-bold mb-2">Category</label>
-            <input
-              type="text"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
+            <label className="block text-gray-900 text-sm font-bold mb-2">Difficulty</label>
+            <select
+              value={formData.difficulty}
+              onChange={(e) => setFormData({ ...formData, difficulty: Number(e.target.value) })}
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
               required
-            />
+            >
+              {difficultyOptions.map((dif) => (
+                <option key={dif[0]} value={dif[0]}>
+                  {dif[1]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-gray-900 text-sm font-bold mb-2">Category</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-900 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            >
+              {categoryOptions.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -171,9 +207,7 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
               required
               min="1"
             />
-            <p className="text-sm text-gray-600 mt-1">
-              Maximum number of flag submission attempts allowed
-            </p>
+            <p className="text-sm text-gray-600 mt-1">Maximum number of flag submission attempts allowed</p>
           </div>
 
           <div>
@@ -191,17 +225,18 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
                 className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                  />
                 </svg>
                 Choose Docker Image
               </label>
-              <span className="text-gray-900">
-                {fileName || 'No file chosen'}
-              </span>
+              <span className="text-gray-900">{fileName || "No file chosen"}</span>
             </div>
-            <p className="mt-1 text-sm text-gray-900">
-              Accepted formats: .tar, .tar.gz
-            </p>
+            <p className="mt-1 text-sm text-gray-900">Accepted formats: .tar, .tar.gz</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -291,7 +326,12 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
                     className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center"
                   >
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
                     </svg>
                     Remove
                   </button>
@@ -304,7 +344,7 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
                     <input
                       type="text"
                       value={newHint.content}
-                      onChange={(e) => setNewHint({...newHint, content: e.target.value})}
+                      onChange={(e) => setNewHint({ ...newHint, content: e.target.value })}
                       placeholder="Enter hint content"
                       className="w-full border rounded px-2 py-1 text-gray-900"
                     />
@@ -314,7 +354,7 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
                     <input
                       type="number"
                       value={newHint.cost}
-                      onChange={(e) => setNewHint({...newHint, cost: parseInt(e.target.value)})}
+                      onChange={(e) => setNewHint({ ...newHint, cost: parseInt(e.target.value) })}
                       placeholder="Cost"
                       className="w-full border rounded px-2 py-1 text-gray-900"
                     />
@@ -354,7 +394,12 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
                     className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center"
                   >
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
                     </svg>
                     Remove
                   </button>
@@ -425,10 +470,10 @@ function ChallengeDetail() {
 
       try {
         const challengeData = await getChallengeById(challengeId);
-        if (typeof challengeData.hints === 'string') {
+        if (typeof challengeData.hints === "string") {
           challengeData.hints = JSON.parse(challengeData.hints);
         }
-        if (typeof challengeData.file_links === 'string') {
+        if (typeof challengeData.file_links === "string") {
           try {
             challengeData.file_links = JSON.parse(challengeData.file_links);
           } catch (e) {
@@ -442,7 +487,7 @@ function ChallengeDetail() {
 
         const submissionsData = await getChallengeSubmissions(challengeId);
         setSubmissions(submissionsData);
-        
+
         setError(null);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -457,41 +502,41 @@ function ChallengeDetail() {
 
   const fetchSubmissions = async () => {
     try {
-      const submissionsData = await getChallengeSubmissions(challengeId)
-      setSubmissions(submissionsData)
+      const submissionsData = await getChallengeSubmissions(challengeId);
+      setSubmissions(submissionsData);
     } catch (error) {
-      console.error("Error fetching submissions:", error)
-      setError("Failed to load submissions.")
+      console.error("Error fetching submissions:", error);
+      setError("Failed to load submissions.");
     }
-  }
+  };
 
   const fetchChallenge = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const data = await getChallengeById(challengeId)
-      setChallenge(data)
+      const data = await getChallengeById(challengeId);
+      setChallenge(data);
     } catch (error) {
-      console.error("Error fetching challenge:", error)
-      setError("Failed to load challenge.")
+      console.error("Error fetching challenge:", error);
+      setError("Failed to load challenge.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleUpdateChallenge = async (updatedData) => {
     try {
       await updateChallenge(challengeId, updatedData);
-      
+
       const newChallengeData = await getChallengeById(challengeId);
-      if (typeof newChallengeData.hints === 'string') {
+      if (typeof newChallengeData.hints === "string") {
         newChallengeData.hints = JSON.parse(newChallengeData.hints);
       }
-      
+
       setChallenge(newChallengeData);
-      
+
       const newSubmissionsData = await getChallengeSubmissions(challengeId);
       setSubmissions(newSubmissionsData);
-      
+
       setIsEditModalOpen(false);
       setError(null);
     } catch (error) {
@@ -503,25 +548,25 @@ function ChallengeDetail() {
   const handleDeleteChallenge = async () => {
     if (window.confirm("Are you sure you want to delete this challenge?")) {
       try {
-        await deleteChallenge(challengeId)
-        navigate("/admin/challenges")
+        await deleteChallenge(challengeId);
+        navigate("/admin/challenges");
       } catch (error) {
-        console.error("Error deleting challenge:", error)
-        setError("Failed to delete challenge.")
+        console.error("Error deleting challenge:", error);
+        setError("Failed to delete challenge.");
       }
     }
-  }
+  };
 
   if (loading) {
-    return <LoadingSpinner />
+    return <LoadingSpinner />;
   }
 
   if (error) {
-    return <div className="text-red-500">Error: {error}</div>
+    return <div className="text-red-500">Error: {error}</div>;
   }
 
   if (!challenge) {
-    return <div className="text-gray-500">Challenge not found</div>
+    return <div className="text-gray-500">Challenge not found</div>;
   }
 
   return (
@@ -550,15 +595,17 @@ function ChallengeDetail() {
         <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Description</h2>
           <div className="text-gray-900 markdown-content">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {challenge.description}
-            </ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{challenge.description}</ReactMarkdown>
           </div>
         </section>
 
         <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Details</h2>
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-gray-900 font-bold">Difficulty:</span>
+              <span className="text-gray-900 ml-1">{difficultyOptions[challenge.difficulty][1]}</span>
+            </div>
             <div>
               <span className="text-gray-900 font-bold">Category:</span>
               <span className="text-gray-900 ml-1">{challenge.category}</span>
@@ -583,20 +630,20 @@ function ChallengeDetail() {
         </section>
 
         {challenge.docker_image ? (
-        <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Docker Image Details</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="text-gray-900 font-bold">Docker Image:</span>
-              <span className="text-gray-900 ml-1">{challenge.docker_image || "N/A"}</span>
-            </div>
-            <div>
-              <span className="text-gray-900 font-bold">Port:</span>
-              <span className="text-gray-900 ml-1">{challenge.docker_image ? challenge.port : "N/A"}</span>
-            </div>
-            <div>
-              <span className="text-gray-900 font-bold">SSH User:</span>
-              <span className="text-gray-900 ml-1">{challenge.docker_image ? challenge.ssh_user : "N/A"}</span>
+          <section className="mb-6 bg-white rounded-xl shadow-sm p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Docker Image Details</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-gray-900 font-bold">Docker Image:</span>
+                <span className="text-gray-900 ml-1">{challenge.docker_image || "N/A"}</span>
+              </div>
+              <div>
+                <span className="text-gray-900 font-bold">Port:</span>
+                <span className="text-gray-900 ml-1">{challenge.docker_image ? challenge.port : "N/A"}</span>
+              </div>
+              <div>
+                <span className="text-gray-900 font-bold">SSH User:</span>
+                <span className="text-gray-900 ml-1">{challenge.docker_image ? challenge.ssh_user : "N/A"}</span>
               </div>
             </div>
           </section>
@@ -621,9 +668,7 @@ function ChallengeDetail() {
                     </span>
                   </div>
                   <div className="text-gray-900 markdown-content">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {hint.content}
-                    </ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{hint.content}</ReactMarkdown>
                   </div>
                 </div>
               ))}
@@ -642,7 +687,7 @@ function ChallengeDetail() {
             <div className="space-y-4">
               {challenge.file_links.map((link, index) => (
                 <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                  <a 
+                  <a
                     href={link}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -660,8 +705,6 @@ function ChallengeDetail() {
             <p className="text-gray-900">No file links available for this challenge.</p>
           </section>
         )}
-
-        
 
         <section className="bg-white rounded-xl shadow-sm p-8">
           <h2 className="text-2xl font-bold mb-4">Submissions</h2>
@@ -696,7 +739,9 @@ function ChallengeDetail() {
                       <td className="px-6 py-4 text-zinc-900 whitespace-nowrap">
                         {new Date(submission.timestamp).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 text-zinc-900 whitespace-nowrap">{submission.is_correct ? "Yes" : "No"}</td>
+                      <td className="px-6 py-4 text-zinc-900 whitespace-nowrap">
+                        {submission.is_correct ? "Yes" : "No"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -716,7 +761,7 @@ function ChallengeDetail() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export default ChallengeDetail
+export default ChallengeDetail;
