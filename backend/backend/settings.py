@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 from datetime import timedelta
 import django.conf
@@ -30,11 +31,18 @@ SECRET_KEY = (
 DEBUG = False
 
 HOST_URL = os.getenv("HOST_URL", "http://localhost")
-DOCKER_HOST_URL = os.getenv('DOCKER_HOST_URL', "unix://var/run/docker.sock")
-SSH_HOST_URL = os.getenv('DOCKER_HOST_URL', HOST_URL)
-KEY_FILE_PATH = os.getenv('KEY_FILE_PATH', None)
+FRONTEND_URL = os.getenv("FRONTEND_URL", HOST_URL)
 
-ALLOWED_HOSTS = [HOST_URL]
+# Preserve both legacy and current setting names because the views reference
+# DOCKER_HOST and SSH_KEY_FILE directly.
+DOCKER_HOST = os.getenv('DOCKER_HOST_URL', "unix://var/run/docker.sock")
+DOCKER_HOST_URL = DOCKER_HOST
+SSH_HOST_URL = os.getenv('SSH_HOST_URL', HOST_URL)
+SSH_KEY_FILE = os.getenv('KEY_FILE_PATH') or None
+KEY_FILE_PATH = SSH_KEY_FILE
+HOST_NAME = urlparse(HOST_URL).hostname or HOST_URL
+
+ALLOWED_HOSTS = [HOST_NAME, "localhost", "127.0.0.1", "backend"]
 
 # Application definition
 
@@ -98,8 +106,8 @@ DATABASES = {
         "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": os.getenv("DB_PORT", "5432"),
     }
 }
 AUTH_USER_MODEL = "atlas_backend.User"
