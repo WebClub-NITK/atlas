@@ -70,7 +70,11 @@ export const getAdminChallenges = async () => {
 
 export const createChallenge = async (challengeData) => {
   try {
-    const response = await apiClient.post('api/admin/challenges/create', challengeData);
+    const response = await apiClient.post('api/admin/challenges/create', challengeData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     return response.data;
   } catch (error) {
     console.error('Error creating challenge:', error);
@@ -83,7 +87,12 @@ export const updateChallenge = async (challengeId, challengeData) => {
   try {
     const response = await apiClient.patch(
       `api/admin/challenges/${challengeId}/update`,
-      challengeData
+      challengeData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }
     );
     return response.data;
   } catch (error) {

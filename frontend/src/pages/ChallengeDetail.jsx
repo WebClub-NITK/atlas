@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Terminal from '../components/Terminal';
 
 function ChallengeDetail() {
   const { challengeId } = useParams();
@@ -190,13 +191,8 @@ function ChallengeDetail() {
                 </button>
               ) : (
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="text-lg font-semibold text-neutral-800 mb-2">SSH Connection Details:</h4>
-                  <div className="space-y-1 text-neutral-700">
-                    <p>Host: {sshDetails?.host}</p>
-                    <p>Port: {sshDetails?.port}</p>
-                    <p>Username: {sshDetails?.ssh_user}</p>
-                    <p>Password: {sshDetails?.ssh_password}</p>
-                  </div>
+                  <h4 className="text-lg font-semibold text-neutral-800 mb-2">Terminal Session</h4>
+                  <Terminal challengeId={challengeId} />
                 </div>
               )}
             </div>
