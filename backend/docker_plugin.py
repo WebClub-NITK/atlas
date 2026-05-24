@@ -2,7 +2,7 @@ from docker import DockerClient, APIClient
 from docker.transport import SSHHTTPAdapter
 import secrets
 import logging
-from docker.errors import APIError
+from docker.errors import APIError, NotFound
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s", level=logging.ERROR
@@ -15,7 +15,7 @@ ALLOWED_CHARACTERS = (
 
 class DockerPlugin:
     def __init__(self, base_url: str = "unix://var/run/docker.sock", key_file: str = None):
-        if key_file is None:
+        if key_file is None or not str(base_url).startswith("ssh://"):
             self.docker_client = DockerClient(base_url=base_url)
         else:
             class MySSHHTTPAdapter(SSHHTTPAdapter):
@@ -42,7 +42,13 @@ class DockerPlugin:
             logging.error(error)
         return None
 
-    def run_container(self, image: str, port: int, container_name: str = None):
+    def run_container(
+        self,
+        image: str,
+        port: int,
+        container_name: str = None,
+        environment: dict | None = None,
+    ):
         try:
             password = "".join(
                 secrets.choice(ALLOWED_CHARACTERS) for _ in range(16)
@@ -54,13 +60,17 @@ class DockerPlugin:
                 "memory": "128m",
             }
 
+            runtime_environment = {"PASS": password}
+            if environment:
+                runtime_environment.update(environment)
+
             container = self.docker_client.containers.run(
                 image,
                 detach=True,
                 auto_remove=True,
                 tty=True,
                 name=container_name,
-                environment={"PASS": password},
+                environment=runtime_environment,
                 ports={f"{port}/tcp": None},
                 cpu_quota=resources["cpu_quota"],
                 cpu_period=resources["cpu_period"],
@@ -76,6 +86,8 @@ class DockerPlugin:
             container = self.docker_client.containers.get(container_id)
             container.stop()
             return True
+        except NotFound:
+            return False
         except APIError as error:
             logging.error(error)
         return False

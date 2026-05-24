@@ -7,8 +7,8 @@ urlpatterns = [
     path('auth/signup', views.register, name='register'),
     path('auth/login', views.signin, name='signin'),
     path('auth/refresh', views.token_refresh, name='token_refresh'),
-    path('auth/forgot-password', views.request_password_reset, name='request_password_reset'),  
-    path('auth/reset-password', views.reset_password, name='reset_password'),  
+    path('auth/forgot-password', views.request_password_reset, name='request_password_reset'),
+    path('auth/reset-password', views.reset_password, name='reset_password'),
     
     # Challenge routes
     path('challenges', views.get_challenges, name='get_challenges'),
@@ -31,7 +31,7 @@ urlpatterns = [
 
     # Scoreboard route
     path('scoreboard', views.get_scoreboard, name='get_scoreboard'),
-    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='simplejwt_token_refresh'),
 
 
     # Admin routes

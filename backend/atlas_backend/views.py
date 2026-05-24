@@ -16,6 +16,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.core.cache import cache
 from django.db import transaction
 from django.http import QueryDict
+from django.utils import timezone
 from .models import User, Challenge, Submission, Team, Container, HintPurchase, validate_team_name
 from .serializers import SignupSerializer, ChallengeSerializer, TeamSerializer, SubmissionSerializer, UserSerializer
 import re
@@ -65,6 +66,9 @@ def register(request):
         
         # Generate tokens for automatic login
         refresh = RefreshToken.for_user(user)
+        refresh['user_id'] = user.id
+        refresh['username'] = user.username
+        refresh['email'] = user.email
         
         return Response({
             'user': {
@@ -590,30 +594,43 @@ def start_challenge(request, challenge_id):
         )
         
     challenge = get_object_or_404(Challenge, id=challenge_id)
+    container_name = f"{request.user.team.name.replace(' ', '_')}-{challenge.title.replace(' ', '_')}"
 
     existing_container = Container.objects.filter(
         team=request.user.team,
         challenge=challenge,
-        created_at__gte=datetime.now() - timedelta(minutes=10)
+        created_at__gte=timezone.now() - timedelta(minutes=10)
     ).first()
 
     if existing_container:
-        return Response({
+        response_data = {
             'host': existing_container.ssh_host,
             'port': existing_container.ssh_port,
-            'ssh_user': existing_container.ssh_user,
-            'ssh_password': existing_container.ssh_password,
             'created_at': existing_container.created_at,
-        })
+        }
+        if existing_container.ssh_user:
+            response_data['ssh_user'] = existing_container.ssh_user
+            response_data['ssh_password'] = existing_container.ssh_password
+        return Response(response_data)
 
     try:
         client = DockerPlugin(base_url=settings.DOCKER_HOST,key_file=settings.SSH_KEY_FILE)
+        # If a previous attempt leaked a container without a DB row, remove it
+        # before starting a replacement with the same deterministic name.
+        client.stop_container(container_name)
 
-        container_id, password = client.run_container(
+        result = client.run_container(
             challenge.docker_image,
             port=challenge.port,
-            container_name=f"{request.user.team.name.replace(' ', '_')}-{challenge.title.replace(' ', '_')}"
+            container_name=container_name,
+            environment={
+                'SSH_USER': challenge.ssh_user,
+            } if challenge.ssh_user else None,
         )
+        if not result:
+            raise Exception("Failed to start challenge container")
+
+        container_id, password = result
 
         import time
         timeout = 30
@@ -624,19 +641,24 @@ def start_challenge(request, challenge_id):
                 break
             time.sleep(1)
             if time.time() - start_time > timeout:
+                client.stop_container(container_id)
                 return Response(
                     {'error': 'Timeout waiting for container ports'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-        container = Container.objects.create(
-            team=request.user.team,
-            challenge=challenge,
-            container_id=container_id,
-            ssh_host=settings.SSH_HOST_URL,
-            ssh_port=ports[f'{challenge.port}/tcp'][0]['HostPort'],
-            ssh_user=challenge.ssh_user,
-            ssh_password=password,
-        )
+        try:
+            container = Container.objects.create(
+                team=request.user.team,
+                challenge=challenge,
+                container_id=container_id,
+                ssh_host=settings.SSH_HOST_URL,
+                ssh_port=ports[f'{challenge.port}/tcp'][0]['HostPort'],
+                ssh_user=challenge.ssh_user or '',
+                ssh_password=password,
+            )
+        except Exception:
+            client.stop_container(container_id)
+            raise
 
         if challenge.ssh_user:
             return Response({
@@ -675,7 +697,7 @@ def stop_challenge(request, challenge_id):
         existing_container = Container.objects.filter(
             team=request.user.team,
             challenge=challenge,
-            created_at__gte=datetime.now() - timedelta(minutes=10)
+            created_at__gte=timezone.now() - timedelta(minutes=10)
         ).first()
 
         if existing_container:
@@ -1060,7 +1082,7 @@ def update_challenge(request, challenge_id):
                 data['docker_image'] = image_id
             except Exception as e:
                 logger.error(f"Docker image upload error: {str(e)}")
-                raise Exception("Failed to upload docker image")
+                raise Exception(f"Failed to upload docker image: {str(e)}")
 
         if 'ssh_user' in data:
             try:
@@ -1478,7 +1500,7 @@ def get_dashboard_stats(request):
         stats = {
             'teams': {
                 'total': Team.objects.count(),
-                'active': Team.objects.filter(submissions__timestamp__gte=datetime.now() - timedelta(days=1)).distinct().count()
+                'active': Team.objects.filter(submissions__timestamp__gte=timezone.now() - timedelta(days=1)).distinct().count()
             },
             'challenges': {
                 'total': Challenge.objects.count(),
@@ -1487,12 +1509,12 @@ def get_dashboard_stats(request):
             },
             'containers': {
                 'total': Container.objects.count(),
-                'running': Container.objects.filter(created_at__gte=datetime.now() - timedelta(minutes=10)).count()
+                'running': Container.objects.filter(created_at__gte=timezone.now() - timedelta(minutes=10)).count()
             },
             'submissions': {
                 'total': Submission.objects.count(),
                 'correct': Submission.objects.filter(is_correct=True).count(),
-                'last_24h': Submission.objects.filter(timestamp__gte=datetime.now() - timedelta(days=1)).count()
+                'last_24h': Submission.objects.filter(timestamp__gte=timezone.now() - timedelta(days=1)).count()
             }
         }
         return Response(stats)
