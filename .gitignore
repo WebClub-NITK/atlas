@@ -3,6 +3,8 @@ node_modules/
 .pnpm-store/
 .npm/
 
+my-challenge.tar
+
 # Build outputs
 dist/
 dist-ssr/
