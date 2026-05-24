@@ -593,67 +593,74 @@ def start_challenge(request, challenge_id):
 
     existing_container = Container.objects.filter(
         team=request.user.team,
-        challenge=challenge,
-        created_at__gte=datetime.now() - timedelta(minutes=10)
+        challenge=challenge
     ).first()
 
     if existing_container:
-        return Response({
-            'host': existing_container.ssh_host,
-            'port': existing_container.ssh_port,
-            'ssh_user': existing_container.ssh_user,
-            'ssh_password': existing_container.ssh_password,
-            'created_at': existing_container.created_at,
-        })
+        # Verify the Docker container is actually alive
+        try:
+            client = DockerPlugin(base_url=settings.DOCKER_HOST, key_file=settings.SSH_KEY_FILE)
+            docker_container = client.docker_client.containers.get(existing_container.container_id)
+            if docker_container.status == 'running':
+                return Response({
+                    'status': 'ready',
+                    'created_at': existing_container.created_at,
+                })
+        except Exception:
+            pass
+        # Container is dead or gone — delete the stale DB record
+        existing_container.delete()
 
     try:
         client = DockerPlugin(base_url=settings.DOCKER_HOST,key_file=settings.SSH_KEY_FILE)
 
-        container_id, password = client.run_container(
+        team_name = request.user.team.name if request.user.team else request.user.username
+        # Generate a safe container name
+        import re
+        safe_team = re.sub(r'[^a-zA-Z0-9_.-]', '_', team_name)
+        safe_title = re.sub(r'[^a-zA-Z0-9_.-]', '_', challenge.title)
+        c_name = f"{safe_team}-{safe_title}"
+
+        result = client.run_container(
             challenge.docker_image,
             port=challenge.port,
-            container_name=f"{request.user.team.name.replace(' ', '_')}-{challenge.title.replace(' ', '_')}"
+            container_name=c_name
+        )
+        
+        if not result:
+            return Response(
+                {'error': 'Failed to start Docker container. It may already be running or the image may be invalid.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+        container_id, password = result
+
+        team_obj = request.user.team
+        if not team_obj:
+            from atlas_backend.models import Team
+            team_obj, _ = Team.objects.get_or_create(name='admin_testing_team')
+        
+        from django.db import IntegrityError
+        container, created = Container.objects.update_or_create(
+            container_id=c_name,
+            defaults={
+                'team': team_obj,
+                'challenge': challenge,
+                'ssh_host': 'internal',
+                'ssh_port': 22,
+                'ssh_user': challenge.ssh_user or 'atlas',
+                'ssh_password': password,
+            }
         )
 
-        import time
-        timeout = 30
-        start_time = time.time()
-        while True:
-            ports = client.get_container_ports(container_id)
-            if ports:
-                break
-            time.sleep(1)
-            if time.time() - start_time > timeout:
-                return Response(
-                    {'error': 'Timeout waiting for container ports'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-        container = Container.objects.create(
-            team=request.user.team,
-            challenge=challenge,
-            container_id=container_id,
-            ssh_host=settings.SSH_HOST_URL,
-            ssh_port=ports[f'{challenge.port}/tcp'][0]['HostPort'],
-            ssh_user=challenge.ssh_user,
-            ssh_password=password,
-        )
-
-        if challenge.ssh_user:
-            return Response({
-                'host': container.ssh_host,
-                'port': container.ssh_port,
-                'ssh_user': container.ssh_user,
-                'ssh_password': container.ssh_password,
-                'created_at': container.created_at
-            })
-        else:
-            return Response({
-                'host': container.ssh_host,
-                'port': container.ssh_port,
-                'created_at': container.created_at
-            })
+        return Response({
+            'status': 'ready',
+            'created_at': container.created_at
+        })
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -974,14 +981,47 @@ def create_challenge(request):
         if request.FILES.get('docker_image'):
             try:
                 client = DockerPlugin(base_url=settings.DOCKER_HOST,key_file=settings.SSH_KEY_FILE)
-                image_id = client.add_image(request.FILES['docker_image'].read())
+                image_data = request.FILES['docker_image'].read()
+                if not image_data:
+                    return Response(
+                        {"error": "Docker image file is empty"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                image_id = client.add_image(image_data)
+                if not image_id:
+                    return Response(
+                        {"error": "Failed to load Docker image - invalid or corrupt .tar file"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             except Exception as e:
+                logger.error(f"Docker image upload failed: {e}")
                 return Response(
-                    {"error": "Failed to add Docker image", "exception": f"{str(e)}"},
+                    {"error": f"Failed to add Docker image: {str(e)}"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-        max_attempts = data.get('max_attempts')
+        max_attempts = data.get('max_attempts', 100)
+
+        # Parse hints and file_links — they arrive as JSON strings from FormData
+        hints = data.get('hints', '[]')
+        if isinstance(hints, str):
+            import json as _json
+            try:
+                hints = _json.loads(hints)
+            except (ValueError, TypeError):
+                hints = []
+
+        file_links = data.get('file_links', '[]')
+        if isinstance(file_links, str):
+            import json as _json
+            try:
+                file_links = _json.loads(file_links)
+            except (ValueError, TypeError):
+                file_links = []
+
+        # Get ssh_user — use the value from the form, fallback to None
+        ssh_user = data.get('ssh_user', '').strip() or None
+
         # Create challenge
         challenge = Challenge.objects.create(
             title=title,
@@ -990,13 +1030,13 @@ def create_challenge(request):
             docker_image=image_id if image_id else '',
             flag=data['flag'],
             max_points=int(data['max_points']),
-            max_team_size=3,
+            max_team_size=int(data.get('max_team_size', 3)),
             max_attempts=max_attempts,
-            is_hidden=is_hidden,  # Use converted boolean
-            hints=data.get('hints', []),
-            file_links=data.get('file_links', []),
+            is_hidden=is_hidden,
+            hints=hints,
+            file_links=file_links,
             port=data.get('port', 22),
-            ssh_user=data.get('ssh_user', None),
+            ssh_user=ssh_user,
         )
 
         return Response({
