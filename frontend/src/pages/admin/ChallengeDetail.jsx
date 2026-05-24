@@ -181,6 +181,7 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
             <div className="flex items-center space-x-2">
               <input
                 type="file"
+                name="docker_image"
                 id="docker-image-upload"
                 accept=".tar,.tar.gz"
                 onChange={handleChange}

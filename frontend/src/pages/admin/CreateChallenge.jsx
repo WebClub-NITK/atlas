@@ -205,6 +205,8 @@ function CreateChallenge() {
             <div className="flex items-center space-x-4">
               <input
                 type="file"
+                name="docker_image"
+                id="docker-image-upload"
                 accept=".tar,.tar.gz"
                 onChange={handleFileChange}
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"

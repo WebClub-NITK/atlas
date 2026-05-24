@@ -15,7 +15,7 @@ ALLOWED_CHARACTERS = (
 
 class DockerPlugin:
     def __init__(self, base_url: str = "unix://var/run/docker.sock", key_file: str = None):
-        if key_file is None:
+        if not key_file:
             self.docker_client = DockerClient(base_url=base_url)
         else:
             class MySSHHTTPAdapter(SSHHTTPAdapter):
@@ -44,6 +44,14 @@ class DockerPlugin:
 
     def run_container(self, image: str, port: int, container_name: str = None):
         try:
+            # First, try to remove any existing container with the same name
+            if container_name:
+                try:
+                    old_container = self.docker_client.containers.get(container_name)
+                    old_container.remove(force=True)
+                except APIError:
+                    pass
+
             password = "".join(
                 secrets.choice(ALLOWED_CHARACTERS) for _ in range(16)
             )
@@ -61,7 +69,7 @@ class DockerPlugin:
                 tty=True,
                 name=container_name,
                 environment={"PASS": password},
-                ports={f"{port}/tcp": None},
+                network="atlas_internal_net",
                 cpu_quota=resources["cpu_quota"],
                 cpu_period=resources["cpu_period"],
                 mem_limit=resources["memory"],

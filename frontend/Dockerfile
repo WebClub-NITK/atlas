@@ -1,8 +1,8 @@
 # Use node.js as base image
 FROM node:23.1-alpine3.19
 
-# Install pnpm 
-RUN npm install -g pnpm
+# Install pnpm (pinned to v9 for Node 23.1 compatibility)
+RUN npm install -g pnpm@9
 
 # Set working directory
 WORKDIR /app
@@ -11,7 +11,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # INstall dependencies
-RUN pnpm install
+RUN pnpm install --no-frozen-lockfile
 
 # Copy rest of the application
 COPY . .

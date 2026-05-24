@@ -19,13 +19,11 @@ RUN pip install --no-cache-dir --upgrade pip
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy entrypoint
-COPY code/entrypoint.sh /app/code/entrypoint.sh
-RUN sed -i 's/\r$//g' /app/code/entrypoint.sh
-RUN chmod +x /app/code/entrypoint.sh
-
-# Copy project
 COPY . .
+
+# Fix line endings and permissions for entrypoint script AFTER copying all files
+RUN sed -i 's/\r$//g' /app/code/entrypoint.sh && \
+    chmod +x /app/code/entrypoint.sh
 
 # Expose port
 EXPOSE 8000
