@@ -1,6 +1,15 @@
 import axios from 'axios';
 
-export const API_URL = `${process.env.HOST_URL}:8000`;
+const getDefaultApiUrl = () => {
+  if (typeof window === 'undefined') {
+    return 'http://localhost:8000';
+  }
+
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${hostname}:8000`;
+};
+
+export const API_URL = import.meta.env.VITE_API_URL || getDefaultApiUrl();
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -12,6 +21,10 @@ const apiClient = axios.create({
 // Add request interceptor to include auth token
 apiClient.interceptors.request.use(
   (config) => {
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     const tokenString = localStorage.getItem('token');
     if (tokenString) {
       const { access } = JSON.parse(tokenString);
