@@ -27,18 +27,26 @@ SECRET_KEY = (
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv("DEBUG", "0") == "1"
 
 HOST_URL = os.getenv("HOST_URL", "http://localhost")
 DOCKER_HOST_URL = os.getenv('DOCKER_HOST_URL', "unix://var/run/docker.sock")
-SSH_HOST_URL = os.getenv('DOCKER_HOST_URL', HOST_URL)
+SSH_HOST_URL = os.getenv('SSH_HOST_URL', HOST_URL)
 KEY_FILE_PATH = os.getenv('KEY_FILE_PATH', None)
 
-ALLOWED_HOSTS = [HOST_URL]
+# Aliases used by views (start_challenge, create_challenge)
+DOCKER_HOST = DOCKER_HOST_URL
+SSH_KEY_FILE = KEY_FILE_PATH
+
+# Extract hostname from HOST_URL for ALLOWED_HOSTS (Django expects hostnames, not URLs)
+from urllib.parse import urlparse
+_parsed_host = urlparse(HOST_URL).hostname or "localhost"
+ALLOWED_HOSTS = [_parsed_host, "localhost", "127.0.0.1"]
 
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -47,6 +55,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "corsheaders",
+    "channels",
     "atlas_backend",  # Your app
 ]
 
@@ -91,6 +100,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "backend.wsgi.application"
+ASGI_APPLICATION = "backend.asgi.application"
 
 DATABASES = {
     "default": {
