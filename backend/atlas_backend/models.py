@@ -7,6 +7,11 @@ from django.core.validators import RegexValidator
 import re
 import uuid
 
+
+def default_team_password():
+    return make_password("default_password")
+
+
 def validate_team_name(value):
     pattern = r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$'
     if not re.match(pattern, value):
@@ -27,7 +32,7 @@ class Team(models.Model):
     challenges = models.ManyToManyField("Challenge", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    password = models.CharField(max_length=128, default=make_password('default_password'))
+    password = models.CharField(max_length=128, default=default_team_password)
     team_score = models.IntegerField(default=0)
     is_banned = models.BooleanField(default=False)
     is_hidden = models.BooleanField(default=False)
