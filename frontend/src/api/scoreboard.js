@@ -10,4 +10,14 @@ export const getScoreboard = async () => {
   }
 };
 
+export const getScoreboardTimeline = async () => {
+  try {
+    const response = await apiClient.get('/scoreboard/timeline');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching scoreboard timeline:', error);
+    throw error;
+  }
+};
+
 
