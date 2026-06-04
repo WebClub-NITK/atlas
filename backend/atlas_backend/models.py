@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.hashers import make_password, check_password
 from django.db.models import CharField, TextField, IntegerField, BooleanField, DateTimeField
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 import re
 import uuid
 

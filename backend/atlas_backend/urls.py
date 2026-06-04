@@ -31,6 +31,7 @@ urlpatterns = [
 
     # Scoreboard route
     path('scoreboard', views.get_scoreboard, name='get_scoreboard'),
+    path('scoreboard/timeline', views.get_scoreboard_timeline, name='get_scoreboard_timeline'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
 

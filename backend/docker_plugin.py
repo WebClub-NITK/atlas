@@ -44,6 +44,13 @@ class DockerPlugin:
 
     def run_container(self, image: str, port: int, container_name: str = None):
         try:
+            if container_name:
+                try:
+                    old_container = self.docker_client.containers.get(container_name)
+                    old_container.remove(force=True)
+                except:
+                    pass
+
             password = "".join(
                 secrets.choice(ALLOWED_CHARACTERS) for _ in range(16)
             )
@@ -57,7 +64,7 @@ class DockerPlugin:
             container = self.docker_client.containers.run(
                 image,
                 detach=True,
-                auto_remove=True,
+                restart_policy={"Name": "on-failure", "MaximumRetryCount": 3},
                 tty=True,
                 name=container_name,
                 environment={"PASS": password},
@@ -69,7 +76,10 @@ class DockerPlugin:
             return container.id, password
         except APIError as error:
             logging.error(error)
-        return None
+            raise error # Re-raise to prevent 'NoneType' unpacking errors down the line
+        except Exception as error:
+            logging.error(error)
+            raise error
 
     def stop_container(self, container_id: str):
         try:
@@ -79,6 +89,14 @@ class DockerPlugin:
         except APIError as error:
             logging.error(error)
         return False
+
+    def get_container_status(self, container_id: str):
+        try:
+            container = self.docker_client.containers.get(container_id)
+            return container.status
+        except Exception as error:
+            logging.error(error)
+        return 'not_found'
 
     def restart_container(self, container_id: str):
         try:

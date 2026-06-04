@@ -27,12 +27,14 @@ SECRET_KEY = (
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-HOST_URL = os.getenv("HOST_URL", "http://localhost")
+HOST_URL = os.getenv("HOST_URL", "localhost")
 DOCKER_HOST_URL = os.getenv('DOCKER_HOST_URL', "unix://var/run/docker.sock")
 SSH_HOST_URL = os.getenv('DOCKER_HOST_URL', HOST_URL)
 KEY_FILE_PATH = os.getenv('KEY_FILE_PATH', None)
+DOCKER_HOST = DOCKER_HOST_URL
+SSH_KEY_FILE = KEY_FILE_PATH
 
 ALLOWED_HOSTS = [HOST_URL]
 
@@ -64,13 +66,8 @@ MIDDLEWARE = [
 
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    HOST_URL,
-]
-
-CSRF_TRUSTED_ORIGINS = [
-    HOST_URL,
-]
+CSRF_TRUSTED_ORIGINS = [f"http://{HOST_URL}"]
+CORS_ALLOWED_ORIGINS = [f"http://{HOST_URL}"]
 
 ROOT_URLCONF = "backend.urls"
 
@@ -173,10 +170,14 @@ USE_TZ = True
 # Static and media files
 STATIC_URL = "/static/"
 MEDIA_URL = "/media/"
+
+# 👇 ALWAYS define STATIC_ROOT
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+# 👇 Only for DEBUG (optional)
 if DEBUG:
     STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-else:
-    STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Default primary key field type

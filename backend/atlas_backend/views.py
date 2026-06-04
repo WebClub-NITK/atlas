@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, Max
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 import jwt
@@ -20,6 +20,8 @@ from .models import User, Challenge, Submission, Team, Container, HintPurchase, 
 from .serializers import SignupSerializer, ChallengeSerializer, TeamSerializer, SubmissionSerializer, UserSerializer
 import re
 from docker_plugin import DockerPlugin
+from rest_framework.exceptions import ValidationError as DRFValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
 import logging
 
 logger = logging.getLogger('atlas_backend')
@@ -102,7 +104,7 @@ def create_team_api(request):
         # Validate team name
         try:
             validate_team_name(team_name)
-        except ValidationError as e:
+        except (DjangoValidationError,DRFValidationError) as e:
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
@@ -829,7 +831,8 @@ def get_scoreboard(request):
         teams = Team.objects.annotate(
             member_count=Count('members', distinct=True),
             solved_count=Count('submissions', filter=Q(
-                submissions__is_correct=True))
+                submissions__is_correct=True)),
+            last_solve_time=Max('submissions__timestamp', filter=Q(submissions__is_correct=True))
         ).order_by('-team_score')  # Use team_score field directly
 
         scoreboard_data = []
@@ -841,13 +844,51 @@ def get_scoreboard(request):
                 'total_score': team.team_score, 
                 'member_count': team.member_count,
                 'solved_challenges': team.solved_count,
-                'last_solve': team.submissions.filter(
-                    is_correct=True
-                ).order_by('-timestamp').first().timestamp if team.solved_count > 0 else None
+                'last_solve': team.last_solve_time if team.solved_count > 0 else None
             }
             scoreboard_data.append(team_data)
 
         return Response(scoreboard_data)
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_scoreboard_timeline(request):
+    """Get timeline of scores for all teams for analytics graphs"""
+    try:
+        if not request.user.team:
+            return Response(
+                {'error': 'You must be in a team to view the scoreboard'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        submissions = Submission.objects.filter(is_correct=True).select_related('team').order_by('timestamp')
+        
+        team_timelines = {}
+        for sub in submissions:
+            team_id = sub.team.id
+            if team_id not in team_timelines:
+                team_timelines[team_id] = {
+                    'team_id': team_id,
+                    'team_name': sub.team.name,
+                    'timeline': []
+                }
+            
+            # calculate current score at this timestamp
+            current_score = sum(s['points_awarded'] for s in team_timelines[team_id]['timeline']) + sub.points_awarded
+            
+            team_timelines[team_id]['timeline'].append({
+                'timestamp': sub.timestamp.isoformat(),
+                'score': current_score,
+                'points_awarded': sub.points_awarded,
+                'challenge_id': sub.challenge.id
+            })
+            
+        return Response(list(team_timelines.values()))
     except Exception as e:
         return Response(
             {'error': str(e)},
