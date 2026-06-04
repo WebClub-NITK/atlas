@@ -17,7 +17,7 @@ services:
       interval: 3s
       timeout: 60s
       retries: 5
-    restart : always
+    restart: always
 
   pgadmin:
     image: dpage/pgadmin4
@@ -41,7 +41,7 @@ services:
       dockerfile: Dockerfile
     container_name: atlas_frontend
     ports:
-      - "80:4173"
+      - "5173:4173"
     env_file:
       - .env
     networks:
@@ -64,6 +64,10 @@ services:
     restart: always
     depends_on:
       - db
+
+    # 👇 THIS IS THE FIX
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
   postgres_data:
