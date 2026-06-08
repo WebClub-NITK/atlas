@@ -69,8 +69,10 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DEBUG=1
+      - CHALLENGE_NETWORK=${CHALLENGE_NETWORK:-atlas-challenges}
     networks:
       - app-network
+      - challenge-net
     restart: always
     depends_on:
       - db
@@ -82,3 +84,12 @@ volumes:
 networks:
   app-network:
     driver: bridge
+  challenge-net:
+    # Explicit name: challenge containers are started via the host docker
+    # socket (siblings, not compose services), so they must join this network
+    # by its real name rather than the compose-prefixed one.
+    name: ${CHALLENGE_NETWORK:-atlas-challenges}
+    driver: bridge
+    # No route to the outside world: challenge containers are reachable only
+    # from services on this network (the backend's WebSocket-SSH proxy).
+    internal: true

@@ -17,7 +17,7 @@ services:
       interval: 3s
       timeout: 60s
       retries: 5
-    restart : always
+    restart: unless-stopped
 
   pgadmin:
     image: dpage/pgadmin4
@@ -31,7 +31,7 @@ services:
       - pgadmin_data:/var/lib/pgadmin
     networks:
       - app-network
-    restart: always
+    restart: unless-stopped
     depends_on:
       - db
 
@@ -46,7 +46,7 @@ services:
       - .env
     networks:
       - app-network
-    restart: always
+    restart: unless-stopped
     depends_on:
       - backend
 
@@ -62,11 +62,13 @@ services:
     env_file:
       - .env
     environment:
+      CHALLENGE_NETWORK: ${CHALLENGE_NETWORK:-atlas-challenges}
       DB_HOST: ${DB_HOST:-db}
       DB_PORT: ${DB_PORT:-5432}
     networks:
       - app-network
-    restart: always
+      - challenge-net
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -78,3 +80,12 @@ volumes:
 networks:
   app-network:
     driver: bridge
+  challenge-net:
+    # Explicit name: challenge containers are started via the host docker
+    # socket (siblings, not compose services), so they must join this network
+    # by its real name rather than the compose-prefixed one.
+    name: ${CHALLENGE_NETWORK:-atlas-challenges}
+    driver: bridge
+    # No route to the outside world: challenge containers are reachable only
+    # from services on this network (the backend's WebSocket-SSH proxy).
+    internal: true
