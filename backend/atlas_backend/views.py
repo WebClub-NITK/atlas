@@ -595,6 +595,20 @@ def start_challenge(request, challenge_id):
         
     challenge = get_object_or_404(Challenge, id=challenge_id)
     container_name = f"{request.user.team.name.replace(' ', '_')}-{challenge.title.replace(' ', '_')}"
+    # Terminal (docker exec) is the DEFAULT interaction model: the in-browser
+    # terminal (/ws/terminal/<id>/) execs into the container over the Docker
+    # API — no SSH, no published port. A challenge is only treated as a
+    # published-port *service* challenge when it explicitly declares a service
+    # port AND has no shell user set. This makes the safe mode the default: a
+    # half-configured challenge gets a working terminal instead of silently
+    # exposing a dead host port.
+    #
+    # ssh_user, when set, names the unprivileged user to exec as; for terminal
+    # challenges it defaults to "atlas" (matching the challenge image's own
+    # default), so forgetting the field no longer breaks the challenge.
+    is_service = bool(challenge.port) and not challenge.ssh_user
+    uses_terminal = not is_service
+    exec_user = (challenge.ssh_user or 'atlas') if uses_terminal else ''
 
     existing_container = Container.objects.filter(
         team=request.user.team,
@@ -604,13 +618,13 @@ def start_challenge(request, challenge_id):
 
     if existing_container:
         response_data = {
-            'host': existing_container.ssh_host,
-            'port': existing_container.ssh_port,
+            'status': 'running',
+            'terminal': bool(existing_container.ssh_user),
             'created_at': existing_container.created_at,
         }
-        if existing_container.ssh_user:
-            response_data['ssh_user'] = existing_container.ssh_user
-            response_data['ssh_password'] = existing_container.ssh_password
+        if not existing_container.ssh_user:
+            response_data['host'] = existing_container.ssh_host
+            response_data['port'] = existing_container.ssh_port
         return Response(response_data)
 
     try:
@@ -618,62 +632,71 @@ def start_challenge(request, challenge_id):
         # If a previous attempt leaked a container without a DB row, remove it
         # before starting a replacement with the same deterministic name.
         client.stop_container(container_name)
+        # Any leftover records are stale (outside the reuse window) and point
+        # at the container stopped above; drop them so the terminal proxy
+        # can't connect to a dead host.
+        Container.objects.filter(team=request.user.team, challenge=challenge).delete()
 
         result = client.run_container(
             challenge.docker_image,
             port=challenge.port,
             container_name=container_name,
-            environment={
-                'SSH_USER': challenge.ssh_user,
-            } if challenge.ssh_user else None,
+            environment={'SSH_USER': exec_user} if uses_terminal else None,
+            network=settings.CHALLENGE_NETWORK if uses_terminal else None,
+            publish_port=not uses_terminal,
         )
         if not result:
             raise Exception("Failed to start challenge container")
 
         container_id, password = result
 
-        import time
-        timeout = 30
-        start_time = time.time()
-        while True:
-            ports = client.get_container_ports(container_id)
-            if ports:
-                break
-            time.sleep(1)
-            if time.time() - start_time > timeout:
-                client.stop_container(container_id)
-                return Response(
-                    {'error': 'Timeout waiting for container ports'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+        if uses_terminal:
+            # The terminal execs in by container id over the docker socket, so
+            # no host/port is needed; these columns are kept only to satisfy
+            # the existing schema. The container stays on the internal network
+            # (no host exposure, no outbound internet).
+            ssh_host = container_name
+            ssh_port = challenge.port or 22
+        else:
+            timeout = 30
+            start_time = time.time()
+            while True:
+                ports = client.get_container_ports(container_id)
+                if ports:
+                    break
+                time.sleep(1)
+                if time.time() - start_time > timeout:
+                    client.stop_container(container_id)
+                    return Response(
+                        {'error': 'Timeout waiting for container ports'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+            ssh_host = settings.SSH_HOST_URL
+            ssh_port = ports[f'{challenge.port}/tcp'][0]['HostPort']
+
         try:
             container = Container.objects.create(
                 team=request.user.team,
                 challenge=challenge,
                 container_id=container_id,
-                ssh_host=settings.SSH_HOST_URL,
-                ssh_port=ports[f'{challenge.port}/tcp'][0]['HostPort'],
-                ssh_user=challenge.ssh_user or '',
+                ssh_host=ssh_host,
+                ssh_port=ssh_port,
+                ssh_user=exec_user,
                 ssh_password=password,
             )
         except Exception:
             client.stop_container(container_id)
             raise
 
-        if challenge.ssh_user:
-            return Response({
-                'host': container.ssh_host,
-                'port': container.ssh_port,
-                'ssh_user': container.ssh_user,
-                'ssh_password': container.ssh_password,
-                'created_at': container.created_at
-            })
-        else:
-            return Response({
-                'host': container.ssh_host,
-                'port': container.ssh_port,
-                'created_at': container.created_at
-            })
+        response_data = {
+            'status': 'running',
+            'terminal': uses_terminal,
+            'created_at': container.created_at,
+        }
+        if not uses_terminal:
+            response_data['host'] = container.ssh_host
+            response_data['port'] = container.ssh_port
+        return Response(response_data)
 
     except Exception as e:
         return Response(
@@ -694,11 +717,12 @@ def stop_challenge(request, challenge_id):
 
         challenge = get_object_or_404(Challenge, id=challenge_id)
 
+        # No freshness window here: a container must be stoppable for as long
+        # as its record exists, otherwise it leaks once the reuse window ends.
         existing_container = Container.objects.filter(
             team=request.user.team,
             challenge=challenge,
-            created_at__gte=timezone.now() - timedelta(minutes=10)
-        ).first()
+        ).order_by('-created_at').first()
 
         if existing_container:
             client = DockerPlugin(base_url=settings.DOCKER_HOST,key_file=settings.SSH_KEY_FILE)

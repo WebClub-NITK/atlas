@@ -40,6 +40,11 @@ DOCKER_HOST_URL = DOCKER_HOST
 SSH_HOST_URL = os.getenv('SSH_HOST_URL', HOST_URL)
 SSH_KEY_FILE = os.getenv('KEY_FILE_PATH') or None
 KEY_FILE_PATH = SSH_KEY_FILE
+# Internal docker network for terminal challenge containers: no host exposure
+# and (internal: true) no outbound internet. The terminal itself reaches them
+# via `docker exec`, not this network. Must match the challenge-net "name:" in
+# docker-compose.yml.
+CHALLENGE_NETWORK = os.getenv('CHALLENGE_NETWORK', 'atlas-challenges')
 HOST_NAME = urlparse(HOST_URL).hostname or HOST_URL
 
 ALLOWED_HOSTS = [HOST_NAME, "localhost", "127.0.0.1", "backend"]
@@ -47,6 +52,7 @@ ALLOWED_HOSTS = [HOST_NAME, "localhost", "127.0.0.1", "backend"]
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",  # ASGI server; must come first so runserver speaks ASGI/WebSocket
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -55,6 +61,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "corsheaders",
+    "channels",
     "atlas_backend",  # Your app
 ]
 
@@ -99,6 +106,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "backend.wsgi.application"
+ASGI_APPLICATION = "backend.asgi.application"
 
 DATABASES = {
     "default": {

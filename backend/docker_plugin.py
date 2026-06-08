@@ -45,9 +45,11 @@ class DockerPlugin:
     def run_container(
         self,
         image: str,
-        port: int,
+        port: int | None = None,
         container_name: str = None,
         environment: dict | None = None,
+        network: str | None = None,
+        publish_port: bool = False,
     ):
         try:
             password = "".join(
@@ -64,6 +66,17 @@ class DockerPlugin:
             if environment:
                 runtime_environment.update(environment)
 
+            extra_kwargs = {}
+            if network:
+                # Attach to the internal challenge network: the container is
+                # reachable from the backend by container name (docker DNS),
+                # with no ports published on the host.
+                extra_kwargs["network"] = network
+            if publish_port and port:
+                # Non-SSH challenges: publish the service port on a random
+                # host port so users can reach it directly.
+                extra_kwargs["ports"] = {f"{port}/tcp": None}
+
             container = self.docker_client.containers.run(
                 image,
                 detach=True,
@@ -71,10 +84,10 @@ class DockerPlugin:
                 tty=True,
                 name=container_name,
                 environment=runtime_environment,
-                ports={f"{port}/tcp": None},
                 cpu_quota=resources["cpu_quota"],
                 cpu_period=resources["cpu_period"],
                 mem_limit=resources["memory"],
+                **extra_kwargs,
             )
             return container.id, password
         except APIError as error:
@@ -122,3 +135,52 @@ class DockerPlugin:
         except APIError as error:
             logging.error(error)
         return None
+
+    def start_exec(
+        self,
+        container_id: str,
+        user: str | None = None,
+        cmd=("/bin/sh",),
+        rows: int = 24,
+        cols: int = 80,
+    ):
+        """Open an interactive `docker exec` shell and return (exec_id, socket).
+
+        The socket is a raw, bidirectional stream (TTY mode, not multiplexed):
+        write keystrokes with ``sendall`` and read terminal output with
+        ``recv``. Used by the WebSocket terminal proxy instead of SSH. Raises
+        on failure so the caller can reject the connection.
+        """
+        api = self.docker_client.api
+        exec_id = api.exec_create(
+            container_id,
+            cmd=list(cmd),
+            stdin=True,
+            stdout=True,
+            stderr=True,
+            tty=True,
+            # Run as the unprivileged challenge user, never root — otherwise a
+            # player could read every flag.txt regardless of its 0600 owner.
+            user=user or "",
+            environment=["TERM=xterm-256color"],
+        )["Id"]
+        sock_io = api.exec_start(exec_id, tty=True, socket=True, demux=False)
+        # docker-py wraps the hijacked connection in a socket.SocketIO; the
+        # underlying socket.socket (which owns the fd) is on ._sock and exposes
+        # recv()/sendall()/close().
+        raw_socket = getattr(sock_io, "_sock", sock_io)
+        try:
+            api.exec_resize(exec_id, height=rows, width=cols)
+        except APIError as error:
+            logging.error(error)
+        return exec_id, raw_socket
+
+    def resize_exec(self, exec_id: str, rows: int, cols: int):
+        try:
+            self.docker_client.api.exec_resize(
+                exec_id, height=rows, width=cols
+            )
+            return True
+        except APIError as error:
+            logging.error(error)
+        return False

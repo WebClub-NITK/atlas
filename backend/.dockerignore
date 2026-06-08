@@ -1,0 +1,16 @@
+# Keep build-time and local-only cruft out of the image.
+__pycache__/
+*.py[cod]
+*.egg-info
+.venv
+venv
+env
+.env
+*.sqlite3
+.git
+.gitignore
+.dockerignore
+Dockerfile
+.DS_Store
+.vscode
+.idea
