@@ -1,21 +1,22 @@
 FROM alpine:latest
 
-# Make sure to include ssh-server with anyother dependencies you need and keep in mind the user cannot install any package on the fly and ideally wont have root access
-RUN apk add --no-cache openssh-server && \
-    adduser -D atlas && \
-    ssh-keygen -A
+# No SSH server: the in-browser terminal reaches this container via
+# `docker exec`, not a network login. Keep the image minimal. The
+# unprivileged login user is created at build time and can be overridden at
+# runtime via the SSH_USER env var. The user cannot install packages on the
+# fly and should not have root access.
+RUN adduser -D atlas
 
 WORKDIR /home/atlas/
 
 COPY challenge.sh /home/atlas/challenge.sh
 RUN chmod +x /home/atlas/challenge.sh
 
-USER atlas
+# Do unprivileged build steps here if you need them, e.g.:
+#   USER atlas
+#   RUN ...
+#   USER root
 
-# Do your build here
-
-USER root
-# since the sshd process requires root access to start change user root before ending the build
-# The startup script can also be changed as long as use remember to set your user password (need not be atlas can be anything like a hint) and  
-
+# The entrypoint runs as root so it can create the runtime user and lock down
+# flag permissions; the terminal itself execs in as the unprivileged user.
 CMD [ "/bin/sh", "-c", "/home/atlas/challenge.sh" ]

@@ -182,6 +182,7 @@ function EditChallengeModal({ challenge, onClose, onSave }) {
               <input
                 type="file"
                 id="docker-image-upload"
+                name="docker_image"
                 accept=".tar,.tar.gz"
                 onChange={handleChange}
                 className="hidden"

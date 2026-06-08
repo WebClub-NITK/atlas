@@ -1,0 +1,7 @@
+# pnpm requires explicit approval before running dependency build scripts.
+# esbuild (vite's bundler) uses a postinstall script to set up its platform binary.
+# allowBuilds is the pnpm >=11 setting; onlyBuiltDependencies covers pnpm 10.
+allowBuilds:
+  esbuild: true
+onlyBuiltDependencies:
+  - esbuild

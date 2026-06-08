@@ -30,6 +30,6 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Run the backend server
+# Run the backend server (daphne serves both HTTP and WebSocket via ASGI)
 ENTRYPOINT [ "/app/code/entrypoint.sh" ]
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "backend.asgi:application"]

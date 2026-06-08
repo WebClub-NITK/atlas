@@ -1,0 +1,15 @@
+# Never copy the host's node_modules into the image: it carries the wrong
+# platform's binaries and a different pnpm store layout, which makes pnpm try
+# to wipe and reinstall node_modules mid-build (fails with no TTY).
+node_modules
+dist
+.git
+.gitignore
+.dockerignore
+Dockerfile
+Dockerfile.dev
+*.log
+npm-debug.log*
+.DS_Store
+.vscode
+.idea
