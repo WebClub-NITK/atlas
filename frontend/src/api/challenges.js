@@ -57,6 +57,16 @@ export const startChallenge = async (challengeId) => {
   }
 };
 
+export const stopChallenge = async (challengeId) => {
+  try {
+    const response = await apiClient.post(`/challenges/${challengeId}/stop`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to stop container');
+    throw error;
+  }
+};
+
 // Admin challenge APIs
 export const getAdminChallenges = async () => {
   try {

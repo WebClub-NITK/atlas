@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { getChallengeById_Team, startChallenge, submitFlag, purchaseHint } from '../api/challenges';
+import { getChallengeById_Team, startChallenge, stopChallenge, submitFlag, purchaseHint } from '../api/challenges';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ChallengeTerminal from '../components/ChallengeTerminal';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -14,11 +15,12 @@ function ChallengeDetail() {
   const navigate = useNavigate();
   const {isDarkMode}=useTheme();
   const [challenge, setChallenge] = useState(null);
-  const [sshDetails, setSshDetails] = useState(null);
+  const [containerInfo, setContainerInfo] = useState(null);
   const [flag, setFlag] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [challengeStarted, setChallengeStarted] = useState(false);
+  const [stopInProgress, setStopInProgress] = useState(false);
   const [purchaseInProgress, setPurchaseInProgress] = useState(false);
   const [remainingPoints, setRemainingPoints] = useState(null);
 
@@ -68,12 +70,28 @@ function ChallengeDetail() {
   const handleStartChallenge = async () => {
     try {
       const details = await startChallenge(challengeId);
-      setSshDetails(details);
+      setContainerInfo(details);
       setChallengeStarted(true);
       setError(null);
     } catch (error) {
       console.error('Error starting challenge:', error);
-      setError('Failed to start challenge');
+      setError(error.response?.data?.error || 'Failed to start challenge');
+    }
+  };
+
+  const handleStopChallenge = async () => {
+    if (stopInProgress) return;
+    try {
+      setStopInProgress(true);
+      await stopChallenge(challengeId);
+      setContainerInfo(null);
+      setChallengeStarted(false);
+      setError(null);
+    } catch (error) {
+      console.error('Error stopping challenge:', error);
+      setError(error.response?.data?.error || 'Failed to stop challenge');
+    } finally {
+      setStopInProgress(false);
     }
   };
 
@@ -189,14 +207,31 @@ function ChallengeDetail() {
                   Start Docker Challenge
                 </button>
               ) : (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="text-lg font-semibold text-neutral-800 mb-2">SSH Connection Details:</h4>
-                  <div className="space-y-1 text-neutral-700">
-                    <p>Host: {sshDetails?.host}</p>
-                    <p>Port: {sshDetails?.port}</p>
-                    <p>Username: {sshDetails?.ssh_user}</p>
-                    <p>Password: {sshDetails?.ssh_password}</p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-semibold text-neutral-800">
+                      {containerInfo?.terminal ? 'Challenge Terminal' : 'Connection Details'}
+                    </h4>
+                    <button
+                      onClick={handleStopChallenge}
+                      disabled={stopInProgress}
+                      className={`px-3 py-1.5 text-sm text-white rounded transition-colors ${
+                        stopInProgress ? 'bg-gray-400' : 'bg-red-500 hover:bg-red-600'
+                      }`}
+                    >
+                      {stopInProgress ? 'Stopping…' : 'Stop Challenge'}
+                    </button>
                   </div>
+                  {containerInfo?.terminal ? (
+                    <ChallengeTerminal challengeId={challengeId} />
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="space-y-1 text-neutral-700">
+                        <p>Host: {containerInfo?.host}</p>
+                        <p>Port: {containerInfo?.port}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
